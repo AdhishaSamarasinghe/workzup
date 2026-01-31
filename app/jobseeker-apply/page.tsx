@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 const jobData = {
   title: "Event Staff for Tech Conference",
   company: "Innovate Events Inc.",
@@ -9,6 +13,44 @@ const jobData = {
 };
 
 export default function JobseekerApplyPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
+  const [cvFileName, setCvFileName] = useState<string | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setStatusMessage(null);
+    setIsSuccess(null);
+
+    try {
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+
+      const response = await fetch("/api/apply", {
+        method: "POST",
+        body: formData,
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Submission failed.");
+      }
+
+      setIsSuccess(true);
+      setStatusMessage("Application submitted successfully.");
+      form.reset();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Something went wrong.";
+      setIsSuccess(false);
+      setStatusMessage(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="bg-[#F8FAFC]">
       <section className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
@@ -94,7 +136,11 @@ export default function JobseekerApplyPage() {
               you soon.
             </p>
 
-            <form className="mt-6 space-y-5">
+            <form
+              className="mt-6 space-y-5"
+              onSubmit={handleSubmit}
+              encType="multipart/form-data"
+            >
               <div className="space-y-2">
                 <label htmlFor="fullName" className="text-sm font-medium text-[#111827]">
                   Full Name
@@ -104,6 +150,7 @@ export default function JobseekerApplyPage() {
                   name="fullName"
                   type="text"
                   placeholder="Enter your full name"
+                  required
                   className="w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#6D83F2] focus:outline-none focus:ring-2 focus:ring-[#6D83F2]/30"
                 />
               </div>
@@ -117,6 +164,7 @@ export default function JobseekerApplyPage() {
                   name="email"
                   type="email"
                   placeholder="you@email.com"
+                  required
                   className="w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#6D83F2] focus:outline-none focus:ring-2 focus:ring-[#6D83F2]/30"
                 />
               </div>
@@ -130,6 +178,7 @@ export default function JobseekerApplyPage() {
                   name="phone"
                   type="tel"
                   placeholder="(555) 123-4567"
+                  required
                   className="w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#6D83F2] focus:outline-none focus:ring-2 focus:ring-[#6D83F2]/30"
                 />
               </div>
@@ -142,12 +191,25 @@ export default function JobseekerApplyPage() {
                   htmlFor="cv"
                   className="flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-[#CBD5F5] bg-[#F8FAFC] px-4 py-3 text-sm text-[#6B7280]"
                 >
-                  <span>Drag and drop or click to upload</span>
+                  <span>
+                    {cvFileName ? cvFileName : "Drag and drop or click to upload"}
+                  </span>
                   <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
                     Browse
                   </span>
                 </label>
-                <input id="cv" name="cv" type="file" className="hidden" />
+                <input
+                  id="cv"
+                  name="cv"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="hidden"
+                  required
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    setCvFileName(file ? file.name : null);
+                  }}
+                />
               </div>
 
               <div className="space-y-2">
@@ -159,16 +221,28 @@ export default function JobseekerApplyPage() {
                   name="coverLetter"
                   rows={5}
                   placeholder="Write a short cover letter..."
+                  required
                   className="w-full resize-none rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#6D83F2] focus:outline-none focus:ring-2 focus:ring-[#6D83F2]/30"
                 />
               </div>
 
               <button
-                type="button"
-                className="w-full rounded-xl bg-[#6D83F2] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#5B73F1]"
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-xl bg-[#6D83F2] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#5B73F1] disabled:cursor-not-allowed disabled:bg-[#9AA9F7]"
               >
-                Submit Application
+                {isSubmitting ? "Submitting..." : "Submit Application"}
               </button>
+
+              {statusMessage && (
+                <p
+                  className={`text-sm font-medium ${
+                    isSuccess ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {statusMessage}
+                </p>
+              )}
             </form>
           </section>
         </div>
