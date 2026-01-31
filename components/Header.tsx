@@ -16,7 +16,7 @@ export default function Header() {
           />
         </Link>
 
-        <nav className="hidden items-center gap-8 text-base font-medium text-[#1F2937] md:flex">
+        <nav className="hidden items-center gap-8 text-base font-medium text-[#1F2937] md:flex md:ml-auto">
           <Link href="#" className="transition-colors hover:text-accent">
             Find Jobs
           </Link>
