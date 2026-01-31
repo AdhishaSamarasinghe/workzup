@@ -57,14 +57,14 @@ export default function SkillsForm({ onContinue, onBack }: SkillsFormProps) {
 
   return (
     <div className="w-full max-w-[500px] mx-auto animate-fadeIn">
-      <div className="bg-white rounded-[20px] px-8 py-7 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+      <div className="bg-[var(--card)] rounded-[var(--radius)] px-8 py-7 shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
         {/* Step indicator */}
         <div className="mb-6">
           <p className="text-sm text-[var(--muted)] mb-2">Step 1 of 3</p>
           <div className="h-[5px] bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-[var(--accent-2)] rounded-full"
-              style={{ width: "100%" }}
+              style={{ width: "33.33%" }}
             ></div>
           </div>
         </div>
@@ -76,8 +76,8 @@ export default function SkillsForm({ onContinue, onBack }: SkillsFormProps) {
 
         {/* Skills Input Container */}
         <div
-          className={`flex flex-wrap items-center gap-2 px-3 py-2 border rounded-lg min-h-[44px] bg-white transition-all duration-200 ${
-            isFocused ? "border-gray-300" : "border-gray-200"
+          className={`flex flex-wrap items-center gap-2 px-3 py-2 border rounded-lg min-h-[44px] bg-[var(--card)] transition-all duration-200 ${
+            isFocused ? "border-[var(--accent)]" : "border-gray-200"
           }`}
         >
           {/* Skill Tags */}
@@ -134,7 +134,7 @@ export default function SkillsForm({ onContinue, onBack }: SkillsFormProps) {
                   key={suggestion}
                   type="button"
                   onClick={() => addSkill(suggestion)}
-                  className="px-3 py-1 bg-white hover:bg-gray-50 rounded-full text-sm text-gray-500 border border-gray-200"
+                  className="px-3 py-1 bg-[var(--card)] hover:bg-gray-50 rounded-full text-sm text-[var(--muted)] border border-gray-200"
                 >
                   {suggestion}
                 </button>
@@ -159,7 +159,7 @@ export default function SkillsForm({ onContinue, onBack }: SkillsFormProps) {
             type="button"
             onClick={handleContinue}
             disabled={skills.length === 0}
-            className="px-5 py-2 bg-[var(--accent)] text-white rounded-lg font-medium text-sm hover:bg-[#5a7ae6] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2 bg-[var(--accent)] text-[var(--card)] rounded-lg font-medium text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue
           </button>

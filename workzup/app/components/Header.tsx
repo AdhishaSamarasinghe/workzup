@@ -9,7 +9,7 @@ export default function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[var(--bg)]">
-      <div className="max-w-[1200px] mx-auto px-10 py-4 flex items-center justify-between">
+      <div className="max-w-[var(--max-width)] mx-auto px-10 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center">
           <Image
@@ -26,7 +26,7 @@ export default function Header() {
         <div className="flex items-center gap-4">
           <Link
             href="/login"
-            className="bg-[var(--accent)] text-white px-6 py-2 rounded-full font-medium text-sm hover:bg-[#5a7ae6] transition-all"
+            className="bg-[var(--accent)] text-[var(--card)] px-6 py-2 rounded-full font-medium text-sm hover:opacity-90 transition-all"
           >
             Login
           </Link>
