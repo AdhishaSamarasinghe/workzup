@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import SearchBar from "@/components/jobs/SearchBar";
 import JobCard from "@/components/jobs/JobCard";
 import Pagination from "@/components/jobs/Pagination";
+import StatsSection from "@/components/jobs/StatsSection";
+import ReviewSection from "@/components/jobs/ReviewSection";
 
 type Job = {
   id: number;
@@ -43,6 +45,22 @@ export default function BrowseJobsPage() {
     fetchJobs();
   }, []);
 
+  const handleClear = () => {
+    setKeyword("");
+    setDistrict("");
+    setPay("");
+    setDate("");
+
+    // Fetch all jobs immediately (empty params)
+    fetch("http://localhost:5000/jobs")
+      .then((res) => res.json())
+      .then((data) => {
+        setJobs(data);
+        setPage(1);
+      })
+      .catch(console.error);
+  };
+
   /* 🔑 AUTO-GENERATED KEYWORDS */
   const keywords = Array.from(new Set(jobs.map((job) => job.title)));
 
@@ -51,6 +69,19 @@ export default function BrowseJobsPage() {
   const start = (page - 1) * jobsPerPage;
   const visibleJobs = jobs.slice(start, start + jobsPerPage);
   const totalPages = Math.ceil(jobs.length / jobsPerPage);
+
+  /* ⏳ AUTO-PAGINATION */
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (totalPages <= 1 || isPaused) return;
+
+    const interval = setInterval(() => {
+      setPage((prev) => (prev >= totalPages ? 1 : prev + 1));
+    }, 5000); // Change page every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [totalPages, isPaused]);
 
   return (
     <div className="bg-[#f7fafc] min-h-screen">
@@ -95,6 +126,7 @@ export default function BrowseJobsPage() {
               date={date}
               setDate={setDate}
               onSearch={fetchJobs}
+              onClear={handleClear}
             />
           </div>
 
@@ -104,9 +136,20 @@ export default function BrowseJobsPage() {
 
       {/* 🔹 JOBS */}
       <section className="max-w-6xl mx-auto px-6 py-14 min-h-[900px] flex flex-col justify-between">
-        <div className="grid grid-cols-3 gap-8 transition-all duration-300">
-          {visibleJobs.map((job) => (
-            <JobCard key={job.id} {...job} />
+        <div
+          key={page}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          className="grid grid-cols-3 gap-8 min-h-[850px]"
+        >
+          {visibleJobs.map((job, index) => (
+            <div
+              key={job.id}
+              className="animate-pop-in"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <JobCard {...job} />
+            </div>
           ))}
         </div>
 
@@ -118,6 +161,13 @@ export default function BrowseJobsPage() {
           />
         )}
       </section>
+
+      {/* 🔹 STATS SECTION */}
+      <StatsSection />
+
+      {/* 🔹 REVIEWS SECTION */}
+      <ReviewSection />
+
     </div>
   );
 }

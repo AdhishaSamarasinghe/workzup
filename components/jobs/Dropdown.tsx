@@ -54,7 +54,7 @@ export default function Dropdown({
       {open && (
         <div className="absolute z-30 mt-2 w-full rounded-xl bg-white shadow-lg">
           {/* Search */}
-          <div className="p-3 border-b">
+          <div className="p-3">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}

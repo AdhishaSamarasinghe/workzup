@@ -6,17 +6,7 @@ app.use(cors());
 app.use(express.json());
 
 /* -------- Temporary Job Storage -------- */
-let jobs = [
-  {
-    id: 1,
-    title: "Event Staff",
-    company: "Innovate Events",
-    description: "Assist with guest check-in.",
-    location: "Colombo",
-    pay: "$20/hr",
-    date: "2026-02-10",
-  },
-];
+let jobs = [];
 
 /* -------- Post Job -------- */
 app.post("/jobs", (req, res) => {
@@ -41,7 +31,7 @@ app.get("/jobs", (req, res) => {
 
   if (keyword) {
     filteredJobs = filteredJobs.filter(job =>
-      job.title.toLowerCase().includes(keyword.toLowerCase())
+      job.title && job.title.toLowerCase().includes(keyword.toLowerCase())
     );
   }
 
@@ -52,9 +42,16 @@ app.get("/jobs", (req, res) => {
   }
 
   if (pay) {
-    filteredJobs = filteredJobs.filter(job =>
-      job.pay === pay
-    );
+    filteredJobs = filteredJobs.filter(job => {
+      const jobPay = parseInt(job.pay.replace(/[^0-9]/g, "")) || 0;
+
+      if (pay === "$40+") {
+        return jobPay >= 40;
+      }
+
+      const [min, max] = pay.replace(/\$/g, "").split("-").map(Number);
+      return jobPay >= min && jobPay <= max;
+    });
   }
 
   if (date) {
@@ -64,6 +61,33 @@ app.get("/jobs", (req, res) => {
   }
 
   res.json(filteredJobs);
+});
+
+
+
+
+/* -------- Reviews Data -------- */
+const reviews = [];
+
+/* -------- Get Reviews -------- */
+app.get("/reviews", (req, res) => {
+  res.json(reviews);
+});
+
+/* -------- Post Review -------- */
+app.post("/reviews", (req, res) => {
+  console.log("Received POST /reviews:", req.body);
+
+  if (!req.body || !req.body.text || !req.body.name) {
+    return res.status(400).json({ error: "Missing required fields (name, text)" });
+  }
+
+  const newReview = {
+    id: Date.now(),
+    ...req.body,
+  };
+  reviews.unshift(newReview); // Add to top
+  res.json({ message: "Review added", review: newReview });
 });
 
 

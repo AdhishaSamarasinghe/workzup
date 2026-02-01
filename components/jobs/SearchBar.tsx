@@ -16,6 +16,7 @@ interface Props {
   date: string;
   setDate: (value: string) => void;
   onSearch: () => void;
+  onClear: () => void;
 }
 
 const districts = [
@@ -38,28 +39,27 @@ export default function SearchBar({
   date,
   setDate,
   onSearch,
+  onClear,
 }: Props) {
 
   const clearFilters = () => {
-    setKeyword("");
-    setDistrict("");
-    setPay("");
-    setDate("");
-
-    // We can also trigger a search immediately on clear if desired,
-    // or let the user click search. Often 'Clear' implies reset and search.
-    // Let's defer that decision or maybe just reset UI for now.
-    // If we want to reset results, we should probably call onSearch() or have a separate onClear().
-    // For now, let's just reset the state. The user can click Search to refresh if they want,
-    // or we can auto-submit. Let's auto-submit for better UX?
-    // Actually, normally 'Clear' just clears inputs. But if we want `page.tsx` to refetch all,
-    // we need to signal it.
-    // However, since state is lifted, `page.tsx` will see empty strings.
-    // If `page.tsx` has a useEffect on these vars, it would trigger.
-    // But we are using a manual "Search" button.
-    // So let's just clear. The user will have to click Search again to get all jobs?
-    // That's a bit annoying. Let's make the Search button click required.
+    onClear();
   };
+
+  // We can also trigger a search immediately on clear if desired,
+  // or let the user click search. Often 'Clear' implies reset and search.
+  // Let's defer that decision or maybe just reset UI for now.
+  // If we want to reset results, we should probably call onSearch() or have a separate onClear().
+  // For now, let's just reset the state. The user can click Search to refresh if they want,
+  // or we can auto-submit. Let's auto-submit for better UX?
+  // Actually, normally 'Clear' just clears inputs. But if we want `page.tsx` to refetch all,
+  // we need to signal it.
+  // However, since state is lifted, `page.tsx` will see empty strings.
+  // If `page.tsx` has a useEffect on these vars, it would trigger.
+  // But we are using a manual "Search" button.
+  // So let's just clear. The user will have to click Search again to get all jobs?
+  // That's a bit annoying. Let's make the Search button click required.
+
 
   return (
     <section className="bg-white rounded-2xl px-3 py-3 shadow-sm flex gap-4 items-center">

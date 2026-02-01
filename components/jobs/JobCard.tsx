@@ -16,7 +16,7 @@ export default function JobCard({
   date,
 }: JobCardProps) {
   return (
-    <div className="bg-white rounded-2xl p-7 flex flex-col justify-between">
+    <div className="bg-white rounded-2xl p-7 flex flex-col justify-between h-[400px] transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-default">
 
       {/* Header */}
       <div>
