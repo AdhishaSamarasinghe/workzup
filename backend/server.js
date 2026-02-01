@@ -18,11 +18,6 @@ let jobs = [
   },
 ];
 
-/* -------- Get Jobs -------- */
-app.get("/jobs", (req, res) => {
-  res.json(jobs);
-});
-
 /* -------- Post Job -------- */
 app.post("/jobs", (req, res) => {
   const newJob = {
@@ -38,6 +33,7 @@ app.post("/jobs", (req, res) => {
   });
 });
 
+/* -------- Get Jobs with Filters -------- */
 app.get("/jobs", (req, res) => {
   const { keyword, district, pay, date } = req.query;
 

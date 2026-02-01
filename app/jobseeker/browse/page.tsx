@@ -18,28 +18,39 @@ type Job = {
 export default function BrowseJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [keyword, setKeyword] = useState("");
+  const [district, setDistrict] = useState("");
+  const [pay, setPay] = useState("");
+  const [date, setDate] = useState("");
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    fetch("http://localhost:5000/jobs")
+  const fetchJobs = () => {
+    const params = new URLSearchParams();
+    if (keyword) params.append("keyword", keyword);
+    if (district) params.append("district", district);
+    if (pay) params.append("pay", pay);
+    if (date) params.append("date", date);
+
+    fetch(`http://localhost:5000/jobs?${params.toString()}`)
       .then((res) => res.json())
-      .then((data) => setJobs(data))
+      .then((data) => {
+        setJobs(data);
+        setPage(1); // Reset to first page on new search results
+      })
       .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchJobs();
   }, []);
 
   /* 🔑 AUTO-GENERATED KEYWORDS */
   const keywords = Array.from(new Set(jobs.map((job) => job.title)));
 
-  /* 🔍 FILTER */
-  const filteredJobs = jobs.filter((job) =>
-    job.title.toLowerCase().includes(keyword.toLowerCase())
-  );
-
   /* 📄 PAGINATION */
   const jobsPerPage = 6;
   const start = (page - 1) * jobsPerPage;
-  const visibleJobs = filteredJobs.slice(start, start + jobsPerPage);
-  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
+  const visibleJobs = jobs.slice(start, start + jobsPerPage);
+  const totalPages = Math.ceil(jobs.length / jobsPerPage);
 
   return (
     <div className="bg-[#f7fafc] min-h-screen">
@@ -77,6 +88,13 @@ export default function BrowseJobsPage() {
               keywords={keywords}
               keyword={keyword}
               setKeyword={setKeyword}
+              district={district}
+              setDistrict={setDistrict}
+              pay={pay}
+              setPay={setPay}
+              date={date}
+              setDate={setDate}
+              onSearch={fetchJobs}
             />
           </div>
 
