@@ -17,11 +17,14 @@ export default function Header() {
           />
         </Link>
 
-        {/* Right side - Login button and menu */}
+        {/* Right side - Login button and Menu */}
         <div className="flex items-center gap-4">
-          <button className="rounded-full bg-accent px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent/90">
+          <Link
+            href="#"
+            className="rounded-full bg-accent px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
+          >
             Login
-          </button>
+          </Link>
           <button className="flex h-10 w-10 items-center justify-center text-[#111827]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
