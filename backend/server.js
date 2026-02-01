@@ -38,6 +38,39 @@ app.post("/jobs", (req, res) => {
   });
 });
 
+app.get("/jobs", (req, res) => {
+  const { keyword, district, pay, date } = req.query;
+
+  let filteredJobs = jobs;
+
+  if (keyword) {
+    filteredJobs = filteredJobs.filter(job =>
+      job.title.toLowerCase().includes(keyword.toLowerCase())
+    );
+  }
+
+  if (district) {
+    filteredJobs = filteredJobs.filter(job =>
+      job.location === district
+    );
+  }
+
+  if (pay) {
+    filteredJobs = filteredJobs.filter(job =>
+      job.pay === pay
+    );
+  }
+
+  if (date) {
+    filteredJobs = filteredJobs.filter(job =>
+      job.date === date
+    );
+  }
+
+  res.json(filteredJobs);
+});
+
+
 /* -------- Start Server -------- */
 app.listen(5000, () => {
   console.log("Server running on port 5000");

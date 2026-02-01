@@ -1,74 +1,91 @@
 "use client";
 
+import { useState } from "react";
 import Dropdown from "./Dropdown";
+import KeywordDropdown from "./KeywordDropdown";
+import DatePicker from "./DatePicker";
 
-export default function SearchBar() {
-  const inputStyle =
-    "bg-gray-50 rounded-xl px-4 py-2 transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#6b8bff] hover:scale-[1.02] min-w-[200px]";
+
+interface Props {
+  keywords: string[];
+  keyword: string;
+  setKeyword: (value: string) => void;
+}
+
+const districts = [
+  "Ampara","Anuradhapura","Badulla","Batticaloa","Colombo","Galle","Gampaha",
+  "Hambantota","Jaffna","Kalutara","Kandy","Kegalle","Kilinochchi","Kurunegala",
+  "Mannar","Matale","Matara","Monaragala","Mullaitivu","Nuwara Eliya",
+  "Polonnaruwa","Puttalam","Ratnapura","Trincomalee","Vavuniya",
+];
+
+const payRanges = ["$10-$20", "$20-$30", "$30-$40", "$40+"];
+
+export default function SearchBar({
+  keywords,
+  keyword,
+  setKeyword,
+}: Props) {
+  const [district, setDistrict] = useState("");
+  const [pay, setPay] = useState("");
+  const [date, setDate] = useState("");
+
+  const clearFilters = () => {
+    setKeyword("");
+    setDistrict("");
+    setPay("");
+    setDate("");
+  };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-wrap gap-4 items-end">
+    <section className="bg-white rounded-2xl px-3 py-3 shadow-sm flex gap-4 items-center">
 
-      {/* Job Keyword */}
-      <div className="flex flex-col flex-1 min-w-36">
-        <span className="text-xs text-gray-500 mb-1">
-          Job Title / Keyword
-        </span>
-        <input
-          placeholder="Event staff"
-          className={inputStyle}
+      {/* Keyword */}
+      <div className="w-[240px]">
+        <KeywordDropdown
+          keywords={keywords}
+          value={keyword}
+          onChange={setKeyword}
         />
       </div>
 
       {/* Location */}
-      <div className="flex flex-col flex-1 min-w-36">
-        <span className="text-xs text-gray-500 mb-1">
-          Location
-        </span>
-        <input
-          placeholder="City or ZIP code"
-          className={inputStyle}
-        />
-      </div>
-
-      {/* Available Time */}
-        <div className="flex flex-col min-w-36">
-        <span className="text-xs text-gray-500 mb-1">
-            Filters
-        </span>
-        <button className="bg-gray-50 rounded-xl px-4 py-2 hover:scale-[1.02] transition flex justify-between items-center">
-            Filters ⚙
-        </button>
-        </div>
-
-
-      {/* Pay Range Dropdown */}
-      <div className="flex flex-col min-w-36">
-        <span className="text-xs text-gray-500 mb-1">
-          Pay Range
-        </span>
+      <div className="w-[200px]">
         <Dropdown
-          label="Select"
-          options={["$10-$20", "$20-$30", "$30-$40"]}
+          label="Select District"
+          options={districts}
+          value={district}
+          onChange={setDistrict}
         />
       </div>
 
-      {/* Date Picker */}
-      <div className="flex flex-col min-w-36">
-        <span className="text-xs text-gray-500 mb-1">
-          Date
-        </span>
-        <input
-          type="date"
-          className="bg-gray-50 rounded-xl px-4 py-2 transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#6b8bff] hover:scale-[1.02]"
+      {/* Pay */}
+      <div className="w-[150px]">
+        <Dropdown
+          label="Pay Range"
+          options={payRanges}
+          value={pay}
+          onChange={setPay}
         />
       </div>
 
-      {/* Search Button */}
-      <button className="bg-[#6b8bff] text-white px-8 py-2 rounded-xl transition duration-200 hover:scale-105 hover:shadow-md">
+      {/* Date */}
+      <div className="w-[160px]">
+      <DatePicker value={date} onChange={setDate} />
+      </div>
+
+      {/* Search button */}
+      <button className="bg-[#6b8bff] text-white rounded-xl px-6 py-2.5 text-sm hover:scale-[1.03] transition">
         Search
       </button>
 
-    </div>
+      {/* Clear */}
+      <button
+        onClick={clearFilters}
+        className="text-sm text-gray-500 hover:text-gray-700"
+      >
+        Clear
+      </button>
+    </section>
   );
 }

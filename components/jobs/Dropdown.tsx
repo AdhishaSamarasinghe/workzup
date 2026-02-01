@@ -1,66 +1,97 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
-type Props = {
+interface DropdownProps {
   label: string;
   options: string[];
-};
+  value?: string;
+  onChange?: (value: string) => void;
+  loading?: boolean;
+}
 
-export default function Dropdown({ label, options }: Props) {
+export default function Dropdown({
+  label,
+  options,
+  value = "",
+  onChange,
+  loading = false,
+}: DropdownProps) {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(label);
-
+  const [search, setSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
+  // Close dropdown when clicking outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    const handler = (e: MouseEvent) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !dropdownRef.current.contains(e.target as Node)
       ) {
         setOpen(false);
       }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const filteredOptions = options.filter((opt) =>
+    opt.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div
-      ref={dropdownRef}
-      className="relative min-w-36
-"
-    >
+    <div ref={dropdownRef} className="relative w-full">
       {/* Button */}
       <button
-        onClick={() => setOpen(!open)}
-        className="bg-gray-50 rounded-xl px-4 py-2 w-full text-left hover:scale-[1.02] transition flex justify-between items-center"
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="w-full rounded-xl bg-gray-100 px-4 py-3 text-left text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#6b8bff]"
       >
-        {selected}
-        <span>▾</span>
+        {value || label}
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown menu */}
       {open && (
-        <div className="absolute mt-2 w-full bg-white rounded-xl shadow-md border z-50 overflow-hidden">
-          {options.map((option, i) => (
-            <div
-              key={i}
-              onClick={() => {
-                setSelected(option);
-                setOpen(false);
-              }}
-              className="px-4 py-2 hover:bg-[#6b8bff] hover:text-white cursor-pointer transition"
-            >
-              {option}
-            </div>
-          ))}
+        <div className="absolute z-30 mt-2 w-full rounded-xl bg-white shadow-lg">
+          {/* Search */}
+          <div className="p-3 border-b">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="w-full rounded-lg bg-gray-100 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#6b8bff]"
+            />
+          </div>
+
+          {/* Options */}
+          <div className="max-h-56 overflow-y-auto p-2 space-y-1">
+            {loading ? (
+              [...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-8 rounded-md bg-gray-200 animate-pulse"
+                />
+              ))
+            ) : filteredOptions.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-gray-400">
+                No results
+              </div>
+            ) : (
+              filteredOptions.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => {
+                    onChange?.(opt);
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[#f1f5ff]"
+                >
+                  {opt}
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
