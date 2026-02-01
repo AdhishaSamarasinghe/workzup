@@ -19,3 +19,48 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* Custom utility classes */
+.bg-bg {
+  background-color: var(--bg);
+}
+
+.bg-card {
+  background-color: var(--card);
+}
+
+.bg-accent {
+  background-color: var(--accent);
+}
+
+.bg-accent-2 {
+  background-color: var(--accent-2);
+}
+
+.text-accent {
+  color: var(--accent);
+}
+
+.text-accent-2 {
+  color: var(--accent-2);
+}
+
+.text-muted {
+  color: var(--muted);
+}
+
+.border-accent {
+  border-color: var(--accent);
+}
+
+.decoration-accent {
+  text-decoration-color: var(--accent);
+}
+
+.hover\:bg-accent\/90:hover {
+  background-color: rgba(107, 139, 255, 0.9);
+}
+
+.hover\:text-accent:hover {
+  color: var(--accent);
+}
