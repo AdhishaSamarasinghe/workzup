@@ -1,47 +1,42 @@
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 bg-bg">
-      <div className="mx-auto flex w-full max-w-[var(--max-width)] items-center justify-between px-6 py-4 sm:px-8 lg:px-12">
-        {/* Logo */}
-        <Link href="/" className="flex items-center">
+    <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-card/90 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
+        <Link href="#" className="-ml-10 flex items-center gap-2">
           <Image
             src="/logo_main.png"
-            alt="WorkzUp"
+            alt="Workzup"
             width={120}
-            height={32}
+            height={28}
             priority
-            className="h-8 w-auto"
+            className="h-9 w-auto"
           />
         </Link>
 
-        {/* Right side - Login button and Menu */}
-        <div className="flex items-center gap-4">
-          <Link
-            href="#"
-            className="rounded-full bg-accent px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
-          >
-            Login
+        <nav className="hidden items-center gap-8 text-base font-medium text-[#1F2937] md:flex md:ml-auto">
+          <Link href="#" className="transition-colors hover:text-accent">
+            Find Jobs
           </Link>
-          <button className="flex h-10 w-10 items-center justify-center text-[#111827]">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="h-6 w-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-              />
-            </svg>
-          </button>
-        </div>
+          <Link href="#" className="transition-colors hover:text-accent">
+            Post a Job
+          </Link>
+        </nav>
+
+        <div className="md:hidden" />
+      </div>
+
+      <div className="border-t border-[#E5E7EB] bg-card md:hidden">
+        <nav className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-3 text-sm font-medium text-[#1F2937] sm:px-6 lg:px-8">
+          <Link href="#" className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]">
+            Find Jobs
+          </Link>
+          <Link href="#" className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]">
+            Post a Job
+          </Link>
+        </nav>
       </div>
     </header>
   );
