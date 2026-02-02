@@ -19,7 +19,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <div className="flex min-h-screen flex-col">
           <SkillsHeader />
           <main className="flex-1">{children}</main>
-          <Footer />
         </div>
       </body>
     </html>
