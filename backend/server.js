@@ -9,11 +9,54 @@ app.use(express.json());
 /* -------- Temporary Job Storage -------- */
 let jobs = [];
 
+/* -------- Smart Auto-Categorization Logic -------- */
+const classifyJob = (job) => {
+  if (job.category && job.category.trim() !== "") return job.category;
+
+  const text = `${job.title} ${job.description}`.toLowerCase();
+
+  const rules = {
+    "Events": ["event", "stage", "sound", "light", "hall", "ticket", "usher", "party", "wedding", "concert", "setup"],
+    "Hospitality": ["hotel", "banquet", "chef", "cook", "waiter", "waitress", "guest", "resort", "kitchen", "barista", "restaurant"],
+    "Logistics": ["driver", "delivery", "rider", "warehouse", "packer", "mover", "truck", "courier", "distribution"],
+    "Retail": ["shop", "store", "cashier", "sales", "retail", "stock", "shelf", "supermarket", "customer"],
+    "Cleaning": ["clean", "janitor", "housekeep", "maid", "washer"],
+    "Admin": ["data", "entry", "clerk", "admin", "office", "typist", "assistant"]
+  };
+
+  let bestMatch = "General";
+  let maxScore = 0;
+
+  for (const [category, keywords] of Object.entries(rules)) {
+    let score = 0;
+    keywords.forEach(word => {
+      if (text.includes(word)) score++;
+    });
+    if (score > maxScore) {
+      maxScore = score;
+      bestMatch = category;
+    }
+  }
+
+  return bestMatch;
+};
+
 /* -------- Post Job -------- */
 app.post("/jobs", (req, res) => {
+  if (Array.isArray(req.body)) {
+    const createdJobs = req.body.map((job, index) => ({
+      id: Date.now() + index,
+      ...job,
+      category: classifyJob(job) // Auto-detect if missing
+    }));
+    jobs.push(...createdJobs);
+    return res.json({ message: "Batch jobs created", count: createdJobs.length, jobs: createdJobs });
+  }
+
   const newJob = {
     id: Date.now(),
     ...req.body,
+    category: classifyJob(req.body) // Auto-detect if missing
   };
 
   jobs.push(newJob);
@@ -26,9 +69,18 @@ app.post("/jobs", (req, res) => {
 
 /* -------- Get Jobs with Filters -------- */
 app.get("/jobs", (req, res) => {
+  console.log("GET /jobs params:", req.query);
   const { keyword, district, pay, date, category, minPay, maxPay } = req.query;
 
   let filteredJobs = jobs;
+
+  // ... (existing filters)
+
+  if (category && category !== "All Jobs") {
+    filteredJobs = filteredJobs.filter(job =>
+      job.category && job.category.trim().toLowerCase() === category.trim().toLowerCase()
+    );
+  }
 
   if (keyword) {
     filteredJobs = filteredJobs.filter(job =>
@@ -46,30 +98,39 @@ app.get("/jobs", (req, res) => {
   if (pay) {
     filteredJobs = filteredJobs.filter(job => {
       const payStr = job.pay ? String(job.pay) : "";
-      const jobPay = parseInt(payStr.replace(/[^0-9]/g, "")) || 0;
+      const numbers = payStr.match(/\d+/g);
+      const jobMaxPay = numbers ? Math.max(...numbers.map(n => parseInt(n, 10))) : 0;
 
       if (pay === "$40+") {
-        return jobPay >= 40;
+        return jobMaxPay >= 40;
       }
 
       const [min, max] = pay.replace(/\$/g, "").split("-").map(Number);
-      return jobPay >= min && jobPay <= max;
+      return jobMaxPay >= min && jobMaxPay <= max;
     });
   }
 
   if (minPay) {
     filteredJobs = filteredJobs.filter(job => {
       const payStr = job.pay ? String(job.pay) : "";
-      const jobPay = parseInt(payStr.replace(/[^0-9]/g, "")) || 0;
-      return jobPay >= parseInt(minPay);
+      const numbers = payStr.match(/\d+/g);
+      // For filtering "at least X", we should probably look at the highest potential pay of the job? 
+      // Or the lowest? Usually "Is this job within my range?" 
+      // If job says $20-$30, and I want min $25, does it match? Yes, it *can* pay $30.
+      const jobMaxPay = numbers ? Math.max(...numbers.map(n => parseInt(n, 10))) : 0;
+      return jobMaxPay >= parseInt(minPay);
     });
   }
 
   if (maxPay) {
     filteredJobs = filteredJobs.filter(job => {
       const payStr = job.pay ? String(job.pay) : "";
-      const jobPay = parseInt(payStr.replace(/[^0-9]/g, "")) || 0;
-      return jobPay <= parseInt(maxPay);
+      const numbers = payStr.match(/\d+/g);
+      // For "max pay", if job is $20-$30 and I filter max $25... 
+      // Maybe we compare the *lowest* pay? or just consistent max?
+      // Let's stick to comparing the Max potential pay for consistency.
+      const jobMaxPay = numbers ? Math.max(...numbers.map(n => parseInt(n, 10))) : 0;
+      return jobMaxPay <= parseInt(maxPay);
     });
   }
 
@@ -81,7 +142,7 @@ app.get("/jobs", (req, res) => {
 
   if (category && category !== "All Jobs") {
     filteredJobs = filteredJobs.filter(job =>
-      job.category && job.category.toLowerCase() === category.toLowerCase()
+      job.category && job.category.trim().toLowerCase() === category.trim().toLowerCase()
     );
   }
 
@@ -98,6 +159,23 @@ app.get("/categories", (req, res) => {
   res.json(categories);
 });
 
+/* -------- Get Max Pay -------- */
+app.get("/max-pay", (req, res) => {
+  let maxPay = 0;
+  jobs.forEach(job => {
+    const payStr = job.pay ? String(job.pay) : "";
+    // Match all numbers in the string
+    const numbers = payStr.match(/\d+/g);
+    if (numbers) {
+      // Find max number in this specific job's pay string (handles "20-30" => 30)
+      const jobMax = Math.max(...numbers.map(n => parseInt(n, 10)));
+      if (jobMax > maxPay) maxPay = jobMax;
+    }
+  });
+  // If no jobs or max is 0, return a default fallback (e.g. 1000) so the slider isn't broken
+  res.json({ max: maxPay > 0 ? maxPay : 1000 });
+});
+
 /* -------- Reviews Data -------- */
 const reviews = [];
 
@@ -108,6 +186,15 @@ app.get("/reviews", (req, res) => {
 
 /* -------- Post Review -------- */
 app.post("/reviews", (req, res) => {
+  if (Array.isArray(req.body)) {
+    const createdReviews = req.body.map((review, index) => ({
+      id: Date.now() + index,
+      ...review
+    }));
+    reviews.unshift(...createdReviews); // Add to top
+    return res.json({ message: "Batch reviews added", count: createdReviews.length, reviews: createdReviews });
+  }
+
   console.log("Received POST /reviews:", req.body);
 
   if (!req.body || !req.body.text || !req.body.name) {

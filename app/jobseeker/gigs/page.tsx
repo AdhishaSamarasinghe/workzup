@@ -30,6 +30,7 @@ export default function FindGigPage() {
 
     // Dynamic Categories
     const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+    const [maxPayBound, setMaxPayBound] = useState(5000); // Dynamic Max Pay, default 5000 wait for fetch
 
     // Sort State
     const [sortBy, setSortBy] = useState("Newest");
@@ -52,21 +53,44 @@ export default function FindGigPage() {
         params.append("maxPay", payRange[1].toString());
 
         fetch(`http://localhost:5000/jobs?${params.toString()}`)
-            .then((res) => res.json())
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`Failed to fetch jobs: ${res.status} ${text}`);
+                }
+                return res.json();
+            })
             .then((data) => {
                 setJobs(data);
                 setPage(1); // Reset to p1
             })
-            .catch(console.error);
+            .catch(err => console.error("Job Fetch Error:", err));
     };
 
     // Initial load
     useEffect(() => {
         // Fetch Categories
         fetch("http://localhost:5000/categories")
-            .then(res => res.json())
+            .then(async res => {
+                if (!res.ok) throw new Error("Failed to fetch categories");
+                return res.json();
+            })
             .then(data => setAvailableCategories(data))
-            .catch(err => console.error("Failed to fetch categories:", err));
+            .catch(err => console.error("Category Fetch Error:", err));
+
+        // Fetch Max Pay
+        fetch("http://localhost:5000/max-pay")
+            .then(async res => {
+                if (!res.ok) throw new Error("Failed to fetch max pay");
+                return res.json();
+            })
+            .then(data => {
+                if (data.max) {
+                    setMaxPayBound(data.max);
+                    setPayRange([0, data.max]); // Optional: Reset range to full on load
+                }
+            })
+            .catch(err => console.error("Max Pay Fetch Error:", err));
 
         fetchJobs();
     }, []); // Run once on mount, then Apply button triggers fetch
@@ -104,7 +128,7 @@ export default function FindGigPage() {
 
     const handleClearFilters = () => {
         setLocation("");
-        setPayRange([0, 5000]);
+        setPayRange([0, maxPayBound]); // Reset to dynamic max
         setDate("");
         setCategory("All Jobs");
         // Fetch all (empty params except maybe default range if we wanted)
@@ -171,7 +195,7 @@ export default function FindGigPage() {
                         onApply={handleApplyFilters}
                         onClear={handleClearFilters}
                         minPay={0}
-                        maxPay={5000}
+                        maxPay={maxPayBound}
                         categories={availableCategories}
                     />
                 </div>
@@ -187,12 +211,18 @@ export default function FindGigPage() {
                     />
 
                     <div className="space-y-4 min-h-[600px]">
-                        {visibleJobs.map((job) => (
-                            <GigCard key={job.id} {...job} />
+                        {visibleJobs.map((job, index) => (
+                            <div
+                                key={job.id}
+                                className="animate-pop-in"
+                                style={{ animationDelay: `${index * 100}ms` }}
+                            >
+                                <GigCard {...job} />
+                            </div>
                         ))}
 
                         {visibleJobs.length === 0 && (
-                            <div className="text-center py-20 text-gray-500">
+                            <div className="text-center py-20 text-gray-500 animate-fade-in">
                                 No gigs found matching your criteria.
                             </div>
                         )}
