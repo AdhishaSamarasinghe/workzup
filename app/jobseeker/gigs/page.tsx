@@ -24,9 +24,12 @@ export default function FindGigPage() {
 
     // Filter States
     const [location, setLocation] = useState("");
-    const [payRange, setPayRange] = useState<[number, number]>([0, 500]); // Default Range
+    const [payRange, setPayRange] = useState<[number, number]>([0, 5000]); // Default Range
     const [date, setDate] = useState("");
     const [category, setCategory] = useState("All Jobs"); // Controlled by both Header Tabs and Sidebar
+
+    // Dynamic Categories
+    const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
     // Sort State
     const [sortBy, setSortBy] = useState("Newest");
@@ -59,6 +62,12 @@ export default function FindGigPage() {
 
     // Initial load
     useEffect(() => {
+        // Fetch Categories
+        fetch("http://localhost:5000/categories")
+            .then(res => res.json())
+            .then(data => setAvailableCategories(data))
+            .catch(err => console.error("Failed to fetch categories:", err));
+
         fetchJobs();
     }, []); // Run once on mount, then Apply button triggers fetch
 
@@ -95,7 +104,7 @@ export default function FindGigPage() {
 
     const handleClearFilters = () => {
         setLocation("");
-        setPayRange([0, 500]);
+        setPayRange([0, 5000]);
         setDate("");
         setCategory("All Jobs");
         // Fetch all (empty params except maybe default range if we wanted)
@@ -162,7 +171,8 @@ export default function FindGigPage() {
                         onApply={handleApplyFilters}
                         onClear={handleClearFilters}
                         minPay={0}
-                        maxPay={500}
+                        maxPay={5000}
+                        categories={availableCategories}
                     />
                 </div>
 

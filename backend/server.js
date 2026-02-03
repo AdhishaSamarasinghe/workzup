@@ -6,6 +6,7 @@ app.use(cors());
 app.use(express.json());
 
 /* -------- Temporary Job Storage -------- */
+/* -------- Temporary Job Storage -------- */
 let jobs = [];
 
 /* -------- Post Job -------- */
@@ -44,7 +45,8 @@ app.get("/jobs", (req, res) => {
   // Support old pay filter string format AND new min/max logic
   if (pay) {
     filteredJobs = filteredJobs.filter(job => {
-      const jobPay = parseInt(job.pay.replace(/[^0-9]/g, "")) || 0;
+      const payStr = job.pay ? String(job.pay) : "";
+      const jobPay = parseInt(payStr.replace(/[^0-9]/g, "")) || 0;
 
       if (pay === "$40+") {
         return jobPay >= 40;
@@ -57,14 +59,16 @@ app.get("/jobs", (req, res) => {
 
   if (minPay) {
     filteredJobs = filteredJobs.filter(job => {
-      const jobPay = parseInt(job.pay.replace(/[^0-9]/g, "")) || 0;
+      const payStr = job.pay ? String(job.pay) : "";
+      const jobPay = parseInt(payStr.replace(/[^0-9]/g, "")) || 0;
       return jobPay >= parseInt(minPay);
     });
   }
 
   if (maxPay) {
     filteredJobs = filteredJobs.filter(job => {
-      const jobPay = parseInt(job.pay.replace(/[^0-9]/g, "")) || 0;
+      const payStr = job.pay ? String(job.pay) : "";
+      const jobPay = parseInt(payStr.replace(/[^0-9]/g, "")) || 0;
       return jobPay <= parseInt(maxPay);
     });
   }
@@ -86,6 +90,13 @@ app.get("/jobs", (req, res) => {
 
 
 
+
+
+/* -------- Get Categories -------- */
+app.get("/categories", (req, res) => {
+  const categories = [...new Set(jobs.map(job => job.category).filter(Boolean))];
+  res.json(categories);
+});
 
 /* -------- Reviews Data -------- */
 const reviews = [];
