@@ -8,7 +8,7 @@ const jobData = {
   location: "Downtown Convention Center",
   jobType: "Full-time · On-site",
   posted: "2 days ago",
-  pay: "$25/hour",
+  pay: "Rs 25/hour",
   tags: ["Event Support", "Customer Service", "Teamwork", "Communication", "Organization"],
 };
 
@@ -17,6 +17,7 @@ export default function JobseekerApplyPage() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
   const [cvFileName, setCvFileName] = useState<string | null>(null);
+  const [nicFileName, setNicFileName] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -177,7 +178,7 @@ export default function JobseekerApplyPage() {
                   id="phone"
                   name="phone"
                   type="tel"
-                  placeholder="(555) 123-4567"
+                  placeholder="(+94) 123-456-789"
                   required
                   className="w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#6D83F2] focus:outline-none focus:ring-2 focus:ring-[#6D83F2]/30"
                 />
@@ -208,6 +209,48 @@ export default function JobseekerApplyPage() {
                   onChange={(event) => {
                     const file = event.currentTarget.files?.[0];
                     setCvFileName(file ? file.name : null);
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="nic" className="text-sm font-medium text-[#111827]">
+                  Upload NIC
+                </label>
+                <label
+                  htmlFor="nic"
+                  className="flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed border-[#CBD5F5] bg-[#F8FAFC] px-4 py-4 text-sm text-[#6B7280]"
+                >
+                  <img
+                    src="/nic-guide.jpg"
+                    alt="NIC upload guide"
+                    className="w-full rounded-lg border border-[#E5E7EB] object-cover"
+                  />
+                  <span>
+                    {nicFileName ? (
+                      nicFileName
+                    ) : (
+                      <>
+                        Please upload high-quality images of both the <strong>front</strong> and
+                        <strong> back</strong> of your National Identity Card (NIC). Ensure all text
+                        is clearly legible.
+                      </>
+                    )}
+                  </span>
+                  <span className="self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
+                    Browse
+                  </span>
+                </label>
+                <input
+                  id="nic"
+                  name="nic"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="hidden"
+                  required
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    setNicFileName(file ? file.name : null);
                   }}
                 />
               </div>
