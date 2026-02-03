@@ -8,9 +8,10 @@ interface CustomSelectProps {
     options: string[];
     placeholder?: string;
     searchable?: boolean;
+    showAllOption?: boolean; // New prop
 }
 
-const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, placeholder = "Select...", searchable = false }) => {
+const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, placeholder = "Select...", searchable = false, showAllOption = true }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -64,16 +65,20 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, p
 
                     <div className="max-h-60 overflow-y-auto custom-scrollbar">
                         {/* "All" Option */}
-                        <div
-                            className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${value === "" ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700"}`}
-                            onClick={() => {
-                                onChange("");
-                                setIsOpen(false);
-                                setSearchTerm("");
-                            }}
-                        >
-                            {searchable ? "All Locations" : "All Options"}
-                        </div>
+                        {/* Only show if showAllOption is explicitly true OR (it's not explicitly false AND we are in typical filter mode) */}
+                        {/* Actually, let's keep it simple: defaulting to true unless passed as false */}
+                        {showAllOption && (
+                            <div
+                                className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${value === "" ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700"}`}
+                                onClick={() => {
+                                    onChange("");
+                                    setIsOpen(false);
+                                    setSearchTerm("");
+                                }}
+                            >
+                                {searchable ? "All Locations" : "All Options"}
+                            </div>
+                        )}
 
                         {filteredOptions.length > 0 ? (
                             filteredOptions.map((opt) => (

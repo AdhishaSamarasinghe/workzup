@@ -7,6 +7,8 @@ app.use(express.json());
 
 /* -------- Temporary Job Storage -------- */
 /* -------- Temporary Job Storage -------- */
+// TODO: Replace this in-memory array with a real database connection (e.g., MongoDB, PostgreSQL)
+// const db = require('./config/db');
 let jobs = [];
 
 /* -------- Smart Auto-Categorization Logic -------- */
@@ -47,7 +49,10 @@ app.post("/jobs", (req, res) => {
     const createdJobs = req.body.map((job, index) => ({
       id: Date.now() + index,
       ...job,
-      category: classifyJob(job) // Auto-detect if missing
+      category: classifyJob(job), // Auto-detect if missing
+      status: job.status || "Active",
+      applicants: job.applicants || 0,
+      postedDate: job.postedDate || new Date().toISOString().split('T')[0]
     }));
     jobs.push(...createdJobs);
     return res.json({ message: "Batch jobs created", count: createdJobs.length, jobs: createdJobs });
@@ -56,7 +61,10 @@ app.post("/jobs", (req, res) => {
   const newJob = {
     id: Date.now(),
     ...req.body,
-    category: classifyJob(req.body) // Auto-detect if missing
+    category: classifyJob(req.body), // Auto-detect if missing
+    status: "Active", // Default status
+    applicants: 0,    // Default applicants
+    postedDate: new Date().toISOString().split('T')[0] // Current date YYYY-MM-DD
   };
 
   jobs.push(newJob);
