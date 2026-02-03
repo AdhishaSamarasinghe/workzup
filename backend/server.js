@@ -25,7 +25,7 @@ app.post("/jobs", (req, res) => {
 
 /* -------- Get Jobs with Filters -------- */
 app.get("/jobs", (req, res) => {
-  const { keyword, district, pay, date } = req.query;
+  const { keyword, district, pay, date, category, minPay, maxPay } = req.query;
 
   let filteredJobs = jobs;
 
@@ -37,10 +37,11 @@ app.get("/jobs", (req, res) => {
 
   if (district) {
     filteredJobs = filteredJobs.filter(job =>
-      job.location === district
+      job.location && job.location.toLowerCase().includes(district.toLowerCase())
     );
   }
 
+  // Support old pay filter string format AND new min/max logic
   if (pay) {
     filteredJobs = filteredJobs.filter(job => {
       const jobPay = parseInt(job.pay.replace(/[^0-9]/g, "")) || 0;
@@ -54,9 +55,29 @@ app.get("/jobs", (req, res) => {
     });
   }
 
+  if (minPay) {
+    filteredJobs = filteredJobs.filter(job => {
+      const jobPay = parseInt(job.pay.replace(/[^0-9]/g, "")) || 0;
+      return jobPay >= parseInt(minPay);
+    });
+  }
+
+  if (maxPay) {
+    filteredJobs = filteredJobs.filter(job => {
+      const jobPay = parseInt(job.pay.replace(/[^0-9]/g, "")) || 0;
+      return jobPay <= parseInt(maxPay);
+    });
+  }
+
   if (date) {
     filteredJobs = filteredJobs.filter(job =>
       job.date === date
+    );
+  }
+
+  if (category && category !== "All Jobs") {
+    filteredJobs = filteredJobs.filter(job =>
+      job.category && job.category.toLowerCase() === category.toLowerCase()
     );
   }
 
