@@ -9,7 +9,12 @@ export default function SkillsForm() {
     "Customer Service",
     "Cash Handling",
   ]);
+
   const [inputValue, setInputValue] = useState("");
+
+  // ✅ UPDATED: loading state (optional but recommended)
+  const [isSaving, setIsSaving] = useState(false);
+
   const currentStep = 1;
   const totalSteps = 3;
 
@@ -34,6 +39,41 @@ export default function SkillsForm() {
 
   const handleSuggestionClick = (skill: string) => {
     addSkill(skill);
+  };
+
+  // ✅ UPDATED: function to call your backend API (MongoDB)
+  async function saveSkillsToDB(skillsToSave: string[]) {
+    const res = await fetch("/api/preferences/skills", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skills: skillsToSave }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      // This will show "MONGODB_URI is missing..." until you add the link
+      throw new Error(data?.error || "Save failed");
+    }
+
+    return data;
+  }
+
+  // ✅ UPDATED: Continue button handler
+  const handleContinue = async () => {
+    try {
+      setIsSaving(true);
+      await saveSkillsToDB(skills);
+
+      // ✅ your existing next-step logic (add your navigation here)
+      // Example:
+      // router.push("/preferences/step2");
+      // or setStep((s) => s + 1);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -66,6 +106,7 @@ export default function SkillsForm() {
           >
             {skill}
             <button
+              type="button"
               onClick={() => removeSkill(skill)}
               className="flex h-4 w-4 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
             >
@@ -105,6 +146,7 @@ export default function SkillsForm() {
             .map((skill) => (
               <button
                 key={skill}
+                type="button"
                 onClick={() => handleSuggestionClick(skill)}
                 className="rounded-full border border-gray-300 bg-white px-4 py-1.5 text-sm text-[#111827] transition-colors hover:border-accent hover:bg-gray-50"
               >
@@ -119,11 +161,21 @@ export default function SkillsForm() {
 
       {/* Action buttons */}
       <div className="flex items-center justify-end gap-3">
-        <button className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-[#111827] transition-colors hover:bg-gray-50">
+        <button
+          type="button"
+          className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-[#111827] transition-colors hover:bg-gray-50"
+        >
           Back
         </button>
-        <button className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90">
-          Continue
+
+        {/* ✅ UPDATED: Continue button now calls handleContinue + shows Saving state */}
+        <button
+          type="button"
+          onClick={handleContinue}
+          disabled={isSaving}
+          className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90 disabled:opacity-60"
+        >
+          {isSaving ? "Saving..." : "Continue"}
         </button>
       </div>
     </div>
