@@ -194,29 +194,119 @@ app.get("/reviews", (req, res) => {
 
 /* -------- Post Review -------- */
 app.post("/reviews", (req, res) => {
+  // Helper to validate and format a single review
+  const processReview = (review, index) => {
+    if (!review.name || !review.text) return null;
+
+    // Generate initials for avatar if missing
+    let avatar = review.avatar;
+    if (!avatar && review.name) {
+      avatar = review.name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+    }
+
+    return {
+      id: Date.now() + index + Math.random(), // Ensure unique ID
+      ...review,
+      avatar: avatar || "U", // Fallback
+      rating: review.rating || 5, // Default rating
+      role: review.role || "User"
+    };
+  };
+
+  // Handle Batch Upload
   if (Array.isArray(req.body)) {
-    const createdReviews = req.body.map((review, index) => ({
-      id: Date.now() + index,
-      ...review
-    }));
-    reviews.unshift(...createdReviews); // Add to top
-    return res.json({ message: "Batch reviews added", count: createdReviews.length, reviews: createdReviews });
+    const validReviews = req.body
+      .map((r, i) => processReview(r, i))
+      .filter(r => r !== null);
+
+    if (validReviews.length === 0) {
+      return res.status(400).json({ error: "No valid reviews found in batch." });
+    }
+
+    reviews.unshift(...validReviews); // Add to top
+    return res.json({
+      message: "Batch reviews added",
+      count: validReviews.length,
+      reviews: validReviews
+    });
   }
 
-  console.log("Received POST /reviews:", req.body);
-
-  if (!req.body || !req.body.text || !req.body.name) {
+  // Handle Single Review
+  const newReview = processReview(req.body, 0);
+  if (!newReview) {
     return res.status(400).json({ error: "Missing required fields (name, text)" });
   }
 
-  const newReview = {
-    id: Date.now(),
-    ...req.body,
-  };
   reviews.unshift(newReview); // Add to top
   res.json({ message: "Review added", review: newReview });
 });
 
+
+
+/* -------- Job Seeker Profile Data -------- */
+// Mock data for the specific layout requested
+let jobSeekerProfile = {
+  id: "user_123",
+  name: "Alexandria Smith",
+  title: "Experienced Barista & Event Staff",
+  location: "12/A, Rathmalana, Dehiwela",
+  avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Alexandria",
+  isAvailable: true,
+  stats: {
+    jobsCompleted: 42,
+    reliability: 98 // percent
+  },
+  skills: ["Customer Service", "Teamwork", "Event Setup", "Cash Handling", "Coffee Making"],
+  aboutMe: "A highly motivated and reliable professional with 5+ years of experience in fast-paced hospitality and event environments. Passionate about providing excellent customer service and contributing to team success. Seeking short-term opportunities to utilize my skills in a dynamic setting.",
+  reviewsSummary: {
+    averageRating: 4.8,
+    totalReviews: 15
+  },
+  reviews: [
+    {
+      id: 101,
+      name: "James K.",
+      role: "Barista at The Coffee House",
+      date: "Aug 12, 2025",
+      rating: 4,
+      text: "Alexandria was a pleasure to work with. Punctual, Professional and great with customers. Highly recommend."
+    },
+    {
+      id: 102,
+      name: "Sarah L.",
+      role: "Manager at Event Co.",
+      date: "July 20, 2025",
+      rating: 5,
+      text: "Excellent work ethic. Jumped right in and helped organize the chaos. Would hire again in a heartbeat."
+    }
+  ],
+  jobHistory: [
+    {
+      id: 1,
+      name: "James K.",
+      role: "The Coffee House",
+      date: "13th June 2025"
+    },
+    {
+      id: 2,
+      name: "Event Staff",
+      role: "Summer Music Festival",
+      date: "2nd May 2025"
+    },
+    {
+      id: 3,
+      name: "Retail Assistant",
+      role: "City Mall Pop-up",
+      date: "10th April 2025"
+    }
+  ]
+};
+
+/* -------- Get Profile -------- */
+app.get("/user/profile", (req, res) => {
+  // In a real app, we'd look up by ID from session/token
+  res.json(jobSeekerProfile);
+});
 
 /* -------- Start Server -------- */
 app.listen(5000, () => {
