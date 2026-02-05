@@ -32,7 +32,9 @@ export default function SkillsForm() {
     if (!trimmed) return;
 
     setSkills((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
-    setSuggested((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+    setSuggested((prev) =>
+      prev.includes(trimmed) ? prev : [...prev, trimmed],
+    );
     setInputValue("");
   };
 
@@ -121,7 +123,7 @@ export default function SkillsForm() {
   // UI
   // -------------------------
   return (
-    <div className="w-full max-w-2xl rounded-[var(--radius)] bg-card p-8 shadow-lg">
+    <div className="w-full max-w-2xl rounded-[var(--radius)] bg-card p-4 shadow-lg sm:p-6 md:p-8">
       {/* Progress */}
       <div className="mb-6">
         <p className="mb-2 text-sm text-muted">
@@ -138,7 +140,7 @@ export default function SkillsForm() {
       {/* STEP 1 */}
       {currentStep === 1 && (
         <>
-          <h2 className="mb-6 text-xl font-semibold text-[#111827]">
+          <h2 className="mb-4 text-lg font-semibold text-[#111827] sm:mb-6 sm:text-xl">
             Tell us about your role
           </h2>
 
@@ -158,7 +160,7 @@ export default function SkillsForm() {
       {/* STEP 2 */}
       {currentStep === 2 && (
         <>
-          <h2 className="mb-6 text-xl font-semibold text-[#111827]">
+          <h2 className="mb-4 text-lg font-semibold text-[#111827] sm:mb-6 sm:text-xl">
             Tell us about your experience
           </h2>
 
@@ -178,7 +180,7 @@ export default function SkillsForm() {
       {/* STEP 3 */}
       {currentStep === 3 && (
         <>
-          <h2 className="mb-6 text-xl font-semibold text-[#111827]">
+          <h2 className="mb-4 text-lg font-semibold text-[#111827] sm:mb-6 sm:text-xl">
             What are your top skills?
           </h2>
 
@@ -233,12 +235,12 @@ export default function SkillsForm() {
       )}
 
       {/* Buttons */}
-      <div className="mt-6 flex justify-end gap-3">
+      <div className="mt-4 flex flex-col gap-3 sm:mt-6 sm:flex-row sm:justify-end">
         {currentStep > 1 && (
           <button
             type="button"
             onClick={handleBack}
-            className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-[#111827] transition-colors hover:bg-gray-50"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-[#111827] transition-colors hover:bg-gray-50 sm:w-auto sm:px-6 sm:py-2.5"
           >
             Back
           </button>
@@ -248,7 +250,7 @@ export default function SkillsForm() {
           <button
             type="button"
             onClick={handleNext}
-            className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90"
+            className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent/90 sm:w-auto sm:px-6 sm:py-2.5"
           >
             Next
           </button>
@@ -259,7 +261,7 @@ export default function SkillsForm() {
             type="button"
             onClick={handleContinue}
             disabled={!canContinue}
-            className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent/90 disabled:opacity-60"
+            className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent/90 disabled:opacity-60 sm:w-auto sm:px-6 sm:py-2.5"
           >
             {isSaving ? "Saving..." : "Continue"}
           </button>
