@@ -7,32 +7,48 @@ const TEMP_USER_ID = "temp-user"; // later: replace with real user id
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
     const skills = body?.skills;
 
-    if (!Array.isArray(skills) || skills.some((s) => typeof s !== "string")) {
+    const primaryRole =
+      typeof body?.primaryRole === "string" ? body.primaryRole.trim() : "";
+
+    const experience =
+      typeof body?.experience === "string" ? body.experience.trim() : "";
+
+    // Validate skills
+    if (!Array.isArray(skills) || skills.some((s: unknown) => typeof s !== "string")) {
       return NextResponse.json(
         { ok: false, error: "skills must be an array of strings" },
         { status: 400 }
       );
     }
 
-    const cleaned = Array.from(
-      new Set(skills.map((s: string) => s.trim()).filter(Boolean))
+    // Clean skills: trim + remove empty + unique
+    const cleanedSkills = Array.from(
+      new Set((skills as string[]).map((s) => s.trim()).filter(Boolean))
     );
 
     await connectMongo();
 
+    // Save all fields (role + experience + skills)
     const saved = await Preference.findOneAndUpdate(
       { userId: TEMP_USER_ID },
-      { $set: { skills: cleaned } },
+      {
+        $set: {
+          primaryRole,
+          experience,
+          skills: cleanedSkills,
+        },
+      },
       { upsert: true, new: true }
     );
 
     return NextResponse.json({ ok: true, data: saved });
-  } catch (err: any) {
-    // If DB link missing, return clear message
+  } catch (err: unknown) {
+    const message = err && typeof err === "object" && "message" in err ? (err as any).message : String(err);
     return NextResponse.json(
-      { ok: false, error: err?.message || "Failed to save skills" },
+      { ok: false, error: message || "Failed to save preferences" },
       { status: 500 }
     );
   }
@@ -42,13 +58,21 @@ export async function GET() {
   try {
     await connectMongo();
     const doc = await Preference.findOne({ userId: TEMP_USER_ID });
+
     return NextResponse.json({
       ok: true,
-      data: doc ?? { userId: TEMP_USER_ID, skills: [] },
+      data:
+        doc ?? {
+          userId: TEMP_USER_ID,
+          primaryRole: "",
+          experience: "",
+          skills: [],
+        },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err && typeof err === "object" && "message" in err ? (err as any).message : String(err);
     return NextResponse.json(
-      { ok: false, error: err?.message || "Failed to load skills" },
+      { ok: false, error: message || "Failed to load preferences" },
       { status: 500 }
     );
   }
