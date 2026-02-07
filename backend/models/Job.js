@@ -7,8 +7,11 @@ const jobSchema = new mongoose.Schema(
     pay: { type: Number, required: true },
     payType: { type: String, enum: ["hour", "day"], default: "hour" },
     category: { type: String, default: "Hospitality" },
-    location: { type: String, required: true, trim: true },
-    jobDate: { type: Date, required: true },
+    locations: [{ type: String, required: true, trim: true }],
+    jobDates: [{ type: Date, required: true }],
+    startTime: { type: String }, // e.g. "09:00"
+    endTime: { type: String },   // e.g. "17:00"
+    requirements: [{ type: String }],
     status: { type: String, enum: ["DRAFT", "PUBLISHED"], default: "DRAFT" },
   },
   { timestamps: true }

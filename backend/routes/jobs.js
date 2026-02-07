@@ -14,15 +14,29 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { title, description, pay, payType, category, location, jobDate, status } = req.body;
+    const {
+      title,
+      description,
+      pay,
+      payType,
+      category,
+      locations,
+      jobDates,
+      startTime,
+      endTime,
+      requirements,
+      status
+    } = req.body;
 
-    if (!title?.trim()) return res.status(400).json({ message: "Job title is required" });
-    if (!description?.trim())
-      return res.status(400).json({ message: "Job description is required" });
-    if (pay === undefined || Number(pay) <= 0)
-      return res.status(400).json({ message: "Pay must be a positive number" });
-    if (!location?.trim()) return res.status(400).json({ message: "Location is required" });
-    if (!jobDate) return res.status(400).json({ message: "Job date is required" });
+    // Strict validation for PUBLISHED jobs
+    if (status === "PUBLISHED") {
+      if (!title?.trim()) return res.status(400).json({ message: "Job title is required" });
+      if (!description?.trim()) return res.status(400).json({ message: "Job description is required" });
+      if (pay === undefined || Number(pay) <= 0) return res.status(400).json({ message: "Pay must be a positive number" });
+      if (!locations || locations.length === 0) return res.status(400).json({ message: "At least one location is required" });
+      if (!jobDates || jobDates.length === 0) return res.status(400).json({ message: "At least one job date is required" });
+      // Optional: Add validation for start/end time if critical for published jobs
+    }
 
     const job = await Job.create({
       title,
@@ -30,8 +44,11 @@ router.post("/", async (req, res) => {
       pay: Number(pay),
       payType,
       category,
-      location,
-      jobDate,
+      locations: Array.isArray(locations) ? locations : [],
+      jobDates: Array.isArray(jobDates) ? jobDates : [],
+      startTime,
+      endTime,
+      requirements: Array.isArray(requirements) ? requirements : [],
       status: status || "DRAFT",
     });
 
