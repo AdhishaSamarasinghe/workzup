@@ -55,56 +55,46 @@ export default function Header() {
               />
             </svg>
           </button>
-
-          {/* Dropdown menu */}
-          {menuOpen && (
-            <div className="absolute right-0 top-12 w-48 max-w-[85vw] rounded-xl border border-gray-200 bg-white shadow-lg sm:w-56">
-              <nav className="flex flex-col p-2 text-sm font-medium text-[#111827]">
-                <Link
-                  href="#"
-                  onClick={() => setMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-gray-100"
-                >
-                  Home
-                </Link>
-
-                <Link
-                  href="#"
-                  onClick={() => setMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-gray-100"
-                >
-                  Preferences
-                </Link>
-
-                <Link
-                  href="#"
-                  onClick={() => setMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-gray-100"
-                >
-                  Recruiter Profile
-                </Link>
-
-                <Link
-                  href="#"
-                  onClick={() => setMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-gray-100"
-                >
-                  Find Jobs
-                </Link>
-              </nav>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Optional: close menu when clicking outside */}
+      {/* Mobile full-width stacked nav when menu toggled */}
       {menuOpen && (
-        <button
-          type="button"
-          aria-label="Close menu overlay"
-          className="fixed inset-0 z-40 cursor-default bg-transparent"
-          onClick={() => setMenuOpen(false)}
-        />
+        <div className="border-t border-gray-200 bg-white md:hidden">
+          <nav className="mx-auto flex w-full max-w-[var(--max-width)] flex-col gap-2 px-6 py-3 text-sm font-medium text-[#111827] sm:px-8 lg:px-12">
+            <Link
+              href="#"
+              onClick={() => setMenuOpen(false)}
+              className="rounded-lg px-3 py-2 hover:bg-gray-100"
+            >
+              Home
+            </Link>
+
+            <Link
+              href="#"
+              onClick={() => setMenuOpen(false)}
+              className="rounded-lg px-3 py-2 hover:bg-gray-100"
+            >
+              Preferences
+            </Link>
+
+            <Link
+              href="#"
+              onClick={() => setMenuOpen(false)}
+              className="rounded-lg px-3 py-2 hover:bg-gray-100"
+            >
+              Recruiter Profile
+            </Link>
+
+            <Link
+              href="#"
+              onClick={() => setMenuOpen(false)}
+              className="rounded-lg px-3 py-2 hover:bg-gray-100"
+            >
+              Find Jobs
+            </Link>
+          </nav>
+        </div>
       )}
     </header>
   );

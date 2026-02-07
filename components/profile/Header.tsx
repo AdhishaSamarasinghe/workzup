@@ -109,38 +109,34 @@ export default function ProfileHeader() {
         <div className="md:hidden" />
       </div>
 
-      {/* Mobile dropdown menu shown when hamburger is toggled (anchored to button) */}
+      {/* Mobile menu shown when hamburger is toggled — full-width stacked nav */}
       {menuOpen && (
-        <div className="md:hidden">
-          <div className="absolute right-4 top-full mt-2 z-40 w-[220px] rounded-xl border border-[#E5E7EB] bg-card p-3 shadow-lg">
-            <nav>
-              <Link
-                href="#"
-                className="block rounded-md px-3 py-2 text-sm font-medium text-[#1F2937] hover:bg-[#F3F4F6]"
-                onClick={() => setMenuOpen(false)}
-              >
-                Find Jobs
-              </Link>
-              <Link
-                href="#"
-                className="mt-1 block rounded-md px-3 py-2 text-sm font-medium text-[#1F2937] hover:bg-[#F3F4F6]"
-                onClick={() => setMenuOpen(false)}
-              >
-                Messages
-              </Link>
-              <Link
-                href="#"
-                className="mt-1 block rounded-md px-3 py-2 text-sm font-medium text-[#1F2937] hover:bg-[#F3F4F6]"
-                onClick={() => setMenuOpen(false)}
-              >
-                Post a Job
-              </Link>
-            </nav>
-          </div>
+        <div className="border-t border-[#E5E7EB] bg-card md:hidden">
+          <nav className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-3 text-sm font-medium text-[#1F2937] sm:px-6 lg:px-8">
+            <Link
+              href="#"
+              className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
+              onClick={() => setMenuOpen(false)}
+            >
+              Find Jobs
+            </Link>
+            <Link
+              href="#"
+              className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
+              onClick={() => setMenuOpen(false)}
+            >
+              Messages
+            </Link>
+            <Link
+              href="#"
+              className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
+              onClick={() => setMenuOpen(false)}
+            >
+              Post a Job
+            </Link>
+          </nav>
         </div>
       )}
-
-      {/* removed static mobile nav; hamburger menu now controls mobile navigation */}
     </header>
   );
 }
