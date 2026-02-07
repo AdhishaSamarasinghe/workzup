@@ -17,5 +17,9 @@ export default function ConditionalHeader() {
     return null;
   }
 
+  if (typeof pathname === "string" && pathname.startsWith("/editrecruiter")) {
+    return null;
+  }
+
   return <Header />;
 }

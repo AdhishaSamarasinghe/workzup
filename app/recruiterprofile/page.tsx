@@ -109,7 +109,7 @@ export default function RecruiterProfilePage() {
                 </Link>
                 {/* Edit Recruiter Button - links to edit recruiter page (placeholder) */}
                 <Link
-                  href="#"
+                  href="/editrecruiter"
                   aria-label="Edit recruiter"
                   className="mt-3 inline-block w-full max-w-[180px] rounded-full border border-[#E5E7EB] bg-card py-2.5 text-center text-sm font-medium text-[#1F2937] hover:bg-[#F9FAFB]"
                 >
