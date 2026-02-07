@@ -125,7 +125,7 @@ export default function EditRecruiterHeader() {
             </Link>
             <Link
               href="#"
-              className="rounded-md px-2 py-2 text-accent"
+              className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
               onClick={() => setMenuOpen(false)}
             >
               Profile
