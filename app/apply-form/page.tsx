@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import ApplicationSuccessPopup from "@/components/ApplicationSuccessPopup";
 
 const jobData = {
   title: "Event Staff for Tech Conference",
@@ -13,11 +15,32 @@ const jobData = {
 };
 
 export default function ApplyFormPage() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
   const [cvFileName, setCvFileName] = useState<string | null>(null);
   const [nicFileName, setNicFileName] = useState<string | null>(null);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [applicationId, setApplicationId] = useState<string | null>(null);
+
+  const openSuccessPopup = () => {
+    setShowSuccessPopup(true);
+  };
+
+  const handleViewApplications = () => {
+    setShowSuccessPopup(false);
+    const targetId = applicationId ||
+      (typeof window !== "undefined"
+        ? window.localStorage.getItem("workzup:lastApplicationId")
+        : null);
+    router.push(targetId ? `/applications/${targetId}` : "/applications");
+  };
+
+  const handleBrowseJobs = () => {
+    setShowSuccessPopup(false);
+    router.push("/jobs");
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -41,7 +64,14 @@ export default function ApplyFormPage() {
       }
 
       setIsSuccess(true);
-      setStatusMessage("Application submitted successfully.");
+      setStatusMessage(null);
+      if (payload?.id) {
+        setApplicationId(payload.id);
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("workzup:lastApplicationId", payload.id);
+        }
+      }
+      openSuccessPopup();
       form.reset();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Something went wrong.";
@@ -277,19 +307,19 @@ export default function ApplyFormPage() {
                 {isSubmitting ? "Submitting..." : "Submit Application"}
               </button>
 
-              {statusMessage && (
-                <p
-                  className={`text-sm font-medium ${
-                    isSuccess ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {statusMessage}
-                </p>
+              {statusMessage && isSuccess === false && (
+                <p className="text-sm font-medium text-red-600">{statusMessage}</p>
               )}
             </form>
           </section>
         </div>
       </section>
+
+      <ApplicationSuccessPopup
+        isOpen={showSuccessPopup}
+        onViewApplications={handleViewApplications}
+        onBrowseJobs={handleBrowseJobs}
+      />
     </div>
   );
 }
