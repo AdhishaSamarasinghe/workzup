@@ -60,7 +60,7 @@ export default function Header() {
 
       {/* Mobile full-width stacked nav when menu toggled */}
       {menuOpen && (
-        <div className="border-t border-gray-200 bg-white md:hidden">
+        <div className="border-t border-gray-200 bg-white">
           <nav className="mx-auto flex w-full max-w-[var(--max-width)] flex-col gap-2 px-6 py-3 text-sm font-medium text-[#111827] sm:px-8 lg:px-12">
             <Link
               href="#"
