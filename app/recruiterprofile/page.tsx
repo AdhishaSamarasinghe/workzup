@@ -6,7 +6,6 @@ import Link from "next/link";
 
 type RecruiterProfile = {
   companyName: string;
-  location: string;
   isVerified: boolean;
 
   about: string;
@@ -14,6 +13,10 @@ type RecruiterProfile = {
   companySize: string;
   memberSince: string;
   website: string;
+
+  companyAddress: string;
+  city: string;
+  zipCode: string;
 
   logoBase64: string | null;
 };
@@ -31,7 +34,7 @@ type RecruiterJob = {
   id: string;
   recruiterId: string;
   title: string;
-  postedDate: string; // ISO
+  postedDate: string;
   status: "Active" | "Completed" | "Expired";
   applicants: number;
   icon: string;
@@ -40,15 +43,12 @@ type RecruiterJob = {
 export default function RecruiterProfilePage() {
   const [activeTab, setActiveTab] = useState<"history" | "reviews">("history");
 
-  // Profile
   const [data, setData] = useState<RecruiterProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Reviews
   const [reviews, setReviews] = useState<RecruiterReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
-  // Jobs (Job History)
   const [jobs, setJobs] = useState<RecruiterJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState(false);
 
@@ -61,11 +61,9 @@ export default function RecruiterProfilePage() {
   const loadReviews = async () => {
     setReviewsLoading(true);
     try {
-      const res = await fetch("/api/recruiter-reviews?recruiterId=default", {
-        cache: "no-store",
-      });
+      const res = await fetch("/api/recruiter-reviews?recruiterId=default", { cache: "no-store" });
       const json = await res.json();
-      if (json.ok) setReviews(json.data); // newest-first from backend
+      if (json.ok) setReviews(json.data);
     } finally {
       setReviewsLoading(false);
     }
@@ -74,11 +72,9 @@ export default function RecruiterProfilePage() {
   const loadJobs = async () => {
     setJobsLoading(true);
     try {
-      const res = await fetch("/api/recruiter-jobs?recruiterId=default", {
-        cache: "no-store",
-      });
+      const res = await fetch("/api/recruiter-jobs?recruiterId=default", { cache: "no-store" });
       const json = await res.json();
-      if (json.ok) setJobs(json.data); // newest-first from backend
+      if (json.ok) setJobs(json.data);
     } finally {
       setJobsLoading(false);
     }
@@ -111,18 +107,21 @@ export default function RecruiterProfilePage() {
     );
   }
 
+  // ✅ Dynamic location text built from your Edit page inputs
+  const locationLine =
+    [data.city?.trim(), data.zipCode?.trim()].filter(Boolean).join(" • ") || "—";
+
   return (
     <div className="min-h-screen bg-bg py-8">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[320px_1fr]">
-          {/* Left Column */}
+          {/* Left */}
           <div className="space-y-6">
             {/* Profile Card */}
             <div className="rounded-2xl bg-card p-6 shadow-sm">
               <div className="flex flex-col items-center text-center">
-                {/* Logo */}
                 <div className="mb-4">
-                  <div className="relative mx-auto h-28 w-28 overflow-hidden rounded-full bg-[#3d5a4c] sm:h-32 sm:w-32 md:h-36 md:w-36">
+                  <div className="relative h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 mx-auto rounded-full overflow-hidden bg-[#3d5a4c]">
                     {data.logoBase64 ? (
                       <Image
                         src={data.logoBase64}
@@ -144,7 +143,6 @@ export default function RecruiterProfilePage() {
                   </div>
                 </div>
 
-                {/* Name + Verified */}
                 <div className="mb-1 flex items-center gap-1.5">
                   <h1 className="text-xl font-semibold text-[#1F2937]">
                     {data.companyName}
@@ -168,7 +166,8 @@ export default function RecruiterProfilePage() {
                   )}
                 </div>
 
-                <p className="text-sm text-muted">{data.location}</p>
+                {/* ✅ This is now dynamic from City + Zip */}
+                <p className="text-sm text-muted">{locationLine}</p>
                 <p className="mt-1 text-sm text-muted">Verified Employer</p>
 
                 <Link
@@ -197,24 +196,49 @@ export default function RecruiterProfilePage() {
               </p>
 
               <div className="space-y-4">
+                {/* ✅ Show full address nicely */}
+                <div className="flex items-start justify-between">
+                  <span className="text-sm text-muted">Company address</span>
+                  <span className="text-right text-sm font-medium text-[#1F2937]">
+                    {data.companyAddress || "—"}
+                  </span>
+                </div>
+
+                <div className="flex items-start justify-between">
+                  <span className="text-sm text-muted">City</span>
+                  <span className="text-right text-sm font-medium text-[#1F2937]">
+                    {data.city || "—"}
+                  </span>
+                </div>
+
+                <div className="flex items-start justify-between">
+                  <span className="text-sm text-muted">Zip code</span>
+                  <span className="text-right text-sm font-medium text-[#1F2937]">
+                    {data.zipCode || "—"}
+                  </span>
+                </div>
+
                 <div className="flex items-start justify-between">
                   <span className="text-sm text-muted">Industry</span>
                   <span className="text-right text-sm font-medium text-[#1F2937]">
                     {data.industry}
                   </span>
                 </div>
+
                 <div className="flex items-start justify-between">
                   <span className="text-sm text-muted">Company size</span>
                   <span className="text-right text-sm font-medium text-[#1F2937]">
                     {data.companySize}
                   </span>
                 </div>
+
                 <div className="flex items-start justify-between">
                   <span className="text-sm text-muted">Member since</span>
                   <span className="text-right text-sm font-medium text-[#1F2937]">
                     {data.memberSince}
                   </span>
                 </div>
+
                 <div className="flex items-start justify-between">
                   <span className="text-sm text-muted">Website</span>
                   <a
@@ -230,14 +254,13 @@ export default function RecruiterProfilePage() {
             </div>
           </div>
 
-          {/* Right Column */}
+          {/* Right Column (same as your jobs+reviews setup) */}
           <div className="rounded-2xl bg-card p-6 shadow-sm">
-            {/* Tabs */}
             <div className="mb-6 flex gap-6 border-b border-[#E5E7EB]">
               <button
                 onClick={() => {
                   setActiveTab("history");
-                  loadJobs(); // ✅ refresh jobs when tab opened
+                  loadJobs();
                 }}
                 className={`pb-3 text-sm font-medium transition-colors ${
                   activeTab === "history"
@@ -251,7 +274,7 @@ export default function RecruiterProfilePage() {
               <button
                 onClick={() => {
                   setActiveTab("reviews");
-                  loadReviews(); // ✅ refresh reviews when tab opened
+                  loadReviews();
                 }}
                 className={`pb-3 text-sm font-medium transition-colors ${
                   activeTab === "reviews"
@@ -263,7 +286,6 @@ export default function RecruiterProfilePage() {
               </button>
             </div>
 
-            {/* Job History Tab */}
             {activeTab === "history" && (
               <div className="space-y-4">
                 {jobsLoading ? (
@@ -279,24 +301,17 @@ export default function RecruiterProfilePage() {
                       className="flex items-center justify-between rounded-xl border border-[#E5E7EB] p-4 transition-colors hover:bg-[#F9FAFB]"
                     >
                       <div className="flex items-center gap-4">
-                        {/* Icon */}
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F3F4F6] text-lg sm:h-12 sm:w-12 sm:text-xl">
+                        <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-[#F3F4F6] text-lg sm:text-xl">
                           {job.icon}
                         </div>
-
-                        {/* Info */}
                         <div>
-                          <h3 className="font-medium text-[#1F2937]">
-                            {job.title}
-                          </h3>
+                          <h3 className="font-medium text-[#1F2937]">{job.title}</h3>
                           <p className="text-sm text-muted">
-                            Posted on{" "}
-                            {new Date(job.postedDate).toLocaleDateString()}
+                            Posted on {new Date(job.postedDate).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
 
-                      {/* Status & applicants */}
                       <div className="flex items-center gap-4">
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
@@ -319,9 +334,7 @@ export default function RecruiterProfilePage() {
                           {job.status}
                         </span>
 
-                        <span className="text-sm text-muted">
-                          {job.applicants} Applicants
-                        </span>
+                        <span className="text-sm text-muted">{job.applicants} Applicants</span>
                       </div>
                     </div>
                   ))
@@ -329,7 +342,6 @@ export default function RecruiterProfilePage() {
               </div>
             )}
 
-            {/* Reviews Tab */}
             {activeTab === "reviews" && (
               <div className="space-y-4">
                 {reviewsLoading ? (
@@ -340,38 +352,28 @@ export default function RecruiterProfilePage() {
                   </div>
                 ) : (
                   reviews.map((r) => (
-                    <div
-                      key={r.id}
-                      className="rounded-xl border border-[#E5E7EB] p-4"
-                    >
+                    <div key={r.id} className="rounded-xl border border-[#E5E7EB] p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-[#1F2937]">
-                            {r.reviewerName}
-                          </p>
-                          <p className="text-xs text-muted">
-                            {new Date(r.createdAt).toLocaleString()}
-                          </p>
+                          <p className="font-medium text-[#1F2937]">{r.reviewerName}</p>
+                          <p className="text-xs text-muted">{new Date(r.createdAt).toLocaleString()}</p>
                         </div>
 
                         <div className="flex items-center gap-1 text-sm">
-                          <span className="font-semibold text-[#1F2937]">
-                            {r.rating}
-                          </span>
+                          <span className="font-semibold text-[#1F2937]">{r.rating}</span>
                           <span className="text-yellow-500">★</span>
                           <span className="text-muted">/ 5</span>
                         </div>
                       </div>
 
-                      <p className="mt-3 text-sm text-muted leading-relaxed">
-                        {r.comment}
-                      </p>
+                      <p className="mt-3 text-sm text-muted leading-relaxed">{r.comment}</p>
                     </div>
                   ))
                 )}
               </div>
             )}
           </div>
+
         </div>
       </div>
     </div>

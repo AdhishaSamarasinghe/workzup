@@ -1,4 +1,3 @@
-// app/api/recruiter-profile/route.ts
 import { NextResponse } from "next/server";
 import {
   getRecruiterProfile,
@@ -27,14 +26,18 @@ export async function PUT(req: Request) {
   try {
     const body = (await req.json()) as Partial<RecruiterProfile>;
 
-    // validation
     if (body.contactEmail && !isEmail(body.contactEmail)) {
-      return NextResponse.json({ ok: false, message: "Invalid email format" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, message: "Invalid email format" },
+        { status: 400 }
+      );
     }
 
-    // protect huge base64 logos (optional but good)
     if (body.logoBase64 && body.logoBase64.length > 1_500_000) {
-      return NextResponse.json({ ok: false, message: "Logo too large. Upload a smaller image." }, { status: 413 });
+      return NextResponse.json(
+        { ok: false, message: "Logo file is too large. Upload a smaller image." },
+        { status: 413 }
+      );
     }
 
     const updated = updateRecruiterProfile({
@@ -44,6 +47,9 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ ok: true, data: updated }, { status: 200 });
   } catch {
-    return NextResponse.json({ ok: false, message: "Failed to update recruiter profile" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, message: "Failed to update recruiter profile" },
+      { status: 500 }
+    );
   }
 }

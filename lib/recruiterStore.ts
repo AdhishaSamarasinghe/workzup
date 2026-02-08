@@ -2,7 +2,6 @@
 
 export type RecruiterProfile = {
   companyName: string;
-  location: string;
   isVerified: boolean;
 
   about: string;
@@ -24,7 +23,6 @@ export type RecruiterProfile = {
 
 const defaultRecruiter: RecruiterProfile = {
   companyName: "Construct Co.",
-  location: "San Francisco, CA",
   isVerified: true,
 
   about:
@@ -34,9 +32,10 @@ const defaultRecruiter: RecruiterProfile = {
   memberSince: "August 2023",
   website: "constructco.com",
 
-  companyAddress: "",
-  city: "",
-  zipCode: "",
+  // ✅ These will control the "location" text on profile page
+  companyAddress: "123 Market Street",
+  city: "San Francisco, CA",
+  zipCode: "94103",
 
   contactPersonName: "",
   contactEmail: "",
@@ -45,7 +44,6 @@ const defaultRecruiter: RecruiterProfile = {
   logoBase64: null,
 };
 
-// keep it in global memory (doesn’t reset on hot reload)
 declare global {
   // eslint-disable-next-line no-var
   var __recruiterProfile: RecruiterProfile | undefined;
