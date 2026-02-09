@@ -12,9 +12,18 @@ export default function Header() {
         </div>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-700">
+          <Link href="/" className="transition-colors hover:text-blue-600">Home</Link>
+          <Link href="/jobs" className="transition-colors hover:text-blue-600">Jobs</Link>
+          <Link href="/settings" className="transition-colors hover:text-blue-600">Settings</Link>
         </nav>
 
         <div className="flex items-center gap-4">
+          <Link
+            href="/settings"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all shadow-sm"
+          >
+            My Account
+          </Link>
         </div>
       </div>
     </header>

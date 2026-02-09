@@ -28,13 +28,25 @@ export async function GET() {
     return NextResponse.json({
         profileVisibility: true,
         newJobMatches: true,
-        applicationUpdates: false,
+        applicationUpdates: true,
+        marketingEmails: false,
+        securityEmails: true,
+        twoFactorEnabled: false,
+        theme: "light",
         user: {
             name: "Alex Doe",
             email: "alex.doe@workzup.com",
+            phone: "+1 (555) 000-0000",
+            location: "San Francisco, CA",
+            birthday: "1992-05-15",
             title: "Product Designer",
             bio: "Passionate about creating seamless user experiences and connecting talent with great opportunities.",
             avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"
+        },
+        billing: {
+            plan: "Pro Plan",
+            nextBillingDate: "2026-03-09",
+            status: "active"
         }
     });
 }
