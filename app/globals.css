@@ -1,21 +1,65 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f7fafc;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: #6366f1;
+  /* Indigo 500 */
+  --primary-foreground: #ffffff;
   --card: #ffffff;
-  --muted: #6b7280;
-  --accent: #6b8bff;
-  --accent-2: #8be3c7;
-  --radius: 14px;
-  --max-width: 1100px;
+  --card-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --border: #e2e8f0;
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
+.gradient-text {
+  background: linear-gradient(to right, #4f46e5, #06b6d4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.animate-in {
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.slide-in-from-bottom-4 {
+  animation-name: slideInFromBottom;
 }
