@@ -1,39 +1,43 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function Header() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-card/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
-        <Link href="#" className="-ml-10 flex items-center gap-2">
-          <Image
-            src="/logo_main.png"
-            alt="Workzup"
-            width={120}
-            height={28}
-            priority
-            className="h-9 w-auto"
-          />
+    <header
+      className={`
+        fixed top-0 left-0 w-full z-50 transition-all duration-300
+        ${
+          scrolled
+            ? "bg-white/70 backdrop-blur-md shadow-sm"
+            : "bg-transparent"
+        }
+      `}
+    >
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <Link href="/" className="text-xl font-semibold">
+          Work<span className="text-black">z</span>up
         </Link>
 
-        <nav className="hidden items-center gap-8 text-base font-medium text-[#1F2937] md:flex md:ml-auto">
-          <Link href="#" className="transition-colors hover:text-accent">
+        {/* Navigation */}
+        <nav className="flex items-center gap-6 text-sm font-medium">
+          <Link href="/jobs" className="hover:text-blue-600 transition">
             Find Jobs
           </Link>
-          <Link href="#" className="transition-colors hover:text-accent">
-            Post a Job
-          </Link>
-        </nav>
-
-        <div className="md:hidden" />
-      </div>
-
-      <div className="border-t border-[#E5E7EB] bg-card md:hidden">
-        <nav className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-3 text-sm font-medium text-[#1F2937] sm:px-6 lg:px-8">
-          <Link href="#" className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]">
-            Find Jobs
-          </Link>
-          <Link href="#" className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]">
+          <Link href="/post-job" className="hover:text-blue-600 transition">
             Post a Job
           </Link>
         </nav>
