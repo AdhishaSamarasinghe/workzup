@@ -12,7 +12,7 @@ const jobSchema = new mongoose.Schema(
     startTime: { type: String }, // e.g. "09:00"
     endTime: { type: String },   // e.g. "17:00"
     requirements: [{ type: String }],
-    status: { type: String, enum: ["DRAFT", "PUBLISHED"], default: "DRAFT" },
+    status: { type: String, enum: ["DRAFT", "PUBLIC", "PRIVATE"], default: "DRAFT" },
   },
   { timestamps: true }
 );
