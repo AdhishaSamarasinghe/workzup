@@ -2,8 +2,11 @@
 
 import Header from "@/components/Header";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { SRI_LANKA_LOCATIONS } from "@/app/data/locations";
+import TimePicker from "@/components/TimePicker";
 
-type Status = "DRAFT" | "PUBLISHED";
+type Status = "DRAFT" | "PUBLIC" | "PRIVATE";
 
 type JobForm = {
   title: string;
@@ -19,14 +22,19 @@ type JobForm = {
 };
 
 export default function CreateJobPage() {
+  const router = useRouter();
   const API_BASE = useMemo(
     () => process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000",
     []
   );
 
-  const SL_CITIES = [
-    "Colombo", "Dehiwala-Mount Lavinia", "Moratuwa", "Sri Jayawardenepura Kotte", "Negombo", "Kandy", "Kalmunai", "Vavuniya", "Galle", "Trincomalee", "Batticaloa", "Jaffna", "Katunayake", "Dambulla", "Kolonnawa", "Anuradhapura", "Ratnapura", "Badulla", "Matara", "Puttalam", "Chavakachcheri", "Battaramulla", "Panadura", "Kalutara", "Matale", "Mannar", "Point Pedro", "Kurunegala", "Gampaha", "Nuwara Eliya", "Valvettithurai", "Hikkaduwa", "Weligama", "Ambalangoda", "Kegalle", "Ampara", "Hatton", "Hambantota", "Tangalle", "Monaragala", "Gampola", "Horana", "Wattala", "Minuwangoda", "Bandarawela", "Kuliyapitiya", "Haputale", "Talawakelle", "Harispattuwa", "Kadugannawa", "Embilipitiya", "Sigiriya", "Polonnaruwa", "Kilinochchi", "Mullaitivu"
-  ].sort();
+  const ALL_CITIES = useMemo(() => {
+    const list: string[] = [];
+    Object.entries(SRI_LANKA_LOCATIONS).forEach(([dist, cities]) => {
+      cities.forEach(city => list.push(`${city}, ${dist}`));
+    });
+    return list.sort();
+  }, []);
 
   const [form, setForm] = useState<JobForm>({
     title: "",
@@ -57,6 +65,8 @@ export default function CreateJobPage() {
 
   const addLocation = () => {
     if (!locInput.trim()) return;
+    if (form.locations.includes(locInput.trim())) return;
+
     setForm((p) => ({ ...p, locations: [...p.locations, locInput.trim()] }));
     setLocInput("");
   };
@@ -92,20 +102,19 @@ export default function CreateJobPage() {
   }
 
   function validate(status: Status): string {
-    // Loose validation for Drafts
-    if (status === "DRAFT") {
-      if (!form.title.trim()) return "Job title is required for draft.";
-      return "";
+    // Both PUBLIC and PRIVATE need title/description/pay/dates/locations
+    // DRAFT only needs title
+    if (!form.title.trim()) return "Job title is required.";
+
+    if (status === "PUBLIC" || status === "PRIVATE") {
+      if (!form.description.trim()) return "Job description is required.";
+      if (!form.pay || Number(form.pay) <= 0) return "Pay must be a positive number.";
+      if (form.locations.length === 0) return "At least one location is required.";
+      if (form.jobDates.length === 0) return "At least one job date is required.";
+      if (!form.startTime) return "Start time is required.";
+      if (!form.endTime) return "End time is required.";
     }
 
-    // Strict validation for Published
-    if (!form.title.trim()) return "Job title is required.";
-    if (!form.description.trim()) return "Job description is required.";
-    if (!form.pay || Number(form.pay) <= 0) return "Pay must be a positive number.";
-    if (form.locations.length === 0) return "At least one location is required.";
-    if (form.jobDates.length === 0) return "At least one job date is required.";
-    if (!form.startTime) return "Start time is required.";
-    if (!form.endTime) return "End time is required.";
     return "";
   }
 
@@ -135,7 +144,7 @@ export default function CreateJobPage() {
         text: status === "DRAFT" ? "Saved as draft ✅" : "Job posted ✅",
       });
 
-      if (status === "PUBLISHED") {
+      if (status === "PUBLIC" || status === "PRIVATE") {
         setShowSuccess(true);
         setForm({
           title: "",
@@ -162,44 +171,55 @@ export default function CreateJobPage() {
 
 
       <main className="max-w-5xl mx-auto px-4 py-8">
-        <div className="text-xs text-slate-500 mb-3">My postings / Create new job</div>
+        <div className="text-xs text-slate-500 mb-3 uppercase tracking-wider font-bold">My postings / Post a new job</div>
 
-        <h1 className="text-3xl font-extrabold text-slate-900">Create a New Job Posting</h1>
-        <p className="text-slate-600 mt-1">
+        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Post a new job</h1>
+        <p className="text-slate-600 mt-1 text-lg">
           Fill out the details below to find the right person for your one-day job
         </p>
 
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-8">
           {showSuccess ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+              <div className="w-20 h-20 bg-emerald-300 rounded-full flex items-center justify-center mb-6 shadow-sm">
                 <svg
-                  className="w-8 h-8"
+                  className="w-10 h-10 text-white"
                   fill="none"
                   stroke="currentColor"
+                  strokeWidth="3"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                Job Posted Successfully!
-              </h2>
-              <p className="text-slate-600 mb-8">
-                Your job listing is now live and visible to potential candidates.
+              <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Job Posted!</h2>
+              <p className="text-slate-600 mb-8 max-w-md mx-auto">
+                Your job listing is now live. Candidates can now view and apply to your job.
+                We will update you on any applications soon.
               </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center mt-6">
+                <button
+                  onClick={() => router.push('/employer/create-job/my-postings')}
+                  className="btn-secondary flex-1"
+                >
+                  View My Job Posts
+                </button>
+                <button
+                  onClick={() => {/* Placeholder for profile */ }}
+                  className="btn-primary flex-1"
+                >
+                  View My Profile
+                </button>
+              </div>
+
               <button
                 onClick={() => {
                   setShowSuccess(false);
                   setMsg({ type: "", text: "" });
                 }}
-                className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+                className="btn-tertiary mt-6"
               >
                 Post Another Job
               </button>
@@ -209,7 +229,7 @@ export default function CreateJobPage() {
               {/* Section 1: Job Details */}
               <section>
                 <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  <span className="w-1 h-6 bg-blue-600 rounded-full inline-block"></span>
+                  <span className="w-1 h-6 bg-accent rounded-full inline-block"></span>
                   Job Details
                 </h2>
 
@@ -241,7 +261,7 @@ export default function CreateJobPage() {
                         name="pay"
                         value={form.pay}
                         onChange={handleChange}
-                        placeholder="2500"
+                        placeholder="$250.00"
                         inputMode="numeric"
                         className="w-full h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
                       />
@@ -303,7 +323,7 @@ export default function CreateJobPage() {
                         type="button"
                         className="px-4 h-11 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors"
                       >
-                        Add Date
+                        Add
                       </button>
                     </div>
                     {form.jobDates.length > 0 && (
@@ -318,7 +338,7 @@ export default function CreateJobPage() {
                               onClick={() => removeDate(idx)}
                               className="text-blue-400 hover:text-blue-600 focus:outline-none"
                             >
-                              ×
+                              *
                             </button>
                           </span>
                         ))}
@@ -333,14 +353,14 @@ export default function CreateJobPage() {
                       <input
                         value={locInput}
                         onChange={(e) => setLocInput(e.target.value)}
-                        placeholder="e.g. Colombo"
+                        placeholder="e.g. Colombo, Baththaramulla"
                         list="city-list"
                         className="flex-1 h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
                         onKeyDown={(e) => e.key === "Enter" && addLocation()}
                       />
                       <datalist id="city-list">
-                        {SL_CITIES.map((city) => (
-                          <option key={city} value={city} />
+                        {ALL_CITIES.map((loc) => (
+                          <option key={loc} value={loc} />
                         ))}
                       </datalist>
                       <button
@@ -372,26 +392,18 @@ export default function CreateJobPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-slate-800 mb-2">
-                      Start Time
-                    </label>
-                    <input
-                      type="time"
-                      name="startTime"
+                    <TimePicker
+                      label="Start Time"
                       value={form.startTime}
-                      onChange={handleChange}
-                      className="w-full h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
+                      onChange={(val) => setForm(p => ({ ...p, startTime: val }))}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-slate-800 mb-2">End Time</label>
-                    <input
-                      type="time"
-                      name="endTime"
+                    <TimePicker
+                      label="End Time"
                       value={form.endTime}
-                      onChange={handleChange}
-                      className="w-full h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
+                      onChange={(val) => setForm(p => ({ ...p, endTime: val }))}
                     />
                   </div>
                 </div>
@@ -457,21 +469,28 @@ export default function CreateJobPage() {
                 </div>
               ) : null}
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex items-center gap-6 pt-8 mt-8 border-t border-slate-100">
+                <button
+                  onClick={() => submit("PUBLIC")}
+                  disabled={loading}
+                  className="btn-primary min-w-[156px] px-6 h-[44px] whitespace-nowrap"
+                >
+                  {loading ? "Creating..." : "Post a new job"}
+                </button>
+
                 <button
                   onClick={() => submit("DRAFT")}
                   disabled={loading}
-                  className="h-11 px-6 rounded-xl border border-slate-300 bg-white font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60 transition-colors"
+                  className="btn-secondary"
                 >
                   {loading ? "Saving..." : "Save as Draft"}
                 </button>
 
                 <button
-                  onClick={() => submit("PUBLISHED")}
-                  disabled={loading}
-                  className="h-11 px-6 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60 transition-colors shadow-sm"
+                  onClick={() => router.push("/employer/create-job/my-postings")}
+                  className="btn-tertiary"
                 >
-                  {loading ? "Posting..." : "Post a job"}
+                  Cancel
                 </button>
               </div>
             </>
