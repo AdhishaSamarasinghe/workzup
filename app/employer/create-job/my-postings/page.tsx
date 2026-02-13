@@ -10,9 +10,11 @@ type Job = {
   pay: number;
   payType: "hour" | "day";
   category: string;
-  location: string;
-  jobDate: string;
-  status: "DRAFT" | "PUBLISHED";
+  location?: string;
+  locations?: string[];
+  jobDate?: string;
+  jobDates?: string[];
+  status: "DRAFT" | "PUBLIC" | "PRIVATE";
   createdAt: string;
 };
 
@@ -59,18 +61,18 @@ export default function MyPostingsPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
           <div>
-            <div className="text-xs text-slate-500 mb-2">Dashboard / My postings</div>
-            <h1 className="text-3xl font-extrabold text-slate-900">My Job Postings</h1>
-            <p className="text-slate-600 mt-1">View drafts and published job posts.</p>
+            <div className="text-xs text-slate-500 mb-2 uppercase tracking-wider font-bold">Employer / Hub</div>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">My Job Postings</h1>
+            <p className="text-slate-600 mt-1 text-lg">Manage your active job listings and drafts.</p>
           </div>
 
           <Link
             href="/employer/create-job"
-            className="bg-blue-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-blue-700 transition"
+            className="btn-primary min-w-[156px] w-fit px-4 h-[44px] whitespace-nowrap"
           >
-            + Create Job
+            Post a new job
           </Link>
         </div>
 
@@ -119,6 +121,7 @@ export default function MyPostingsPage() {
                     <th className="px-4 py-3 font-semibold">Location</th>
                     <th className="px-4 py-3 font-semibold">Job Date</th>
                     <th className="px-4 py-3 font-semibold">Created</th>
+                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
 
@@ -133,15 +136,34 @@ export default function MyPostingsPage() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold border ${
-                            job.status === "PUBLISHED"
-                              ? "bg-green-50 text-green-700 border-green-200"
+                        <select
+                          value={job.status}
+                          onChange={async (e) => {
+                            const newStatus = e.target.value as Job["status"];
+                            try {
+                              const res = await fetch(`${API_BASE}/api/jobs/${job._id}`, {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ ...job, status: newStatus }),
+                              });
+                              if (res.ok) {
+                                setJobs(p => p.map(j => j._id === job._id ? { ...j, status: newStatus } : j));
+                              }
+                            } catch (err) {
+                              console.error("Failed to update status", err);
+                            }
+                          }}
+                          className={`inline-flex items-center rounded-lg px-2 py-1 text-xs font-semibold border outline-none cursor-pointer ${job.status === "PUBLIC"
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : job.status === "PRIVATE"
+                              ? "bg-purple-50 text-purple-700 border-purple-200"
                               : "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}
+                            }`}
                         >
-                          {job.status}
-                        </span>
+                          <option value="DRAFT">DRAFT</option>
+                          <option value="PUBLIC">PUBLIC</option>
+                          <option value="PRIVATE">PRIVATE</option>
+                        </select>
                       </td>
 
                       <td className="px-4 py-3 text-slate-800">
@@ -150,11 +172,28 @@ export default function MyPostingsPage() {
 
                       <td className="px-4 py-3 text-slate-700">{job.category || "—"}</td>
 
-                      <td className="px-4 py-3 text-slate-700">{job.location}</td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {job.locations && job.locations.length > 0
+                          ? job.locations.join(", ")
+                          : job.location || "—"}
+                      </td>
 
-                      <td className="px-4 py-3 text-slate-700">{formatDate(job.jobDate)}</td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {job.jobDates && job.jobDates.length > 0
+                          ? job.jobDates.map((d) => formatDate(d)).join(", ")
+                          : formatDate(job.jobDate || "")}
+                      </td>
 
                       <td className="px-4 py-3 text-slate-500">{formatDate(job.createdAt)}</td>
+
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/employer/edit-job/${job._id}`}
+                          className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                        >
+                          Edit
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
