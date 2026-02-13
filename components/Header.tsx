@@ -18,7 +18,7 @@ export default function Header() {
           {/* Center */}
           <nav className="hidden md:flex items-center gap-8 text-sm text-slate-700">
             <Link href="/dashboard" className="opacity-80 hover:opacity-100">Dashboard</Link>
-            <Link href="/employer/my-postings" className="opacity-80 hover:opacity-100">My postings</Link>
+            <Link href="/employer/create-job/my-postings" className="opacity-80 hover:opacity-100">My postings</Link>
             <Link href="/messages" className="opacity-80 hover:opacity-100">Messages</Link>
             <Link href="/profile" className="opacity-80 hover:opacity-100">Profile</Link>
           </nav>
@@ -27,7 +27,7 @@ export default function Header() {
           <div className="flex items-center justify-end gap-4">
             <Link
               href="/employer/create-job"
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="btn-primary min-w-[156px] w-fit px-4 h-[44px] text-sm whitespace-nowrap"
             >
               Post a new job
             </Link>
