@@ -76,6 +76,8 @@ export default function SettingsPage() {
     const [saveStatus, setSaveStatus] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [ratings, setRatings] = useState<any>(null);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     // Profile states
     const [name, setName] = useState("Alex Doe");
@@ -214,6 +216,13 @@ export default function SettingsPage() {
         { id: "preferences", label: "General", icon: <Settings className="w-5 h-5" /> },
     ];
 
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+        // Simulate cleanup/API call
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        window.location.href = "/"; // Redirect to home
+    };
+
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="flex flex-col lg:flex-row gap-10">
@@ -258,7 +267,10 @@ export default function SettingsPage() {
                                     </li>
                                 ))}
                                 <li className="pt-4 mt-4 border-t border-gray-100">
-                                    <button className="group w-full flex items-center gap-3.5 px-5 py-3 text-sm font-semibold text-red-500 rounded-2xl hover:bg-red-50 transition-all duration-200">
+                                    <button
+                                        onClick={() => setShowLogoutModal(true)}
+                                        className="group w-full flex items-center gap-3.5 px-5 py-3 text-sm font-semibold text-red-500 rounded-2xl hover:bg-red-50 transition-all duration-200"
+                                    >
                                         <LogOut className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
                                         Log Out
                                     </button>
@@ -785,6 +797,47 @@ export default function SettingsPage() {
                     )}
                 </main>
             </div>
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-300">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mb-6">
+                                <LogOut className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Logout</h3>
+                            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+                                Are you sure you want to log out? You'll need to sign back in to access your dashboard.
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-3 w-full">
+                                <button
+                                    onClick={() => !isLoggingOut && setShowLogoutModal(false)}
+                                    disabled={isLoggingOut}
+                                    className="px-4 py-3 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    disabled={isLoggingOut}
+                                    className="px-4 py-3 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-2xl shadow-lg shadow-red-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isLoggingOut ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Wait...
+                                        </>
+                                    ) : (
+                                        "Log Out"
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
