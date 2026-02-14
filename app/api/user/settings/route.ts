@@ -33,6 +33,7 @@ export async function GET() {
         securityEmails: true,
         twoFactorEnabled: false,
         theme: "light",
+        language: "English (United States)",
         user: {
             name: "Alex Doe",
             email: "alex.doe@workzup.com",
@@ -41,12 +42,20 @@ export async function GET() {
             birthday: "1992-05-15",
             title: "Product Designer",
             bio: "Passionate about creating seamless user experiences and connecting talent with great opportunities.",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"
+            avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=250&h=250&auto=format&fit=crop"
         },
-        billing: {
-            plan: "Pro Plan",
-            nextBillingDate: "2026-03-09",
-            status: "active"
+        ratings: {
+            overallRating: 4.8,
+            workQualities: {
+                reliability: 4.9,
+                technicalSkill: 4.7,
+                communication: 4.8,
+                punctuality: 5.0
+            },
+            pastExperiences: [
+                { id: 1, company: "TechCorp", role: "Junior Dev", rating: 5.0, feedback: "Exceptional work quality." },
+                { id: 2, company: "DesignHub", role: "UI Designer", rating: 4.6, feedback: "Great eye for detail." }
+            ]
         }
     });
 }

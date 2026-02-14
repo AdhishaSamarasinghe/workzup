@@ -14,18 +14,53 @@ import {
     ChevronRight,
     Eye,
     EyeOff,
-    CreditCard,
-    Smartphone,
+    Plus,
+    Star,
+    Award,
+    History,
+    TrendingUp,
+    ShieldAlert,
     Globe,
+    Phone,
+    MapPin,
+    Smartphone,
+    Clock,
     Mail,
     Palette,
-    ShieldAlert,
-    Clock,
-    UserPlus,
-    MapPin,
-    Phone,
-    Calendar
+    AlertCircle,
+    Calendar,
+    UserPlus
 } from "lucide-react";
+
+// Helper function to format Sri Lankan phone numbers: +94 XX-XXX-XXXX
+const formatSLNumber = (value: string) => {
+    // Remove all non-digits except +
+    const digits = value.replace(/[^\d]/g, "");
+
+    // We always want to start with 94
+    let cleanDigits = digits;
+    if (digits.startsWith("94")) {
+        cleanDigits = digits.slice(2);
+    } else if (digits.startsWith("0")) {
+        cleanDigits = digits.slice(1);
+    }
+
+    // Take first 9 digits for the local part (XX-XXX-XXXX)
+    const local = cleanDigits.slice(0, 9);
+
+    let result = "+94 ";
+    if (local.length > 0) {
+        result += local.slice(0, 2);
+    }
+    if (local.length > 2) {
+        result += "-" + local.slice(2, 5);
+    }
+    if (local.length > 5) {
+        result += "-" + local.slice(5, 9);
+    }
+
+    return result;
+};
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState("account");
@@ -36,15 +71,18 @@ export default function SettingsPage() {
     const [securityEmails, setSecurityEmails] = useState(true);
     const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
     const [theme, setTheme] = useState("light");
+    const [language, setLanguage] = useState("English (United States)");
     const [isLoading, setIsLoading] = useState(false);
     const [saveStatus, setSaveStatus] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [ratings, setRatings] = useState<any>(null);
 
     // Profile states
     const [name, setName] = useState("Alex Doe");
     const [title, setTitle] = useState("Product Designer");
     const [bio, setBio] = useState("Passionate about creating seamless user experiences and connecting talent with great opportunities.");
-    const [avatar, setAvatar] = useState("https://api.dicebear.com/7.x/avataaars/svg?seed=Alex");
-    const [userPhone, setUserPhone] = useState("");
+    const [avatar, setAvatar] = useState("https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=250&h=250&auto=format&fit=crop");
+    const [userPhone, setUserPhone] = useState("+94 ");
     const [userLocation, setUserLocation] = useState("");
     const [userBirthday, setUserBirthday] = useState("");
 
@@ -63,7 +101,8 @@ export default function SettingsPage() {
                         setTitle(data.user.title || "");
                         setBio(data.user.bio || "");
                         setAvatar(data.user.avatar || "");
-                        setUserPhone(data.user.phone || "");
+                        const phone = data.user.phone || "";
+                        setUserPhone(formatSLNumber(phone));
                         setUserLocation(data.user.location || "");
                         setUserBirthday(data.user.birthday || "");
                     }
@@ -74,6 +113,8 @@ export default function SettingsPage() {
                     setSecurityEmails(data.securityEmails ?? true);
                     setTwoFactorEnabled(data.twoFactorEnabled ?? false);
                     setTheme(data.theme ?? "light");
+                    setLanguage(data.language ?? "English (United States)");
+                    setRatings(data.ratings ?? null);
                 }
             } catch (error) {
                 console.error("Failed to fetch settings:", error);
@@ -83,9 +124,45 @@ export default function SettingsPage() {
         fetchSettings();
     }, []);
 
+    useEffect(() => {
+        const root = window.document.documentElement;
+        const applyTheme = (t: string) => {
+            if (t === "dark") {
+                root.classList.add("dark");
+            } else if (t === "light") {
+                root.classList.remove("dark");
+            } else if (t === "system") {
+                const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                if (systemTheme === "dark") {
+                    root.classList.add("dark");
+                } else {
+                    root.classList.remove("dark");
+                }
+            }
+        };
+
+        applyTheme(theme);
+
+        // Listener for system theme changes
+        if (theme === "system") {
+            const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+            const handleChange = () => applyTheme("system");
+            mediaQuery.addEventListener("change", handleChange);
+            return () => mediaQuery.removeEventListener("change", handleChange);
+        }
+    }, [theme]);
+
     const handleSave = async (section: string) => {
+        if (section === "password" && currentPassword === newPassword && currentPassword !== "") {
+            setSaveStatus("error");
+            setErrorMessage("New password cannot be the same as your current password.");
+            setTimeout(() => setSaveStatus(null), 4000);
+            return;
+        }
+
         setIsLoading(true);
         setSaveStatus(null);
+        setErrorMessage(null);
 
         try {
             const response = await fetch("/api/user/settings", {
@@ -101,6 +178,7 @@ export default function SettingsPage() {
                         securityEmails,
                         twoFactorEnabled,
                         theme,
+                        language,
                         ...(section === "profile" && { name, title, bio, avatar, phone: userPhone, location: userLocation, birthday: userBirthday }),
                         ...(section === "password" && { currentPassword, newPassword })
                     }
@@ -109,15 +187,18 @@ export default function SettingsPage() {
 
             if (response.ok) {
                 setSaveStatus("success");
+                setErrorMessage(null);
                 if (section === "password") {
                     setCurrentPassword("");
                     setNewPassword("");
                 }
             } else {
                 setSaveStatus("error");
+                setErrorMessage("Something went wrong. Please try again.");
             }
         } catch (error) {
             setSaveStatus("error");
+            setErrorMessage("Failed to connect to the server.");
         } finally {
             setIsLoading(false);
             setTimeout(() => setSaveStatus(null), 3000);
@@ -128,7 +209,7 @@ export default function SettingsPage() {
         { id: "account", label: "Profile", icon: <User className="w-5 h-5" /> },
         { id: "security", label: "Security", icon: <ShieldAlert className="w-5 h-5" /> },
         { id: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" /> },
-        { id: "billing", label: "Billing", icon: <CreditCard className="w-5 h-5" /> },
+        { id: "ratings", label: "Ratings", icon: <Star className="w-5 h-5" /> },
         { id: "privacy", label: "Privacy", icon: <ShieldCheck className="w-5 h-5" /> },
         { id: "preferences", label: "General", icon: <Settings className="w-5 h-5" /> },
     ];
@@ -241,8 +322,11 @@ export default function SettingsPage() {
                                                 <input
                                                     type="tel"
                                                     value={userPhone}
-                                                    onChange={(e) => setUserPhone(e.target.value)}
-                                                    placeholder="+1 (555) 000-0000"
+                                                    onChange={(e) => {
+                                                        const formatted = formatSLNumber(e.target.value);
+                                                        setUserPhone(formatted);
+                                                    }}
+                                                    placeholder="+94 77-123-4567"
                                                     className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-[15px] font-medium"
                                                 />
                                             </div>
@@ -449,63 +533,76 @@ export default function SettingsPage() {
                         </div>
                     )}
 
-                    {activeTab === "billing" && (
+                    {activeTab === "ratings" && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden border-t-4 border-t-purple-500">
+                            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden border-t-4 border-t-yellow-500">
                                 <div className="p-8">
                                     <div className="flex items-center gap-3 mb-8">
-                                        <div className="p-2.5 bg-purple-50 rounded-xl text-purple-600">
-                                            <CreditCard className="w-5 h-5" />
+                                        <div className="p-2.5 bg-yellow-50 rounded-xl text-yellow-600">
+                                            <Star className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-bold text-gray-900">Plan & Billing</h2>
-                                            <p className="text-sm text-gray-500">Manage your subscription and payment methods.</p>
+                                            <h2 className="text-xl font-bold text-gray-900">Performance & Ratings</h2>
+                                            <p className="text-sm text-gray-500">Track your work quality and historical reputation.</p>
                                         </div>
                                     </div>
 
-                                    <div className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-900 rounded-3xl p-8 mb-8 text-white relative overflow-hidden">
-                                        <div className="relative z-10">
-                                            <div className="flex justify-between items-start mb-10">
-                                                <div>
-                                                    <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-xs font-bold uppercase tracking-wider">Premium Plan</span>
-                                                    <h3 className="text-3xl font-extrabold mt-4">$29.00 <span className="text-lg font-medium text-indigo-200">/ month</span></h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                                        <div className="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-3xl p-6 text-white shadow-lg shadow-yellow-100">
+                                            <p className="text-sm font-bold opacity-80 uppercase tracking-wider mb-1">Overall Rating</p>
+                                            <div className="flex items-end gap-2">
+                                                <h3 className="text-4xl font-black">{ratings?.overallRating || "0.0"}</h3>
+                                                <div className="flex mb-1">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star key={i} className={`w-4 h-4 ${i < Math.floor(ratings?.overallRating || 0) ? "fill-white" : "fill-white/30 text-white/30"}`} />
+                                                    ))}
                                                 </div>
-                                                <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-sm">
-                                                    <div className="w-10 h-6 bg-white rounded-md flex items-center justify-center">
-                                                        <div className="w-2 h-2 bg-indigo-600 rounded-full mx-0.5"></div>
-                                                        <div className="w-2 h-2 bg-indigo-400 rounded-full mx-0.5"></div>
+                                            </div>
+                                            <p className="text-xs mt-4 font-medium opacity-90 flex items-center gap-1.5">
+                                                <TrendingUp className="w-3.5 h-3.5" /> Top 5% of all talent
+                                            </p>
+                                        </div>
+
+                                        <div className="col-span-1 md:col-span-2 bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                                            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Work Qualities</h3>
+                                            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                                {Object.entries(ratings?.workQualities || {}).map(([key, value]: [string, any]) => (
+                                                    <div key={key} className="space-y-1.5">
+                                                        <div className="flex justify-between items-center text-xs font-bold text-gray-500 capitalize">
+                                                            <span>{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                                            <span className="text-indigo-600">{value}/5.0</span>
+                                                        </div>
+                                                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                            <div
+                                                                className="h-full bg-indigo-500 transition-all duration-1000"
+                                                                style={{ width: `${(value / 5) * 100}%` }}
+                                                            />
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center justify-between pt-6 border-t border-white/10">
-                                                <div className="flex items-center gap-3">
-                                                    <Clock className="w-5 h-5 text-indigo-300" />
-                                                    <p className="text-sm font-medium">Next payment: <span className="font-bold">March 09, 2026</span></p>
-                                                </div>
-                                                <button className="px-6 py-2.5 bg-white text-indigo-900 rounded-xl text-sm font-bold shadow-xl active:scale-95 transition-all">Manage Plan</button>
+                                                ))}
                                             </div>
                                         </div>
-                                        {/* Decorative elements */}
-                                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-                                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
                                     </div>
 
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900 mb-6">Payment Methods</h3>
-                                        <div className="border border-gray-100 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-indigo-200 transition-colors">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-14 h-10 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center font-bold italic text-indigo-800 text-lg">VISA</div>
-                                                <div>
-                                                    <p className="font-bold text-gray-900">Visa ending in 4242</p>
-                                                    <p className="text-sm text-gray-500">Expires 12/28 • Default method</p>
-                                                </div>
-                                            </div>
-                                            <button className="text-sm font-bold text-indigo-600 hover:text-indigo-700 decoration-2 underline-offset-4 hover:underline">Edit Method</button>
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <History className="w-5 h-5 text-gray-400" />
+                                            <h3 className="text-lg font-bold text-gray-900">Past Experience Ratings</h3>
                                         </div>
-                                        <button className="mt-6 w-full py-4 border-2 border-dashed border-gray-200 rounded-3xl text-sm font-bold text-gray-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all flex items-center justify-center gap-2">
-                                            <Plus className="w-4 h-4" />
-                                            Add New Payment Method
-                                        </button>
+
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {ratings?.pastExperiences?.map((exp: any) => (ExpItem(exp)))}
+                                        </div>
+
+                                        <div className="bg-indigo-50/50 rounded-2xl p-6 border border-indigo-100 flex items-center gap-4">
+                                            <div className="p-3 bg-white rounded-xl shadow-sm">
+                                                <Award className="w-6 h-6 text-indigo-600" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900">Professional Reputation</h4>
+                                                <p className="text-sm text-gray-600 leading-relaxed">Your rating is calculated based on feedback from past clients and employers. High ratings help you stand out to recruiters.</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -615,7 +712,10 @@ export default function SettingsPage() {
                                                 {["light", "dark", "system"].map((t) => (
                                                     <button
                                                         key={t}
-                                                        onClick={() => setTheme(t)}
+                                                        onClick={() => {
+                                                            setTheme(t);
+                                                            handleSave("preferences");
+                                                        }}
                                                         className={`px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${theme === t ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
                                                     >
                                                         {t}
@@ -634,8 +734,17 @@ export default function SettingsPage() {
                                                     <p className="text-sm text-gray-500">Set your preferred language and date formatting.</p>
                                                 </div>
                                             </div>
-                                            <select className="px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm font-bold min-w-[200px]">
+                                            <select
+                                                value={language}
+                                                onChange={(e) => {
+                                                    setLanguage(e.target.value);
+                                                    handleSave("preferences");
+                                                }}
+                                                className="px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm font-bold min-w-[200px]"
+                                            >
                                                 <option>English (United States)</option>
+                                                <option>Sinhala (සිංහල)</option>
+                                                <option>Tamil (தமிழ்)</option>
                                                 <option>English (United Kingdom)</option>
                                                 <option>Spanish</option>
                                                 <option>French</option>
@@ -660,8 +769,40 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     )}
+
+                    {saveStatus === "error" && (
+                        <div className="fixed bottom-10 right-10 animate-in slide-in-from-right-10 duration-500 z-50">
+                            <div className="bg-red-600/95 backdrop-blur-md text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 border border-red-500/30">
+                                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                                    <AlertCircle className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-sm">Update Failed</p>
+                                    <p className="text-xs text-red-100">{errorMessage || "Please check your inputs and try again."}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </main>
             </div>
+        </div>
+    );
+}
+
+function ExpItem(exp: any) {
+    return (
+        <div key={exp.id} className="p-5 bg-white border border-gray-100 rounded-2xl group hover:border-yellow-200 transition-all">
+            <div className="flex justify-between items-start mb-3">
+                <div>
+                    <h4 className="font-bold text-gray-900 group-hover:text-yellow-700 transition-colors">{exp.role}</h4>
+                    <p className="text-sm text-gray-500 font-medium">{exp.company}</p>
+                </div>
+                <div className="flex items-center gap-1 px-2.5 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-bold ring-1 ring-yellow-100">
+                    <Star className="w-3 h-3 fill-yellow-600" />
+                    {exp.rating.toFixed(1)}
+                </div>
+            </div>
+            <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-xl italic border-l-4 border-yellow-400">"{exp.feedback}"</p>
         </div>
     );
 }
@@ -687,22 +828,4 @@ function Search(props: any) {
     )
 }
 
-function Plus(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="M5 12h14" />
-            <path d="M12 5v14" />
-        </svg>
-    )
-}
+
