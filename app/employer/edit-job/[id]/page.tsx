@@ -204,9 +204,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                             Update the details for your {form.title || 'job'} position.
                         </p>
                     </div>
-                    <Link href="/employer/create-job/my-postings" className="text-sm font-semibold text-slate-500 hover:text-slate-900">
-                        Cancel
-                    </Link>
+                    
                 </div>
 
 
@@ -427,13 +425,17 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                             <button
                                 onClick={handleSave}
                                 disabled={loading}
-                                className="btn-primary min-w-[180px]"
+                                className="min-w-[180px] h-11 rounded-[14px] bg-[#6B8CFF] px-6 
+                                           text-white font-semibold shadow-sm 
+                                           hover:bg-[#5979F0] 
+                                           disabled:opacity-60 disabled:cursor-not-allowed 
+                                           transition-all duration-200"
                             >
                                 {loading ? "Saving..." : "Save Changes"}
                             </button>
                             <button
                                 onClick={() => router.push("/employer/create-job/my-postings")}
-                                className="btn-tertiary"
+                                className="text-slate-900 font-semibold hover:text-slate-500 transition-colors"
                             >
                                 Cancel
                             </button>
