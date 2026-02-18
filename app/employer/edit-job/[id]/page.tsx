@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * edit-job/[id]/page.tsx — Edit Job Posting form (employer-facing)
+ * Fetches an existing job by ID from the URL param, pre-fills the form,
+ * and allows the employer to save changes or delete the posting.
+ 
+ */
+
 import { use, useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
@@ -11,24 +18,30 @@ type Status = "DRAFT" | "PUBLIC" | "PRIVATE";
 type JobForm = {
     title: string;
     description: string;
-    pay: string;
+    pay: string;           // stored as string in the form; converted to Number on submit
     payType: "hour" | "day";
     category: string;
     locations: string[];
-    jobDates: string[];
-    startTime: string;
-    endTime: string;
+    jobDates: string[];    
+    startTime: string;     
+    endTime: string;       
     requirements: string[];
 };
 
+
 export default function EditJobPage({ params }: { params: Promise<{ id: string }> }) {
+    // unwraps the async params object in Next.js App Router
+
     const { id } = use(params);
     const router = useRouter();
+
+    // [API] Base URL 
     const API_BASE = useMemo(
         () => process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000",
         []
     );
 
+    //  Flatten the district→cities map into a sorted "City, District" list
     const ALL_CITIES = useMemo(() => {
         const list: string[] = [];
         Object.entries(SRI_LANKA_LOCATIONS).forEach(([dist, cities]) => {
@@ -38,6 +51,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
     }, []);
 
 
+    //Form fields — initialized empty; overwritten by the fetch in useEffect
     const [form, setForm] = useState<JobForm>({
         title: "",
         description: "",
@@ -51,13 +65,19 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         requirements: [],
     });
 
+    // Status is kept separate from form so it can be changed independently
+    
     const [status, setStatus] = useState<Status>("DRAFT");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    // Staging inputs for array fields
     const [reqInput, setReqInput] = useState("");
     const [locInput, setLocInput] = useState("");
     const [dateInput, setDateInput] = useState("");
 
+    
+    // Requirements
     const addRequirement = () => {
         if (!reqInput.trim()) return;
         setForm((p) => ({ ...p, requirements: [...p.requirements, reqInput.trim()] }));
@@ -68,10 +88,10 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         setForm((p) => ({ ...p, requirements: p.requirements.filter((_, i) => i !== index) }));
     };
 
+    // Locations — deduplicated
     const addLocation = () => {
         if (!locInput.trim()) return;
         if (form.locations.includes(locInput.trim())) return;
-
         setForm((p) => ({ ...p, locations: [...p.locations, locInput.trim()] }));
         setLocInput("");
     };
@@ -80,6 +100,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         setForm((p) => ({ ...p, locations: p.locations.filter((_, i) => i !== index) }));
     };
 
+    // Job dates — duplicates silently dropped
     const addDate = () => {
         if (!dateInput) return;
         if (form.jobDates.includes(dateInput)) return setDateInput("");
@@ -91,6 +112,10 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         setForm((p) => ({ ...p, jobDates: p.jobDates.filter((_, i) => i !== index) }));
     };
 
+    
+    // [API] GET /api/jobs/:id — loads the existing job and pre-fills the form.
+    // Handles legacy single-value fields (location, jobDate) by converting them
+    // to arrays so the rest of the form logic stays consistent.
     useEffect(() => {
         if (!id) {
             console.error("No Job ID provided in params");
@@ -113,7 +138,9 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                     pay: String(data.pay),
                     payType: data.payType,
                     category: data.category,
+                    //Prefer array field; fall back to wrapping legacy single value
                     locations: data.locations || (data.location ? [data.location] : []),
+                    // Strip the time portion from ISO dates if present 
                     jobDates: data.jobDates || (data.jobDate ? [data.jobDate.split('T')[0]] : []),
                     startTime: data.startTime || "",
                     endTime: data.endTime || "",
@@ -129,6 +156,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
             });
     }, [id, API_BASE]);
 
+
     function handleChange(
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) {
@@ -136,6 +164,10 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         setForm((p) => ({ ...p, [name]: value }));
     }
 
+    // VALIDATION Edit page always validates as if the job is PUBLIC/PRIVATE
+    // because a saved edit should always produce a complete listing.
+  
+    // Consider allowing DRAFT saves from the edit page too (currently not supported).
     function validate(): string {
         if (!form.title.trim()) return "Job title is required.";
         if (!form.description.trim()) return "Job description is required.";
@@ -147,6 +179,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         return "";
     }
 
+    // [API] PUT /api/jobs/:id — saves changes and redirects to the job list on success
     async function handleSave() {
         setError("");
         const err = validate();
@@ -157,6 +190,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
             const res = await fetch(`${API_BASE}/api/jobs/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
+                // Merge form fields with the current status
                 body: JSON.stringify({ ...form, status }),
             });
 
@@ -165,6 +199,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                 throw new Error(data.message || "Failed to update job");
             }
 
+            //  Navigate back to the job list after a successful save
             router.push("/employer/create-job/my-postings");
         } catch (err: any) {
             setError(err.message);
@@ -172,7 +207,9 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         }
     }
 
+    //DELETE /api/jobs/:id — deletes the job after a confirmation dialog
     async function handleDelete() {
+        // Guard against accidental clicks — browser native confirm is intentional here
         if (!confirm("Are you sure you want to delete this job posting?")) return;
 
         setLoading(true);
@@ -183,6 +220,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
 
             if (!res.ok) throw new Error("Failed to delete job");
 
+            // Navigate back to the job list after deletion
             router.push("/employer/create-job/my-postings");
         } catch (err: any) {
             setError(err.message);
@@ -190,9 +228,11 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         }
     }
 
+    
     if (loading) return <div className="p-8 text-center text-slate-500">Loading job details...</div>;
     if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
 
+    
     return (
         <div className="min-h-screen bg-slate-50">
             <main className="max-w-5xl mx-auto px-4 py-8">
@@ -204,12 +244,12 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                             Update the details for your {form.title || 'job'} position.
                         </p>
                     </div>
-                    
+
                 </div>
 
 
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-8">
-                    {/* Section 1: Job Details */}
+                    {/*Job Details */}
                     <section>
                         <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                             <span className="w-1 h-6 bg-accent rounded-full inline-block"></span>
@@ -281,14 +321,14 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
 
                     <hr className="border-slate-100" />
 
-                    {/* Section 2: Location & Schedule */}
+                    {/*Location & Schedule */}
                     <section>
                         <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                             <span className="w-1 h-6 bg-purple-600 rounded-full inline-block"></span>
                             Location & Schedule
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Locations */}
+                            {/* Locations — autocomplete from SRI_LANKA_LOCATIONS datalist */}
                             <div className="md:col-span-1">
                                 <label className="block text-sm font-semibold text-slate-800 mb-2">Location/Address</label>
                                 <div className="flex gap-2">
@@ -323,7 +363,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
 
                             </div>
 
-                            {/* Job Dates */}
+                            {/*  Job dates — YYYY-MM-DD strings from <input type="date">. */}
                             <div className="md:col-span-1">
                                 <label className="block text-sm font-semibold text-slate-800 mb-2">Job Date</label>
                                 <div className="flex gap-2">
@@ -351,6 +391,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                             </div>
 
 
+                            {/*  TimePicker produces "HH:mm AM/PM" strings */}
                             <div>
                                 <TimePicker
                                     label="Start Time"
@@ -371,7 +412,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
 
                     <hr className="border-slate-100" />
 
-                    {/* Section 3: Requirements */}
+                    {/*  Requirements */}
                     <section>
                         <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                             <span className="w-1 h-6 bg-green-600 rounded-full inline-block"></span>
@@ -418,10 +459,10 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
 
                     <hr className="border-slate-100" />
 
-
-
+                    {/* Action bar — Save / Cancel (left) and Delete (right) */}
                     <div className="flex items-center justify-between pt-8 mt-8 border-t border-slate-100">
                         <div className="flex items-center gap-6">
+                            {/* [API] PUT /api/jobs/:id */}
                             <button
                                 onClick={handleSave}
                                 disabled={loading}
@@ -433,6 +474,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                             >
                                 {loading ? "Saving..." : "Save Changes"}
                             </button>
+                            {/* Cancel navigates back without saving */}
                             <button
                                 onClick={() => router.push("/employer/create-job/my-postings")}
                                 className="text-slate-900 font-semibold hover:text-slate-500 transition-colors"
@@ -441,6 +483,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                             </button>
                         </div>
 
+                        {/*  DELETE /api/jobs/:id — destructive action, guarded by confirm() */}
                         <button
                             onClick={handleDelete}
                             disabled={loading}

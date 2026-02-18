@@ -1,33 +1,47 @@
 "use client";
 
+/**
+ * create-job/page.tsx — Create Job Posting form (employer-facing)
+ * Allows an employer to fill in job details and submit as:
+ *  - DRAFT   → saves with only a title required; form stays open
+ *  - PUBLIC  → publishes the job; shows a success screen and resets the form
+ */
+
+
 import Header from "@/components/Header";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SRI_LANKA_LOCATIONS } from "@/app/data/locations";
 import TimePicker from "@/components/TimePicker";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type Status = "DRAFT" | "PUBLIC" | "PRIVATE";
 
 type JobForm = {
   title: string;
   description: string;
-  pay: string;
+  pay: string;           // stored as string in the form; converted to Number on submit
   payType: "hour" | "day";
   category: string;
-  locations: string[];
-  jobDates: string[];
-  startTime: string;
-  endTime: string;
+  locations: string[];   // [DATA] multi-value array — user adds one at a time
+  jobDates: string[];    // [DATA] YYYY-MM-DD strings from <input type="date">
+  startTime: string;     // "HH:mm AM/PM" — produced by TimePicker
+  endTime: string;       // "HH:mm AM/PM" — produced by TimePicker
   requirements: string[];
 };
 
+
 export default function CreateJobPage() {
   const router = useRouter();
+
+  //  Base URL for all fetch.
   const API_BASE = useMemo(
     () => process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000",
     []
   );
 
+  // Flatten the district→cities map into a sorted "City, District" list
+  
   const ALL_CITIES = useMemo(() => {
     const list: string[] = [];
     Object.entries(SRI_LANKA_LOCATIONS).forEach(([dist, cities]) => {
@@ -36,6 +50,8 @@ export default function CreateJobPage() {
     return list.sort();
   }, []);
 
+  
+  // [STATE] Main form state — all fields default to empty/safe values
   const [form, setForm] = useState<JobForm>({
     title: "",
     description: "",
@@ -49,10 +65,21 @@ export default function CreateJobPage() {
     requirements: [],
   });
 
+  // user types here then clicks Add
   const [reqInput, setReqInput] = useState("");
   const [locInput, setLocInput] = useState("");
   const [dateInput, setDateInput] = useState("");
 
+  const [loading, setLoading] = useState(false);
+  // showSuccess controls the post-submit success screen (replaces the form)
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [msg, setMsg] = useState<{ type: "success" | "error" | ""; text: string }>({
+    type: "",
+    text: "",
+  });
+
+ 
+  //  Requirements — free-text list.
   const addRequirement = () => {
     if (!reqInput.trim()) return;
     setForm((p) => ({ ...p, requirements: [...p.requirements, reqInput.trim()] }));
@@ -63,10 +90,10 @@ export default function CreateJobPage() {
     setForm((p) => ({ ...p, requirements: p.requirements.filter((_, i) => i !== index) }));
   };
 
+  //  Locations — deduplicated.
   const addLocation = () => {
     if (!locInput.trim()) return;
-    if (form.locations.includes(locInput.trim())) return;
-
+    if (form.locations.includes(locInput.trim())) return; 
     setForm((p) => ({ ...p, locations: [...p.locations, locInput.trim()] }));
     setLocInput("");
   };
@@ -75,9 +102,10 @@ export default function CreateJobPage() {
     setForm((p) => ({ ...p, locations: p.locations.filter((_, i) => i !== index) }));
   };
 
+  //  Job dates — stored as YYYY-MM-DD strings from the date input;
+  // duplicates are silently dropped and the staging input is cleared.
   const addDate = () => {
     if (!dateInput) return;
-    // Avoid duplicates
     if (form.jobDates.includes(dateInput)) return setDateInput("");
     setForm((p) => ({ ...p, jobDates: [...p.jobDates, dateInput] }));
     setDateInput("");
@@ -87,13 +115,8 @@ export default function CreateJobPage() {
     setForm((p) => ({ ...p, jobDates: p.jobDates.filter((_, i) => i !== index) }));
   };
 
-  const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [msg, setMsg] = useState<{ type: "success" | "error" | ""; text: string }>({
-    type: "",
-    text: "",
-  });
 
+  // Generic change handler for all simple text/select inputs
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
@@ -101,9 +124,11 @@ export default function CreateJobPage() {
     setForm((p) => ({ ...p, [name]: value }));
   }
 
+  // [VALIDATION] Client-side validation mirrors backend rules exactly.
+  // DRAFT → only title required.
+  // PUBLIC / PRIVATE → full details required so candidates see complete listings.
+
   function validate(status: Status): string {
-    // Both PUBLIC and PRIVATE need title/description/pay/dates/locations
-    // DRAFT only needs title
     if (!form.title.trim()) return "Job title is required.";
 
     if (status === "PUBLIC" || status === "PRIVATE") {
@@ -115,8 +140,12 @@ export default function CreateJobPage() {
       if (!form.endTime) return "End time is required.";
     }
 
-    return "";
+    return ""; // empty string = valid
   }
+
+  // [API] POST /api/jobs — submits the form with the chosen status.
+  // On PUBLIC/PRIVATE success: shows the success screen and resets the form.
+  // On DRAFT success: shows a toast but keeps the form open for further editing.
 
   async function submit(status: Status) {
     setMsg({ type: "", text: "" });
@@ -129,6 +158,7 @@ export default function CreateJobPage() {
       const res = await fetch(`${API_BASE}/api/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Status is injected here so the same form can create DRAFT or PUBLIC jobs
         body: JSON.stringify({ ...form, status }),
       });
 
@@ -144,6 +174,8 @@ export default function CreateJobPage() {
         text: status === "DRAFT" ? "Saved as draft ✅" : "Job posted ✅",
       });
 
+      // After a successful PUBLIC/PRIVATE post, replace the form with
+     
       if (status === "PUBLIC" || status === "PRIVATE") {
         setShowSuccess(true);
         setForm({
@@ -160,15 +192,16 @@ export default function CreateJobPage() {
         });
       }
     } catch {
+      // Network-level failure — backend is likely not running
       setMsg({ type: "error", text: "Backend not reachable. Is it running on :5000?" });
     } finally {
       setLoading(false);
     }
   }
 
+  
   return (
     <div className="min-h-screen bg-slate-50">
-
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         <div className="text-xs text-slate-500 mb-3 uppercase tracking-wider font-bold">My postings / Post a new job</div>
@@ -179,6 +212,7 @@ export default function CreateJobPage() {
         </p>
 
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-8">
+          {/*Success screen replaces the form after a successful PUBLIC/PRIVATE post */}
           {showSuccess ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="w-20 h-20 bg-emerald-300 rounded-full flex items-center justify-center mb-6 shadow-sm">
@@ -200,6 +234,7 @@ export default function CreateJobPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center mt-6">
+                {/* Navigate to the job list after posting */}
                 <button
                   onClick={() => router.push('/employer/create-job/my-postings')}
                   className="btn-secondary flex-1"
@@ -214,6 +249,7 @@ export default function CreateJobPage() {
                 </button>
               </div>
 
+              {/*  Lets the employer post another job without navigating away */}
               <button
                 onClick={() => {
                   setShowSuccess(false);
@@ -226,7 +262,7 @@ export default function CreateJobPage() {
             </div>
           ) : (
             <>
-              {/* Section 1: Job Details */}
+              {/*Job Details */}
               <section>
                 <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                   <span className="w-1 h-6 bg-accent rounded-full inline-block"></span>
@@ -301,14 +337,14 @@ export default function CreateJobPage() {
 
               <hr className="border-slate-100" />
 
-              {/* Section 2: Location & Schedule */}
+              {/*Location & Schedule */}
               <section>
                 <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                   <span className="w-1 h-6 bg-purple-600 rounded-full inline-block"></span>
                   Location & Schedule
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Job Dates */}
+                  {/*Job Dates - stored as YYYY-MM-DD strings */}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-slate-800 mb-2">Job Dates</label>
                     <div className="flex gap-2 mb-2">
@@ -346,7 +382,7 @@ export default function CreateJobPage() {
                     )}
                   </div>
 
-                  {/* Locations */}
+                  {/*Locations — autocomplete from SRI_LANKA_LOCATIONS datalist */}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-slate-800 mb-2">Locations</label>
                     <div className="flex gap-2 mb-2">
@@ -391,6 +427,7 @@ export default function CreateJobPage() {
                     )}
                   </div>
 
+                  {/*TimePicker produces "HH:mm AM/PM" strings stored in form state */}
                   <div>
                     <TimePicker
                       label="Start Time"
@@ -411,7 +448,7 @@ export default function CreateJobPage() {
 
               <hr className="border-slate-100" />
 
-              {/* Section 3: Requirements */}
+              {/* Requirements */}
               <section>
                 <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                   <span className="w-1 h-6 bg-green-600 rounded-full inline-block"></span>
@@ -458,6 +495,7 @@ export default function CreateJobPage() {
 
               <hr className="border-slate-100" />
 
+              {/*Inline error/success feedback banner */}
               {msg.text ? (
                 <div
                   className={`px-4 py-3 rounded-xl border text-sm ${msg.type === "error"
@@ -469,7 +507,9 @@ export default function CreateJobPage() {
                 </div>
               ) : null}
 
+              {/*Action buttons — each calls submit() with a different status */}
               <div className="flex items-center gap-6 pt-8 mt-8 border-t border-slate-100">
+                {/*POST /api/jobs with status=PUBLIC */}
                 <button
                   onClick={() => submit("PUBLIC")}
                   disabled={loading}
@@ -478,6 +518,7 @@ export default function CreateJobPage() {
                   {loading ? "Creating..." : "Post a new job"}
                 </button>
 
+                {/*POST /api/jobs with status=DRAFT */}
                 <button
                   onClick={() => submit("DRAFT")}
                   disabled={loading}
@@ -486,6 +527,7 @@ export default function CreateJobPage() {
                   {loading ? "Saving..." : "Save as Draft"}
                 </button>
 
+                {/*Cancel navigates back to the job list without saving */}
                 <button
                   onClick={() => router.push("/employer/create-job/my-postings")}
                   className="btn-tertiary"

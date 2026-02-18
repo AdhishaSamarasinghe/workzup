@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
+
+//The TypeScript type for a Job object, representing the structure of job postings in the application. 
 type Job = {
   _id: string;
   title: string;
@@ -18,6 +20,8 @@ type Job = {
   createdAt: string;
 };
 
+
+//the set the backend URL
 export default function MyPostingsPage() {
   const API_BASE = useMemo(
     () => process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000",
@@ -28,6 +32,8 @@ export default function MyPostingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+
+  //Feaches jobs from backend
   async function loadJobs() {
     setLoading(true);
     setError("");
@@ -50,8 +56,10 @@ export default function MyPostingsPage() {
 
   useEffect(() => {
     loadJobs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+    // Takes ISO date string and prints a nice local date.
+    //If invalid date, returns original string.
 
   function formatDate(iso: string) {
     const d = new Date(iso);
@@ -89,6 +97,12 @@ export default function MyPostingsPage() {
           </div>
         </div>
 
+
+        
+    {/* =======================
+      [UI] Loading/Error/Empty states
+     ======================= */}
+        
         {loading && (
           <div className="mt-6 bg-white border border-slate-200 rounded-2xl p-6">
             Loading...
@@ -107,6 +121,10 @@ export default function MyPostingsPage() {
             <p className="text-slate-600 mt-2">Create your first job to see it here.</p>
           </div>
         )}
+
+          {/* =======================
+            [UI] Table view
+           ======================= */} 
 
         {!loading && !error && jobs.length > 0 && (
           <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -136,6 +154,16 @@ export default function MyPostingsPage() {
                       </td>
 
                       <td className="px-4 py-3">
+
+                         {/* 
+                          [API] Status update
+                          - Sends PUT /api/jobs/:id with the full job payload + new status
+                          - On success, updates local UI state to match backend
+                          
+                        */}
+
+
+
                         <select
                           value={job.status}
                           onChange={async (e) => {
@@ -147,6 +175,9 @@ export default function MyPostingsPage() {
                                 body: JSON.stringify({ ...job, status: newStatus }),
                               });
                               if (res.ok) {
+
+                                 // Optimistically update local list after server accepts change  
+
                                 setJobs(p => p.map(j => j._id === job._id ? { ...j, status: newStatus } : j));
                               }
                             } catch (err) {
@@ -183,6 +214,8 @@ export default function MyPostingsPage() {
                           ? job.jobDates.map((d) => formatDate(d)).join(", ")
                           : formatDate(job.jobDate || "")}
                       </td>
+
+                       {/*  Edit page link */}
 
                       <td className="px-4 py-3 text-slate-500">{formatDate(job.createdAt)}</td>
 
