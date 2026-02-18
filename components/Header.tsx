@@ -7,8 +7,9 @@ import { usePathname } from "next/navigation";
 export default function Header() {
   const pathname = usePathname();
 
-  // Hide header for Message pages (case-insensitive)
-  if (pathname && pathname.toLowerCase().startsWith("/message")) return null;
+  // Hide header for Message and JobChat pages (case-insensitive)
+  const path = pathname ? pathname.toLowerCase() : "";
+  if (path.startsWith("/message") || path.startsWith("/jobchat")) return null;
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-card/90 backdrop-blur">

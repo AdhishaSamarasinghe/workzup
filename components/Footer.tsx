@@ -6,8 +6,9 @@ import { usePathname } from "next/navigation";
 export default function Footer() {
   const pathname = usePathname();
 
-  // Hide footer for Message pages (case-insensitive)
-  if (pathname && pathname.toLowerCase().startsWith("/message")) return null;
+  // Hide footer for Message and JobChat pages (case-insensitive)
+  const path = pathname ? pathname.toLowerCase() : "";
+  if (path.startsWith("/message") || path.startsWith("/jobchat")) return null;
 
   return (
     <footer className="border-t border-[#E5E7EB] bg-card">
