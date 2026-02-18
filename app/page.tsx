@@ -1,3 +1,1 @@
-export default function Home() {
-  return null;
-}
+export { default } from "./job-apply/page";
