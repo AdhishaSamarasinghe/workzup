@@ -40,6 +40,12 @@ export default function MyJobsPage() {
                     if (status.toLowerCase() === "pending") status = "DRAFT";
                     if (status.toLowerCase() === "completed") status = "CLOSED";
 
+                    // Force CLOSED if job date is in the past
+                    const isPastDate = new Date(job.date) < new Date(new Date().setHours(0, 0, 0, 0));
+                    if (isPastDate) {
+                        status = "CLOSED";
+                    }
+
                     return {
                         ...job,
                         status: status,
