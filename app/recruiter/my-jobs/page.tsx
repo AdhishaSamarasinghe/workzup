@@ -16,6 +16,7 @@ type Job = {
     category: string;
     status: string;     // Active, Pending, Completed
     applicants: number; // Total count
+    newApplicants: number; // New count
     postedDate: string; // Date posted
 };
 
@@ -24,6 +25,7 @@ export default function MyJobsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("All Status");
     const [loading, setLoading] = useState(true);
+    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
     // Fetch Jobs
     useEffect(() => {
@@ -31,12 +33,21 @@ export default function MyJobsPage() {
             .then(res => res.json())
             .then(data => {
                 // Ensure data has the new fields (defaults) since legacy data might not
-                const enhancedData = data.map((job: any) => ({
-                    ...job,
-                    status: job.status || "Active",
-                    applicants: job.applicants || 0,
-                    postedDate: job.postedDate || "2026-02-01" // Fallback for legacy
-                }));
+                const enhancedData = data.map((job: any) => {
+                    let status = job.status || "PUBLIC";
+                    // Map legacy statuses
+                    if (status.toLowerCase() === "active") status = "PUBLIC";
+                    if (status.toLowerCase() === "pending") status = "DRAFT";
+                    if (status.toLowerCase() === "completed") status = "CLOSED";
+
+                    return {
+                        ...job,
+                        status: status,
+                        applicants: job.applicants || Math.floor(Math.random() * 20) + 5,
+                        newApplicants: Math.floor(Math.random() * 5),
+                        postedDate: job.postedDate || "2026-02-01" // Fallback for legacy
+                    };
+                });
                 // In a real app, we would verify the user ID here. 
                 // For now, show ALL jobs as "My Jobs"
                 setJobs(enhancedData);
@@ -82,18 +93,31 @@ export default function MyJobsPage() {
                     ) : (
                         <>
                             {filteredJobs.map((job) => (
-                                <div key={job.id} className="animate-pop-in">
+                                <div
+                                    key={job.id}
+                                    className={`animate-pop-in ${openDropdownId === job.id ? 'relative z-20' : 'relative z-0'}`}
+                                >
                                     <MyJobCard
                                         title={job.title}
                                         location={job.location}
                                         status={job.status}
-                                        newApplicants={Math.floor(Math.random() * 5)} // Mocking 'new' count
-                                        totalApplicants={job.applicants || Math.floor(Math.random() * 20) + 5} // Mocking total if 0
+                                        newApplicants={job.newApplicants}
+                                        totalApplicants={job.applicants}
                                         postedDate={job.postedDate}
                                         jobDate={job.date}
                                         pay={job.pay}
                                         onEdit={() => console.log("Edit", job.id)}
                                         onViewApplicants={() => console.log("View Applicants", job.id)}
+                                        onStatusChange={(newStatus) => {
+                                            const updatedJobs = jobs.map(j =>
+                                                j.id === job.id ? { ...j, status: newStatus } : j
+                                            );
+                                            setJobs(updatedJobs);
+                                            // TODO: Call API to update status
+                                            console.log(`Updated job ${job.id} status to ${newStatus}`);
+                                        }}
+                                        isDropdownOpen={openDropdownId === job.id}
+                                        onToggleDropdown={() => setOpenDropdownId(openDropdownId === job.id ? null : job.id)}
                                     />
                                 </div>
                             ))}
