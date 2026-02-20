@@ -280,7 +280,7 @@ export default function JobSeekerRegisterPage() {
                                         onChange={handleChange}
                                         className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
                                     />
-                                    <span className="ml-2 text-gray-500">I agree to <a href="#" className="font-bold text-gray-900">Privacy Policy</a> & <a href="#" className="font-bold text-gray-900">Terms/Conditions</a></span>
+                                    <span className="ml-2 text-gray-500">I agree to <a href="#" className="font-bold text-gray-900">Privacy Policy</a> & <Link href="/terms-and-conditions" target="_blank" className="font-bold text-gray-900">Terms/Conditions</Link></span>
                                 </label>
                                 <label className="flex items-center">
                                     <input
