@@ -6,6 +6,20 @@ const { globalLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
 
+// Trust reverse proxy (e.g., Heroku, Render, AWS, Nginx)
+// Crucial for Secure Cookies and Rate Limiting to work accurately behind a proxy
+app.set("trust proxy", 1);
+
+// Force HTTPS redirection in production environments
+if (process.env.NODE_ENV === "production") {
+  app.use((req, res, next) => {
+    if (req.header("x-forwarded-proto") !== "https") {
+      return res.redirect(`https://${req.header("host")}${req.url}`);
+    }
+    next();
+  });
+}
+
 // Security Hardening
 app.use(helmet()); // Wraps standard express headers securely
 app.use(globalLimiter); // Applies base rate limiting to all requests
