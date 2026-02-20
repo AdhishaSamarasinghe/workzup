@@ -1,20 +1,13 @@
-import Image from "next/image";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 
 export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-card/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
-        <Link href="#" className="-ml-10 flex items-center gap-2">
-          <Image
-            src="/logo_main.png"
-            alt="Workzup"
-            width={120}
-            height={28}
-            priority
-            className="h-9 w-auto"
-          />
-        </Link>
+        <div className="-ml-10 flex items-center gap-2">
+          <Logo textSize="text-2xl" />
+        </div>
 
         <nav className="hidden items-center gap-8 text-base font-medium text-[#1F2937] md:flex md:ml-auto">
           <Link href="#" className="transition-colors hover:text-accent">
