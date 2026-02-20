@@ -1,72 +1,72 @@
 const { PrismaClient } = require("@prisma/client");
+const catchAsync = require("../utils/catchAsync");
+const ApiError = require("../utils/ApiError");
+const { getPagination, formatPaginatedResponse } = require("../utils/pagination");
+
 const prisma = new PrismaClient();
 
 // @route   POST /api/applications/:jobId
 // @desc    Apply to a specific job
 // @access  Private / Jobseeker Only
-const applyForJob = async (req, res) => {
-    try {
-        const { jobId } = req.params;
-        const { coverLetter } = req.body;
-        const jobseekerId = req.user.id; // Extracted from JWT
+const applyForJob = catchAsync(async (req, res) => {
+    const { jobId } = req.params;
+    const { coverLetter } = req.body;
+    const jobseekerId = req.user.id; // Extracted from JWT
 
-        // Ensure the job exists
-        const job = await prisma.job.findUnique({ where: { id: jobId } });
-        if (!job) {
-            return res.status(404).json({ error: "Job not found" });
-        }
-
-        // Check if the user has already applied
-        const existingApp = await prisma.application.findUnique({
-            where: {
-                jobId_jobseekerId: { jobId, jobseekerId }
-            }
-        });
-
-        if (existingApp) {
-            return res.status(400).json({ error: "You have already applied to this job." });
-        }
-
-        // Create application
-        const application = await prisma.application.create({
-            data: {
-                jobId,
-                jobseekerId,
-                coverLetter,
-            },
-        });
-
-        res.status(201).json({ message: "Applied successfully", application });
-    } catch (error) {
-        console.error("Apply For Job Error:", error);
-        res.status(500).json({ error: "Server error while applying for job" });
+    // Ensure the job exists
+    const job = await prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) {
+        throw new ApiError(404, "Job not found");
     }
-};
+
+    // Check if the user has already applied
+    const existingApp = await prisma.application.findUnique({
+        where: {
+            jobId_jobseekerId: { jobId, jobseekerId }
+        }
+    });
+
+    if (existingApp) {
+        throw new ApiError(400, "You have already applied to this job.");
+    }
+
+    // Create application
+    const application = await prisma.application.create({
+        data: {
+            jobId,
+            jobseekerId,
+            coverLetter,
+        },
+    });
+
+    res.status(201).json({ message: "Applied successfully", application });
+});
 
 // @route   GET /api/applications/job/:jobId
 // @desc    Get all applications for a specific job
 // @access  Private / Recruiter Only
-const getApplicationsForJob = async (req, res) => {
-    try {
-        const { jobId } = req.params;
-        const recruiterId = req.user.id; // Extracted from JWT
+const getApplicationsForJob = catchAsync(async (req, res) => {
+    const { jobId } = req.params;
+    const recruiterId = req.user.id; // Extracted from JWT
+    const { skip, take, page, limit } = getPagination(req.query);
 
-        // Ensure the job exists and belongs to a company owned by this recruiter
-        const job = await prisma.job.findUnique({
-            where: { id: jobId },
-            include: { company: true }
-        });
+    // Ensure the job exists and belongs to a company owned by this recruiter
+    const job = await prisma.job.findUnique({
+        where: { id: jobId },
+        include: { company: true }
+    });
 
-        if (!job) {
-            return res.status(404).json({ error: "Job not found" });
-        }
+    if (!job) {
+        throw new ApiError(404, "Job not found");
+    }
 
-        if (job.company.recruiterId !== recruiterId) {
-            return res.status(403).json({ error: "You do not have permission to view applications for this job." });
-        }
+    if (job.company.recruiterId !== recruiterId) {
+        throw new ApiError(403, "You do not have permission to view applications for this job.");
+    }
 
-        // Fetch applications with jobseeker details
-        const applications = await prisma.application.findMany({
+    // Execute query and count in parallel
+    const [applications, totalItems] = await Promise.all([
+        prisma.application.findMany({
             where: { jobId },
             include: {
                 jobseeker: {
@@ -74,13 +74,14 @@ const getApplicationsForJob = async (req, res) => {
                 },
             },
             orderBy: { createdAt: 'desc' },
-        });
+            skip,
+            take,
+        }),
+        prisma.application.count({ where: { jobId } })
+    ]);
 
-        res.json({ message: "Applications retrieved successfully", count: applications.length, applications });
-    } catch (error) {
-        console.error("Get Applications Error:", error);
-        res.status(500).json({ error: "Server error while fetching applications" });
-    }
-};
+    const response = formatPaginatedResponse(applications, totalItems, page, limit);
+    res.json(response);
+});
 
 module.exports = { applyForJob, getApplicationsForJob };

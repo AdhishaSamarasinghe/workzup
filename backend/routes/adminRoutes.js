@@ -1,5 +1,5 @@
 const express = require("express");
-const { getSystemStats, deleteUser, deleteJob } = require("../controllers/adminController");
+const { getSystemStats, deleteUser, deleteJob, getUsers } = require("../controllers/adminController");
 const { authenticateToken, authorizeRoles } = require("../middleware/auth");
 
 const router = express.Router();
@@ -8,6 +8,11 @@ const router = express.Router();
 // @desc    Get system-wide statistics
 // @access  Private / Admin Only
 router.get("/stats", authenticateToken, authorizeRoles("ADMIN"), getSystemStats);
+
+// @route   GET /api/admin/users
+// @desc    Get all users with pagination
+// @access  Private / Admin Only
+router.get("/users", authenticateToken, authorizeRoles("ADMIN"), getUsers);
 
 // @route   DELETE /api/admin/users/:userId
 // @desc    Delete a user
