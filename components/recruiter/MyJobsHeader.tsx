@@ -45,7 +45,7 @@ const MyJobsHeader: React.FC<MyJobsHeaderProps> = ({
                     <CustomSelect
                         value={statusFilter}
                         onChange={setStatusFilter}
-                        options={["All Status", "Active", "Pending", "Completed"]}
+                        options={["All Status", "PUBLIC", "DRAFT", "PRIVATE", "CLOSED"]}
                         placeholder="All Status"
                         showAllOption={false}
                     />
