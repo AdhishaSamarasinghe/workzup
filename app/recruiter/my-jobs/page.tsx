@@ -16,7 +16,6 @@ type Job = {
     category: string;
     status: string;     // Active, Pending, Completed
     applicants: number; // Total count
-    newApplicants: number; // New count
     postedDate: string; // Date posted
 };
 
@@ -25,44 +24,19 @@ export default function MyJobsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("All Status");
     const [loading, setLoading] = useState(true);
-    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
     // Fetch Jobs
     useEffect(() => {
-        fetch("http://localhost:5000/jobs?status=All")
+        fetch("http://localhost:5000/jobs")
             .then(res => res.json())
             .then(data => {
                 // Ensure data has the new fields (defaults) since legacy data might not
-                const enhancedData = data.map((job: any) => {
-                    let status = job.status || "PUBLIC";
-
-                    // Normalize status case just in case
-                    const s = status.toLowerCase();
-
-                    // Map specific legacy statuses
-                    if (s === "active") status = "PUBLIC";
-                    else if (s === "pending") status = "DRAFT";
-                    else if (s === "completed") status = "CLOSED";
-                    // If it's already PUBLIC, DRAFT, PRIVATE, CLOSED, leave it (case insensitive match handling if needed)
-                    // We can force upper case for consistency in UI
-                    else if (["public", "draft", "private", "closed"].includes(s)) {
-                        status = s.toUpperCase();
-                    }
-
-                    // Force CLOSED if job date is in the past
-                    const isPastDate = new Date(job.date) < new Date(new Date().setHours(0, 0, 0, 0));
-                    if (isPastDate) {
-                        status = "CLOSED";
-                    }
-
-                    return {
-                        ...job,
-                        status: status,
-                        applicants: job.applicants || Math.floor(Math.random() * 20) + 5,
-                        newApplicants: Math.floor(Math.random() * 5),
-                        postedDate: job.postedDate || "2026-02-01" // Fallback for legacy
-                    };
-                });
+                const enhancedData = data.map((job: any) => ({
+                    ...job,
+                    status: job.status || "Active",
+                    applicants: job.applicants || 0,
+                    postedDate: job.postedDate || "2026-02-01" // Fallback for legacy
+                }));
                 // In a real app, we would verify the user ID here. 
                 // For now, show ALL jobs as "My Jobs"
                 setJobs(enhancedData);
@@ -108,54 +82,18 @@ export default function MyJobsPage() {
                     ) : (
                         <>
                             {filteredJobs.map((job) => (
-                                <div
-                                    key={job.id}
-                                    className={`animate-pop-in ${openDropdownId === job.id ? 'relative z-20' : 'relative z-0'}`}
-                                >
+                                <div key={job.id} className="animate-pop-in">
                                     <MyJobCard
                                         title={job.title}
                                         location={job.location}
                                         status={job.status}
-                                        newApplicants={job.newApplicants}
-                                        totalApplicants={job.applicants}
+                                        newApplicants={Math.floor(Math.random() * 5)} // Mocking 'new' count
+                                        totalApplicants={job.applicants || Math.floor(Math.random() * 20) + 5} // Mocking total if 0
                                         postedDate={job.postedDate}
                                         jobDate={job.date}
                                         pay={job.pay}
                                         onEdit={() => console.log("Edit", job.id)}
                                         onViewApplicants={() => console.log("View Applicants", job.id)}
-                                        onStatusChange={(newStatus) => {
-                                            // Optimistic update
-                                            const updatedJobs = jobs.map(j =>
-                                                j.id === job.id ? { ...j, status: newStatus } : j
-                                            );
-                                            setJobs(updatedJobs);
-
-                                            // Call API to persist status
-                                            fetch(`http://localhost:5000/jobs/${job.id}/status`, {
-                                                method: 'PATCH',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                },
-                                                body: JSON.stringify({ status: newStatus }),
-                                            })
-                                                .then(res => {
-                                                    if (!res.ok) {
-                                                        throw new Error('Failed to update status');
-                                                    }
-                                                    return res.json();
-                                                })
-                                                .then(data => {
-                                                    console.log(`Updated job ${job.id} status to ${newStatus}`, data);
-                                                })
-                                                .catch(err => {
-                                                    console.error("Error updating status:", err);
-                                                    // Revert optimistic update on error
-                                                    setJobs(jobs);
-                                                    alert("Failed to update status. Please try again.");
-                                                });
-                                        }}
-                                        isDropdownOpen={openDropdownId === job.id}
-                                        onToggleDropdown={() => setOpenDropdownId(openDropdownId === job.id ? null : job.id)}
                                     />
                                 </div>
                             ))}
