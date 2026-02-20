@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,25 +8,136 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role
-  createdAt DateTime @default(now())
-}
-
-model Job {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  salary      Int
-  createdAt   DateTime @default(now())
-}
-
 enum Role {
   JOBSEEKER
   RECRUITER
   ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         Role     @default(JOBSEEKER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  profile      Profile?
+  companies    Company[]
+  applications Application[]
+  
+  messagesSent Message[] @relation("Sender")
+  messagesRecv Message[] @relation("Receiver")
+
+  @@index([email])
+}
+
+model Profile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  bio         String?
+  resumeUrl   String?
+  skills      String[] // Supported in PostgreSQL natively
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Company {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  logoUrl     String?
+  location    String?
+  website     String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // The recruiter who owns the company
+  recruiterId String
+  recruiter   User     @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+
+  jobs        Job[]
+
+  @@index([recruiterId])
+  @@index([name])
+}
+
+model Job {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  salary      Int?
+  location    String?
+  category    String?
+  jobType     String?  // e.g., Full-time, Part-time, Contract
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  applications Application[]
+
+  @@index([companyId])
+  @@index([isActive])
+}
+
+model Application {
+  id          String            @id @default(uuid())
+  status      ApplicationStatus @default(PENDING)
+  coverLetter String?
+  
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  jobId       String
+  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  jobseekerId String
+  jobseeker   User              @relation(fields: [jobseekerId], references: [id], onDelete: Cascade)
+
+  // Chat system scoped to this specific application
+  messages    Message[]
+
+  // A jobseeker can only apply to a specific job once
+  @@unique([jobId, jobseekerId])
+  @@index([jobseekerId])
+  @@index([jobId])
+  @@index([status])
+}
+
+model Message {
+  id            String   @id @default(uuid())
+  content       String
+  read          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  // Ties the message to a specific application context
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  senderId      String
+  sender        User        @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  receiverId    String
+  receiver      User        @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt]) // Useful for ordering chat history
 }
