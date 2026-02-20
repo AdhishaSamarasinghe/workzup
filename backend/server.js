@@ -1,9 +1,49 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
+const { globalLimiter } = require("./middleware/rateLimiter");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
-app.use(cors());
+
+// Trust reverse proxy (e.g., Heroku, Render, AWS, Nginx)
+// Crucial for Secure Cookies and Rate Limiting to work accurately behind a proxy
+app.set("trust proxy", 1);
+
+// Force HTTPS redirection in production environments
+if (process.env.NODE_ENV === "production") {
+  app.use((req, res, next) => {
+    if (req.header("x-forwarded-proto") !== "https") {
+      return res.redirect(`https://${req.header("host")}${req.url}`);
+    }
+    next();
+  });
+}
+
+// Security Hardening
+app.use(helmet()); // Wraps standard express headers securely
+app.use(globalLimiter); // Applies base rate limiting to all requests
+
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  credentials: true,
+}));
 app.use(express.json());
+app.use(cookieParser());
+// Routes Imports
+const authRoutes = require("./routes/authRoutes");
+const jobRoutes = require("./routes/jobRoutes");
+const applicationRoutes = require("./routes/applicationRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const messageRoutes = require("./routes/messageRoutes");
+
+// Mount Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/jobs", jobRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/messages", messageRoutes);
 
 /* -------- Temporary Job Storage -------- */
 /* -------- Temporary Job Storage -------- */
@@ -307,6 +347,10 @@ app.get("/user/profile", (req, res) => {
   // In a real app, we'd look up by ID from session/token
   res.json(jobSeekerProfile);
 });
+
+// Centralized Error Handling Middleware
+// Must be placed after all routes and normal middleware
+app.use(errorHandler);
 
 /* -------- Start Server -------- */
 app.listen(5000, () => {
