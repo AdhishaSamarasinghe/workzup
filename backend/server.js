@@ -3,13 +3,17 @@ const cors = require("cors");
 
 const app = express();
 app.use(cors());
-app.use(express.json());
-
 // Routes Imports
 const authRoutes = require("./routes/authRoutes");
+const jobRoutes = require("./routes/jobRoutes");
+const applicationRoutes = require("./routes/applicationRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 // Mount Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/jobs", jobRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/admin", adminRoutes);
 
 /* -------- Temporary Job Storage -------- */
 /* -------- Temporary Job Storage -------- */
