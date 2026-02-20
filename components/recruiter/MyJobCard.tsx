@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React from "react";
 
 interface MyJobCardProps {
     title: string;
@@ -13,9 +13,6 @@ interface MyJobCardProps {
     pay: string;
     onEdit: () => void;
     onViewApplicants: () => void;
-    onStatusChange: (status: string) => void;
-    isDropdownOpen?: boolean;
-    onToggleDropdown?: () => void;
 }
 
 const MyJobCard: React.FC<MyJobCardProps> = ({
@@ -28,35 +25,15 @@ const MyJobCard: React.FC<MyJobCardProps> = ({
     jobDate,
     pay,
     onEdit,
-    onViewApplicants,
-    onStatusChange,
-    isDropdownOpen = false,
-    onToggleDropdown
+    onViewApplicants
 }) => {
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (isDropdownOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                if (onToggleDropdown) onToggleDropdown();
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [isDropdownOpen, onToggleDropdown]);
-
-    const statuses = ["PUBLIC", "DRAFT", "PRIVATE", "CLOSED"];
 
     const getStatusColor = (status: string) => {
-        switch (status.toUpperCase()) {
-            case "PUBLIC": return "bg-green-100 text-green-700 hover:bg-green-200";
-            case "DRAFT": return "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"; // Changed to yellow/orange as per request
-            case "PRIVATE": return "bg-purple-100 text-purple-700 hover:bg-purple-200";
-            case "CLOSED": return "bg-red-100 text-red-700 hover:bg-red-200";
-            default: return "bg-gray-100 text-gray-700 hover:bg-gray-200";
+        switch (status.toLowerCase()) {
+            case "active": return "bg-green-100 text-green-700";
+            case "pending": return "bg-yellow-100 text-yellow-700";
+            case "completed": return "bg-gray-200 text-gray-700";
+            default: return "bg-blue-100 text-blue-700";
         }
     };
 
@@ -66,54 +43,9 @@ const MyJobCard: React.FC<MyJobCardProps> = ({
                 <div>
                     <div className="flex items-center gap-3 mb-1">
                         <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-                        <div className="relative" ref={dropdownRef}>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onToggleDropdown) onToggleDropdown();
-                                }}
-                                className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-2 transition-colors ${getStatusColor(status)}`}
-                            >
-                                {status.toUpperCase()}
-                                <svg className={`w-3 h-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-
-                            {isDropdownOpen && (
-                                <div className="absolute top-full left-0 mt-2 w-32 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-10 animate-fade-in">
-                                    {statuses.map((s) => {
-                                        const isPublic = s === "PUBLIC";
-                                        const isPastDate = new Date(jobDate) < new Date(new Date().setHours(0, 0, 0, 0));
-                                        const isDisabled = isPublic && isPastDate;
-
-                                        return (
-                                            <button
-                                                key={s}
-                                                disabled={isDisabled}
-                                                onClick={() => {
-                                                    if (isDisabled) return;
-                                                    onStatusChange(s);
-                                                    if (onToggleDropdown) onToggleDropdown();
-                                                }}
-                                                className={`w-full text-left px-4 py-2 text-xs font-bold flex items-center justify-between 
-                                                    ${s === status.toUpperCase() ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}
-                                                    ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'hover:bg-gray-50'}
-                                                `}
-                                                title={isDisabled ? "Cannot make past job public" : ""}
-                                            >
-                                                {s}
-                                                {s === status.toUpperCase() && (
-                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${getStatusColor(status)}`}>
+                            {status}
+                        </span>
                     </div>
                     <p className="text-sm text-gray-500">{location}</p>
                 </div>
@@ -161,7 +93,7 @@ const MyJobCard: React.FC<MyJobCardProps> = ({
                     </button>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 
