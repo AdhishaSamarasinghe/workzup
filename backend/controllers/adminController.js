@@ -29,18 +29,24 @@ const getSystemStats = catchAsync(async (req, res) => {
 const deleteUser = catchAsync(async (req, res) => {
     const { userId } = req.params;
 
-    // Ensure user exists
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
+    if (!user) throw new ApiError(404, "User not found");
+    if (user.id === req.user.id) throw new ApiError(400, "Cannot delete your own admin account");
 
-    // Prevent admin from deleting themselves
-    if (user.id === req.user.id) {
-        throw new ApiError(400, "Cannot delete your own admin account");
-    }
-
+    // Soft delete by banning or actually deleting based on your preference
+    // A full delete also cascades and wipes their profile, jobs, etc.
+    // Given the new "soft delete" requirement, let's actually delete here but provide a separate BAN endpoint.
     await prisma.user.delete({ where: { id: userId } });
+
+    // Log the action
+    await prisma.auditLog.create({
+        data: {
+            adminId: req.user.id,
+            action: "HARD_DELETE_USER",
+            targetId: userId,
+            details: `Deleted user ${user.email}`,
+        }
+    });
 
     res.json({ message: "User deleted successfully" });
 });
@@ -51,15 +57,26 @@ const deleteUser = catchAsync(async (req, res) => {
 const deleteJob = catchAsync(async (req, res) => {
     const { jobId } = req.params;
 
-    // Ensure job exists
     const job = await prisma.job.findUnique({ where: { id: jobId } });
-    if (!job) {
-        throw new ApiError(404, "Job not found");
-    }
+    if (!job) throw new ApiError(404, "Job not found");
 
-    await prisma.job.delete({ where: { id: jobId } });
+    // Implement Soft Delete
+    await prisma.job.update({
+        where: { id: jobId },
+        data: { isDeleted: true, isActive: false }
+    });
 
-    res.json({ message: "Job deleted successfully" });
+    // Log the action
+    await prisma.auditLog.create({
+        data: {
+            adminId: req.user.id,
+            action: "SOFT_DELETE_JOB",
+            targetId: jobId,
+            details: `Soft deleted job: ${job.title}`,
+        }
+    });
+
+    res.json({ message: "Job removed successfully (Soft Deleted)" });
 });
 
 // @route   GET /api/admin/users
@@ -97,4 +114,89 @@ const getUsers = catchAsync(async (req, res) => {
     res.json(response);
 });
 
-module.exports = { getSystemStats, deleteUser, deleteJob, getUsers };
+// @route   PUT /api/admin/users/:userId/ban
+// @desc    Ban or Unban a user (Soft Delete)
+// @access  Private / Admin Only
+const banUser = catchAsync(async (req, res) => {
+    const { userId } = req.params;
+    const { isBanned } = req.body; // Expect boolean
+
+    if (typeof isBanned !== "boolean") {
+        throw new ApiError(400, "isBanned field is required and must be a boolean");
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new ApiError(404, "User not found");
+    if (user.id === req.user.id) throw new ApiError(400, "You cannot ban yourself");
+    if (user.role === "ADMIN") throw new ApiError(403, "Cannot ban another administrator");
+
+    await prisma.user.update({
+        where: { id: userId },
+        data: { isBanned }
+    });
+
+    // Revoke all tokens if they are being banned
+    if (isBanned) {
+        await prisma.refreshToken.updateMany({
+            where: { userId },
+            data: { revoked: true }
+        });
+    }
+
+    // Log the action
+    await prisma.auditLog.create({
+        data: {
+            adminId: req.user.id,
+            action: isBanned ? "BAN_USER" : "UNBAN_USER",
+            targetId: userId,
+            details: `User ${user.email} ${isBanned ? 'banned' : 'unbanned'}`,
+        }
+    });
+
+    res.json({ message: `User successfully ${isBanned ? 'banned' : 'unbanned'}` });
+});
+
+// @route   PUT /api/admin/recruiters/:userId/suspend
+// @desc    Suspend or Unsuspend a recruiter
+// @access  Private / Admin Only
+const suspendRecruiter = catchAsync(async (req, res) => {
+    const { userId } = req.params;
+    const { isSuspended } = req.body;
+
+    if (typeof isSuspended !== "boolean") {
+        throw new ApiError(400, "isSuspended field is required and must be a boolean");
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new ApiError(404, "User not found");
+    if (user.role !== "RECRUITER") throw new ApiError(400, "This user is not a recruiter");
+
+    await prisma.user.update({
+        where: { id: userId },
+        data: { isSuspended }
+    });
+
+    // If suspended, soft-delete (or deactivate) all their active jobs
+    if (isSuspended) {
+        const theirCompanies = await prisma.company.findMany({ where: { recruiterId: userId } });
+        const companyIds = theirCompanies.map(c => c.id);
+
+        await prisma.job.updateMany({
+            where: { companyId: { in: companyIds } },
+            data: { isActive: false } // Deactivate to hide them without deleting
+        });
+    }
+
+    await prisma.auditLog.create({
+        data: {
+            adminId: req.user.id,
+            action: isSuspended ? "SUSPEND_RECRUITER" : "UNSUSPEND_RECRUITER",
+            targetId: userId,
+            details: `Recruiter ${user.email} ${isSuspended ? 'suspended' : 'unsuspended'}`,
+        }
+    });
+
+    res.json({ message: `Recruiter successfully ${isSuspended ? 'suspended' : 'unsuspended'}` });
+});
+
+module.exports = { getSystemStats, deleteUser, deleteJob, getUsers, banUser, suspendRecruiter };

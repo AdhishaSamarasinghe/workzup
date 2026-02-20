@@ -27,6 +27,8 @@ model User {
   password     String
   role         Role     @default(JOBSEEKER)
   isEmailVerified Boolean  @default(false)
+  isBanned     Boolean  @default(false) // Soft delete/ban for users
+  isSuspended  Boolean  @default(false) // Suspension for recruiters
   emailVerificationToken String? @unique
   emailVerificationExpires DateTime?
   createdAt    DateTime @default(now())
@@ -40,10 +42,13 @@ model User {
   
   messagesSent Message[] @relation("Sender")
   messagesRecv Message[] @relation("Receiver")
+  
+  auditLogs    AuditLog[] @relation("AdminAction")
 
   @@index([email])
   @@index([role])
   @@index([createdAt])
+  @@index([isBanned])
 }
 
 model Profile {
@@ -90,6 +95,7 @@ model Job {
   category    String?
   jobType     String?  // e.g., Full-time, Part-time, Contract
   isActive    Boolean  @default(true)
+  isDeleted   Boolean  @default(false) // Soft delete for admin removal
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -164,4 +170,19 @@ model RefreshToken {
 
   @@index([userId])
   @@index([tokenHash])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  adminId     String
+  admin       User     @relation("AdminAction", fields: [adminId], references: [id], onDelete: Cascade)
+  action      String   // e.g., "BAN_USER", "DELETE_JOB", "SUSPEND_RECRUITER"
+  targetId    String   // ID of the affected user, job, etc.
+  details     String?  // Optional JSON string or description for extra context
+  
+  createdAt   DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
 }

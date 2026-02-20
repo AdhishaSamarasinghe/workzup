@@ -101,6 +101,10 @@ const loginUser = catchAsync(async (req, res) => {
         throw new ApiError(403, "Please verify your email address before logging in");
     }
 
+    if (user.isBanned) {
+        throw new ApiError(403, "This account has been banned due to policy violations");
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
         throw new ApiError(401, "Invalid email or password");

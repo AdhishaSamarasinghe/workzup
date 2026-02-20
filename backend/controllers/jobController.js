@@ -42,6 +42,7 @@ const getJobs = catchAsync(async (req, res) => {
     // Build dynamic where clause based on query params
     const whereClause = {
         isActive: true, // Only show active jobs to public
+        isDeleted: false, // Never show soft-deleted jobs
     };
 
     if (keyword) {
