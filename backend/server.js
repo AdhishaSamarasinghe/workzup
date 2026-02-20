@@ -5,6 +5,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Routes Imports
+const authRoutes = require("./routes/authRoutes");
+
+// Mount Routes
+app.use("/api/auth", authRoutes);
+
 /* -------- Temporary Job Storage -------- */
 /* -------- Temporary Job Storage -------- */
 // TODO: Replace this in-memory array with a real database connection (e.g., MongoDB, PostgreSQL)
