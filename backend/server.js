@@ -3,6 +3,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const { globalLimiter } = require("./middleware/rateLimiter");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
@@ -346,6 +347,10 @@ app.get("/user/profile", (req, res) => {
   // In a real app, we'd look up by ID from session/token
   res.json(jobSeekerProfile);
 });
+
+// Centralized Error Handling Middleware
+// Must be placed after all routes and normal middleware
+app.use(errorHandler);
 
 /* -------- Start Server -------- */
 app.listen(5000, () => {
