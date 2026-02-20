@@ -33,6 +33,7 @@ model User {
   profile      Profile?
   companies    Company[]
   applications Application[]
+  refreshTokens RefreshToken[]
   
   messagesSent Message[] @relation("Sender")
   messagesRecv Message[] @relation("Receiver")
@@ -140,4 +141,17 @@ model Message {
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt]) // Useful for ordering chat history
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  tokenHash   String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  revoked     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
 }
