@@ -2,6 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const { sendEmail } = require("../utils/email"); // Import email utility
 
 const prisma = new PrismaClient();
 
@@ -43,6 +44,11 @@ const registerUser = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        // Generate Email Verification Token
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
+        const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
         const userRole = role ? role.toUpperCase() : "JOBSEEKER";
         const newUser = await prisma.user.create({
             data: {
@@ -50,6 +56,8 @@ const registerUser = async (req, res) => {
                 email,
                 password: hashedPassword,
                 role: userRole,
+                emailVerificationToken: verificationTokenHash,
+                emailVerificationExpires: verificationExpires,
             },
         });
 
@@ -57,28 +65,26 @@ const registerUser = async (req, res) => {
             await prisma.profile.create({ data: { userId: newUser.id } });
         }
 
-        const { accessToken, refreshToken } = generateTokens(newUser);
+        // Send Verification Email (Don't await it to avoid blocking the response)
+        const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+        sendEmail({
+            to: newUser.email,
+            subject: 'Verify your WorkzUp email address',
+            html: `
+                <h1>Welcome to WorkzUp, ${newUser.name}!</h1>
+                <p>Please click the link below to verify your email address:</p>
+                <a href="${verificationUrl}" target="_blank">Verify Email Address</a>
+                <p>This link will expire in 24 hours.</p>
+            `,
+        }).catch(err => console.error("Failed to send verification email:", err));
 
-        // Store hashed refresh token in DB
-        await prisma.refreshToken.create({
-            data: {
-                tokenHash: hashToken(refreshToken),
-                userId: newUser.id,
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-            }
-        });
-
-        // Send HTTP-only cookie
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
+        // Note: For extreme security, you might choose NOT to generate access/refresh tokens 
+        // until the user verifies their email. For now, we allow them to log in immediately 
+        // but restrict specific actions, or we can choose to not log them in at all until verified.
+        // Let's implement strict mode: No login until verified!
 
         res.status(201).json({
-            message: "User registered successfully",
-            accessToken,
+            message: "User registered successfully. Please check your email to verify your account.",
             user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
         });
     } catch (error) {
@@ -98,6 +104,10 @@ const loginUser = async (req, res) => {
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
             return res.status(400).json({ error: "Invalid email or password" });
+        }
+
+        if (!user.isEmailVerified) {
+            return res.status(403).json({ error: "Please verify your email address before logging in." });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
@@ -235,7 +245,7 @@ const getMe = async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
             where: { id: req.user.id },
-            select: { id: true, name: true, email: true, role: true, createdAt: true },
+            select: { id: true, name: true, email: true, role: true, createdAt: true, isEmailVerified: true },
         });
 
         if (!user) {
@@ -249,4 +259,44 @@ const getMe = async (req, res) => {
     }
 };
 
-module.exports = { registerUser, loginUser, refreshAccessToken, logoutUser, getMe };
+const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        if (!token) {
+            return res.status(400).json({ error: "Verification token is required" });
+        }
+
+        // Hash the token from the query to compare with DB
+        const verificationTokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+        // Find user with this token and ensure it hasn't expired
+        const user = await prisma.user.findFirst({
+            where: {
+                emailVerificationToken: verificationTokenHash,
+                emailVerificationExpires: { gt: new Date() } // Ensure it's not expired
+            }
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: "Invalid or expired verification token" });
+        }
+
+        // Update user to verified
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                isEmailVerified: true,
+                emailVerificationToken: null,
+                emailVerificationExpires: null,
+            }
+        });
+
+        res.json({ message: "Email verified successfully. You can now log in." });
+    } catch (error) {
+        console.error("Verify Email Error:", error);
+        res.status(500).json({ error: "Server error during email verification" });
+    }
+};
+
+module.exports = { registerUser, loginUser, refreshAccessToken, logoutUser, getMe, verifyEmail };

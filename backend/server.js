@@ -1,8 +1,15 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
+const { globalLimiter } = require("./middleware/rateLimiter");
 
 const app = express();
+
+// Security Hardening
+app.use(helmet()); // Wraps standard express headers securely
+app.use(globalLimiter); // Applies base rate limiting to all requests
+
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:3000",
   credentials: true,
