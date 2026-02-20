@@ -8,12 +8,14 @@ const authRoutes = require("./routes/authRoutes");
 const jobRoutes = require("./routes/jobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 // Mount Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/messages", messageRoutes);
 
 /* -------- Temporary Job Storage -------- */
 /* -------- Temporary Job Storage -------- */

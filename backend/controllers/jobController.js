@@ -33,4 +33,54 @@ const createJob = async (req, res) => {
     }
 };
 
-module.exports = { createJob };
+// @route   GET /api/jobs
+// @desc    Get all jobs (with optional filters)
+// @access  Public
+const getJobs = async (req, res) => {
+    try {
+        const { keyword, location, category, minSalary, maxSalary } = req.query;
+
+        // Build dynamic where clause based on query params
+        const whereClause = {
+            isActive: true, // Only show active jobs to public
+        };
+
+        if (keyword) {
+            whereClause.OR = [
+                { title: { contains: keyword, mode: "insensitive" } },
+                { description: { contains: keyword, mode: "insensitive" } },
+            ];
+        }
+
+        if (location) {
+            whereClause.location = { contains: location, mode: "insensitive" };
+        }
+
+        if (category) {
+            whereClause.category = { equals: category, mode: "insensitive" };
+        }
+
+        if (minSalary || maxSalary) {
+            whereClause.salary = {};
+            if (minSalary) whereClause.salary.gte = parseInt(minSalary);
+            if (maxSalary) whereClause.salary.lte = parseInt(maxSalary);
+        }
+
+        const jobs = await prisma.job.findMany({
+            where: whereClause,
+            include: {
+                company: {
+                    select: { name: true, logoUrl: true, location: true },
+                },
+            },
+            orderBy: { createdAt: "desc" },
+        });
+
+        res.json({ message: "Jobs retrieved successfully", count: jobs.length, jobs });
+    } catch (error) {
+        console.error("Get Jobs Error:", error);
+        res.status(500).json({ error: "Server error while fetching jobs" });
+    }
+};
+
+module.exports = { createJob, getJobs };
