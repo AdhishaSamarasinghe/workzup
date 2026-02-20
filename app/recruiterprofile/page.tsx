@@ -61,7 +61,9 @@ export default function RecruiterProfilePage() {
   const loadReviews = async () => {
     setReviewsLoading(true);
     try {
-      const res = await fetch("/api/recruiter-reviews?recruiterId=default", { cache: "no-store" });
+      const res = await fetch("/api/recruiter-reviews?recruiterId=default", {
+        cache: "no-store",
+      });
       const json = await res.json();
       if (json.ok) setReviews(json.data);
     } finally {
@@ -72,7 +74,9 @@ export default function RecruiterProfilePage() {
   const loadJobs = async () => {
     setJobsLoading(true);
     try {
-      const res = await fetch("/api/recruiter-jobs?recruiterId=default", { cache: "no-store" });
+      const res = await fetch("/api/recruiter-jobs?recruiterId=default", {
+        cache: "no-store",
+      });
       const json = await res.json();
       if (json.ok) setJobs(json.data);
     } finally {
@@ -109,7 +113,8 @@ export default function RecruiterProfilePage() {
 
   // ✅ Dynamic location text built from your Edit page inputs
   const locationLine =
-    [data.city?.trim(), data.zipCode?.trim()].filter(Boolean).join(" • ") || "—";
+    [data.city?.trim(), data.zipCode?.trim()].filter(Boolean).join(" • ") ||
+    "—";
 
   return (
     <div className="min-h-screen bg-bg py-8">
@@ -118,7 +123,7 @@ export default function RecruiterProfilePage() {
           {/* Left */}
           <div className="space-y-6">
             {/* Profile Card */}
-            <div className="rounded-2xl bg-card p-6 shadow-sm">
+            <div className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
               <div className="flex flex-col items-center text-center">
                 <div className="mb-4">
                   <div className="relative h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 mx-auto rounded-full overflow-hidden bg-[#3d5a4c]">
@@ -187,7 +192,7 @@ export default function RecruiterProfilePage() {
             </div>
 
             {/* About */}
-            <div className="rounded-2xl bg-card p-6 shadow-sm">
+            <div className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
               <h2 className="mb-4 text-lg font-semibold text-[#1F2937]">
                 About
               </h2>
@@ -255,7 +260,7 @@ export default function RecruiterProfilePage() {
           </div>
 
           {/* Right Column (same as your jobs+reviews setup) */}
-          <div className="rounded-2xl bg-card p-6 shadow-sm">
+          <div className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
             <div className="mb-6 flex gap-6 border-b border-[#E5E7EB]">
               <button
                 onClick={() => {
@@ -298,28 +303,31 @@ export default function RecruiterProfilePage() {
                   jobs.map((job) => (
                     <div
                       key={job.id}
-                      className="flex items-center justify-between rounded-xl border border-[#E5E7EB] p-4 transition-colors hover:bg-[#F9FAFB]"
+                      className="flex flex-col gap-3 rounded-xl border border-[#E5E7EB] p-4 transition-colors hover:bg-[#F9FAFB] sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-[#F3F4F6] text-lg sm:text-xl">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#F3F4F6] text-lg sm:h-12 sm:w-12 sm:text-xl">
                           {job.icon}
                         </div>
-                        <div>
-                          <h3 className="font-medium text-[#1F2937]">{job.title}</h3>
-                          <p className="text-sm text-muted">
-                            Posted on {new Date(job.postedDate).toLocaleDateString()}
+                        <div className="min-w-0">
+                          <h3 className="truncate font-medium text-[#1F2937]">
+                            {job.title}
+                          </h3>
+                          <p className="text-xs text-muted sm:text-sm">
+                            Posted on{" "}
+                            {new Date(job.postedDate).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium sm:px-3 ${
                             job.status === "Completed"
                               ? "bg-[#D1FAE5] text-[#059669]"
                               : job.status === "Active"
-                              ? "bg-[#DBEAFE] text-[#2563EB]"
-                              : "bg-[#F3F4F6] text-[#6B7280]"
+                                ? "bg-[#DBEAFE] text-[#2563EB]"
+                                : "bg-[#F3F4F6] text-[#6B7280]"
                           }`}
                         >
                           <span
@@ -327,14 +335,16 @@ export default function RecruiterProfilePage() {
                               job.status === "Completed"
                                 ? "bg-[#059669]"
                                 : job.status === "Active"
-                                ? "bg-[#2563EB]"
-                                : "bg-[#6B7280]"
+                                  ? "bg-[#2563EB]"
+                                  : "bg-[#6B7280]"
                             }`}
                           />
                           {job.status}
                         </span>
 
-                        <span className="text-sm text-muted">{job.applicants} Applicants</span>
+                        <span className="text-xs text-muted sm:text-sm">
+                          {job.applicants} Applicants
+                        </span>
                       </div>
                     </div>
                   ))
@@ -352,28 +362,38 @@ export default function RecruiterProfilePage() {
                   </div>
                 ) : (
                   reviews.map((r) => (
-                    <div key={r.id} className="rounded-xl border border-[#E5E7EB] p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-[#1F2937]">{r.reviewerName}</p>
-                          <p className="text-xs text-muted">{new Date(r.createdAt).toLocaleString()}</p>
+                    <div
+                      key={r.id}
+                      className="rounded-xl border border-[#E5E7EB] p-3 sm:p-4"
+                    >
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-[#1F2937]">
+                            {r.reviewerName}
+                          </p>
+                          <p className="text-xs text-muted">
+                            {new Date(r.createdAt).toLocaleString()}
+                          </p>
                         </div>
 
                         <div className="flex items-center gap-1 text-sm">
-                          <span className="font-semibold text-[#1F2937]">{r.rating}</span>
+                          <span className="font-semibold text-[#1F2937]">
+                            {r.rating}
+                          </span>
                           <span className="text-yellow-500">★</span>
                           <span className="text-muted">/ 5</span>
                         </div>
                       </div>
 
-                      <p className="mt-3 text-sm text-muted leading-relaxed">{r.comment}</p>
+                      <p className="mt-2 text-xs leading-relaxed text-muted sm:mt-3 sm:text-sm">
+                        {r.comment}
+                      </p>
                     </div>
                   ))
                 )}
               </div>
             )}
           </div>
-
         </div>
       </div>
     </div>

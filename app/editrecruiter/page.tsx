@@ -48,7 +48,9 @@ export default function EditRecruiterPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/recruiter-profile", { cache: "no-store" });
+        const res = await fetch("/api/recruiter-profile", {
+          cache: "no-store",
+        });
         const json = await res.json();
         if (!json.ok) throw new Error("Failed to load");
 
@@ -77,7 +79,9 @@ export default function EditRecruiterPage() {
     load();
   }, []);
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -163,8 +167,12 @@ export default function EditRecruiterPage() {
     <div className="min-h-screen bg-bg py-8">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[#1F2937]">Edit Business Profile</h1>
-          <p className="mt-1 text-sm text-muted">Update your company&apos;s information for job seekers.</p>
+          <h1 className="text-2xl font-bold text-[#1F2937]">
+            Edit Business Profile
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            Update your company&apos;s information for job seekers.
+          </p>
         </div>
 
         {error && (
@@ -174,23 +182,33 @@ export default function EditRecruiterPage() {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="rounded-2xl bg-card p-6 shadow-sm">
+          <div className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
             {/* Logo */}
-            <div className="mb-8">
-              <h2 className="mb-4 text-base font-semibold text-[#1F2937]">Company Logo</h2>
+            <div className="mb-6 sm:mb-8">
+              <h2 className="mb-3 text-base font-semibold text-[#1F2937] sm:mb-4">
+                Company Logo
+              </h2>
 
-              <div className="flex items-start gap-4">
-                <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-[#E5E7EB]">
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+                <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-[#E5E7EB] sm:h-24 sm:w-24">
                   {logoPreview ? (
-                    <Image src={logoPreview} alt="Company logo preview" width={96} height={96} className="h-full w-full object-cover" unoptimized />
+                    <Image
+                      src={logoPreview}
+                      alt="Company logo preview"
+                      width={96}
+                      height={96}
+                      className="h-full w-full object-cover"
+                      unoptimized
+                    />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center" />
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm text-muted">
-                    Update a new logo. We recommend a square image, at least 200×200px, in PNG or JPG format.
+                <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+                  <p className="text-xs text-muted sm:text-sm">
+                    Update a new logo. We recommend a square image, at least
+                    200×200px, in PNG or JPG format.
                   </p>
 
                   <input
@@ -204,7 +222,7 @@ export default function EditRecruiterPage() {
                   <button
                     type="button"
                     onClick={handleUploadClick}
-                    className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#E5E7EB] bg-card px-4 py-2 text-sm font-medium text-[#1F2937] transition-colors hover:bg-[#F9FAFB]"
+                    className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#E5E7EB] bg-card px-3 py-1.5 text-xs font-medium text-[#1F2937] transition-colors hover:bg-[#F9FAFB] sm:px-4 sm:py-2 sm:text-sm"
                   >
                     Upload new logo
                   </button>
@@ -213,13 +231,17 @@ export default function EditRecruiterPage() {
             </div>
 
             {/* Company Details */}
-            <div className="mb-8">
-              <h2 className="mb-4 text-base font-semibold text-[#1F2937]">Company Details</h2>
+            <div className="mb-6 sm:mb-8">
+              <h2 className="mb-3 text-base font-semibold text-[#1F2937] sm:mb-4">
+                Company Details
+              </h2>
 
               <div className="grid gap-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">Company Name</label>
+                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
+                      Company Name
+                    </label>
                     <input
                       type="text"
                       name="companyName"
@@ -230,7 +252,9 @@ export default function EditRecruiterPage() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">Website</label>
+                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
+                      Website
+                    </label>
                     <input
                       type="text"
                       name="website"
@@ -242,7 +266,9 @@ export default function EditRecruiterPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">Company Address</label>
+                  <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
+                    Company Address
+                  </label>
                   <input
                     type="text"
                     name="companyAddress"
@@ -254,7 +280,9 @@ export default function EditRecruiterPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">City</label>
+                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
+                      City
+                    </label>
                     <input
                       type="text"
                       name="city"
@@ -265,7 +293,9 @@ export default function EditRecruiterPage() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">Zip Code</label>
+                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
+                      Zip Code
+                    </label>
                     <input
                       type="text"
                       name="zipCode"
@@ -277,7 +307,9 @@ export default function EditRecruiterPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">Company Description</label>
+                  <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
+                    Company Description
+                  </label>
                   <textarea
                     name="about"
                     value={formData.about}
@@ -290,13 +322,17 @@ export default function EditRecruiterPage() {
             </div>
 
             {/* Contact Info */}
-            <div className="mb-8">
-              <h2 className="mb-4 text-base font-semibold text-[#1F2937]">Contact Information</h2>
+            <div className="mb-6 sm:mb-8">
+              <h2 className="mb-3 text-base font-semibold text-[#1F2937] sm:mb-4">
+                Contact Information
+              </h2>
 
               <div className="grid gap-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">Contact Person Name</label>
+                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
+                      Contact Person Name
+                    </label>
                     <input
                       type="text"
                       name="contactPersonName"
@@ -307,7 +343,9 @@ export default function EditRecruiterPage() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">Contact Email</label>
+                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
+                      Contact Email
+                    </label>
                     <input
                       type="email"
                       name="contactEmail"
@@ -319,7 +357,9 @@ export default function EditRecruiterPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">Contact Phone Number</label>
+                  <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
+                    Contact Phone Number
+                  </label>
                   <input
                     type="tel"
                     name="contactPhoneNumber"
@@ -331,11 +371,11 @@ export default function EditRecruiterPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="rounded-lg px-6 py-2.5 text-sm font-medium text-[#6B7280] hover:text-[#1F2937]"
+                className="w-full rounded-lg px-6 py-2.5 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] sm:w-auto"
                 disabled={saving}
               >
                 Cancel
@@ -343,7 +383,7 @@ export default function EditRecruiterPage() {
 
               <button
                 type="submit"
-                className="rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-60"
+                className="w-full rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-60 sm:w-auto"
                 disabled={saving}
               >
                 {saving ? "Saving..." : "Save Changes"}
