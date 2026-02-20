@@ -42,6 +42,8 @@ model User {
   messagesRecv Message[] @relation("Receiver")
 
   @@index([email])
+  @@index([role])
+  @@index([createdAt])
 }
 
 model Profile {
@@ -76,6 +78,7 @@ model Company {
 
   @@index([recruiterId])
   @@index([name])
+  @@index([createdAt])
 }
 
 model Job {
@@ -98,6 +101,9 @@ model Job {
 
   @@index([companyId])
   @@index([isActive])
+  @@index([createdAt]) // For ordering jobs by newest
+  @@index([category]) // For filtering by category
+  @@index([isActive, createdAt]) // Compound index for public job feeds
 }
 
 model Application {
@@ -122,6 +128,7 @@ model Application {
   @@index([jobseekerId])
   @@index([jobId])
   @@index([status])
+  @@index([createdAt])
 }
 
 model Message {
