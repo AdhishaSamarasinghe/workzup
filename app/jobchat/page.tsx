@@ -158,6 +158,15 @@ export default function JobChatPage() {
   const [showJobDetails, setShowJobDetails] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Show job details by default on large screens, allow toggle/close
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (window.innerWidth >= 1024) {
+        setShowJobDetails(true);
+      }
+    }
+  }, []);
+
   // Auto-scroll to bottom when messages change
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -264,8 +273,12 @@ export default function JobChatPage() {
                 />
               </svg>
             </button>
-            {/* Desktop info icon */}
-            <div className="hidden lg:flex w-8 h-8 items-center justify-center rounded-full border border-gray-200 text-gray-500">
+            {/* Desktop info icon (toggles job details on large screens) */}
+            <button
+              onClick={() => setShowJobDetails((s) => !s)}
+              className="hidden lg:inline-flex w-8 h-8 items-center justify-center rounded-full border border-gray-200 text-gray-500"
+              aria-label="Toggle job details"
+            >
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -279,7 +292,7 @@ export default function JobChatPage() {
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -347,10 +360,15 @@ export default function JobChatPage() {
         </form>
       </div>
 
-      {/* Desktop Job Details Sidebar */}
-      <aside className="hidden lg:block w-72 xl:w-80 2xl:w-96 border-l border-gray-100 bg-white overflow-y-auto flex-shrink-0">
-        <JobDetailsPanel job={conversation.job} />
-      </aside>
+      {/* Desktop Job Details Sidebar (visible when `showJobDetails`) */}
+      {showJobDetails && (
+        <aside className="hidden lg:block w-72 xl:w-80 2xl:w-96 border-l border-gray-100 bg-white overflow-y-auto flex-shrink-0">
+          <JobDetailsPanel
+            job={conversation.job}
+            onClose={() => setShowJobDetails(false)}
+          />
+        </aside>
+      )}
     </div>
   );
 }
@@ -442,27 +460,7 @@ function JobDetailsPanel({
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
-            aria-label="Close"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        )}
-        {!isMobile && (
-          <button
-            className="text-gray-400 hover:text-gray-600"
-            aria-label="Close"
+            aria-label="Close job details"
           >
             <svg
               className="w-5 h-5"
