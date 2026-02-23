@@ -1,27 +1,24 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import type { ReactNode } from "react";
 import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "Workzup - Connecting Talent and Opportunity",
-  description: "Workzup is the one-day job hiring platform that connects job seekers with employers.",
+export const metadata = {
+  title: "Workzup",
+  description: "Workzup job board",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+type RootLayoutProps = {
+  children: ReactNode;
+};
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className={inter.className + " min-h-screen bg-[var(--background)] text-[var(--foreground)] antialiased"}>
+    <html lang="en">
+      <body className="min-h-screen bg-bg text-[#111827] antialiased" suppressHydrationWarning>
         <div className="flex min-h-screen flex-col">
           <Header />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 pt-16">{children}</main>
           <Footer />
         </div>
       </body>

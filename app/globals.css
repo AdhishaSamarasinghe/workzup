@@ -1,144 +1,82 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
+  --bg: #f7fafc;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --border: #e2e8f0;
-  --input: #f8fafc;
+  --muted: #6b7280;
+  --accent: #6b8bff;
+  --accent-2: #8be3c7;
+  --radius: 14px;
+  --max-width: 1100px;
 }
 
-.dark {
-  --background: #020617;
-  --foreground: #f8fafc;
-  --primary: #818cf8;
-  --primary-foreground: #ffffff;
-  --card: #0f172a;
-  --card-foreground: #f8fafc;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #1e293b;
-  --accent-foreground: #f8fafc;
-  --border: #1e293b;
-  --input: #1e293b;
+* {
+  box-sizing: border-box;
 }
 
-@layer base {
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
 
-  .bg-white {
-    background-color: var(--card) !important;
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
   }
-
-  .bg-gray-50 {
-    background-color: var(--input) !important;
-  }
-
-  /* Map light backgrounds to subtle dark shades */
-  .bg-indigo-50,
-  .bg-blue-50,
-  .bg-amber-50,
-  .bg-purple-50,
-  .bg-teal-50,
-  .bg-gray-100 {
-    background-color: var(--muted) !important;
-  }
-
-  .border-gray-100,
-  .border-gray-50,
-  .border-gray-200 {
-    border-color: var(--border) !important;
-  }
-
-  /* Text Class Mappings for Dark Mode visibility */
-  .text-gray-900 {
-    color: var(--foreground) !important;
-  }
-
-  .text-gray-800,
-  .text-gray-700 {
-    color: var(--foreground) !important;
-    opacity: 0.9;
-  }
-
-  .text-gray-600,
-  .text-gray-500 {
-    color: var(--muted-foreground) !important;
-  }
-
-  .text-gray-400 {
-    color: var(--muted-foreground) !important;
-    opacity: 0.8;
-  }
-
-  /* Specific component fixes */
-  .dark .bg-gradient-to-br {
-    background-image: linear-gradient(to bottom right, var(--muted), var(--card)) !important;
-  }
-
-  .dark select,
-  .dark input,
-  .dark textarea {
-    background-color: var(--input);
-    color: var(--foreground);
-    border-color: var(--border);
-  }
-
-  .dark select option {
-    background-color: var(--card);
-    color: var(--foreground);
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
-.gradient-text {
-  background: linear-gradient(to right, #4f46e5, #06b6d4);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+.popup-fade-in {
+  animation: popupFadeIn 240ms ease-out;
 }
-
-.animate-in {
-  animation-duration: 0.5s;
-  animation-fill-mode: both;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
+    transform: translateY(10px);
   }
 
   to {
     opacity: 1;
-  }
-}
-
-@keyframes slideInFromBottom {
-  from {
-    transform: translateY(1rem);
-    opacity: 0;
-  }
-
-  to {
     transform: translateY(0);
-    opacity: 1;
   }
 }
 
-.fade-in {
-  animation-name: fadeIn;
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
-.slide-in-from-bottom-4 {
-  animation-name: slideInFromBottom;
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-pop-in {
+  animation: popIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.animate-gradient-move {
+  animation: gradientMove 3s linear infinite;
 }
