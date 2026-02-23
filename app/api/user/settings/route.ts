@@ -15,7 +15,7 @@ export async function POST(request: Request) {
             message: "Settings updated successfully",
             updatedAt: new Date().toISOString()
         });
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json(
             { success: false, message: "Failed to update settings" },
             { status: 400 }

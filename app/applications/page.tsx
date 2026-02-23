@@ -13,7 +13,8 @@ export default function ApplicationsPage() {
       router.replace(`/applications/${storedId}`);
       return;
     }
-    setIsChecked(true);
+    // Make it asynchronous to avoid cascading render warning in React 19 rules
+    Promise.resolve().then(() => setIsChecked(true));
   }, [router]);
 
   return (

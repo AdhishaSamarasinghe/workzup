@@ -234,7 +234,7 @@ function ReviewItem({ name, role, date, rating, text }: { name: string, role: st
                         <StarIcon key={i} className={`w-3 h-3 ${i < rating ? 'fill-current' : 'text-slate-200'}`} />
                     ))}
                 </div>
-                <p className="text-slate-600 text-sm italic">"{text}"</p>
+                <p className="text-slate-600 text-sm italic">&quot;{text}&quot;</p>
             </div>
         </div>
     );

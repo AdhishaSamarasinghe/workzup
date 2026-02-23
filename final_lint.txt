@@ -1,0 +1,45 @@
+﻿
+C:\Users\ASUS\Documents\GitHub\workzup\app\applications\page.tsx
+  16:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\ASUS\Documents\GitHub\workzup\app\applications\page.tsx:16:5
+  14 |       return;
+  15 |     }
+> 16 |     setIsChecked(true);
+     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  17 |   }, [router]);
+  18 |
+  19 |   return (  react-hooks/set-state-in-effect
+
+C:\Users\ASUS\Documents\GitHub\workzup\app\jobseeker\gigs\page.tsx
+  100:13  error  'sorted' is never reassigned. Use 'const' instead                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  prefer-const
+  120:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\ASUS\Documents\GitHub\workzup\app\jobseeker\gigs\page.tsx:120:9
+  118 |             });
+  119 |         }
+> 120 |         setFilteredJobs(sorted);
+      |         ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  121 |     }, [jobs, sortBy]);
+  122 |
+  123 |  react-hooks/set-state-in-effect
+
+C:\Users\ASUS\Documents\GitHub\workzup\app\jobseeker\profile\page.tsx
+  237:62  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  237:69  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+Γ£û 5 problems (5 errors, 0 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

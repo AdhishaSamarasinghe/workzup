@@ -1,0 +1,126 @@
+﻿
+> workzup@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+
+  Creating an optimized production build ...
+node.exe : 
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (:Stri  
+  ng) [], RemoteException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+> Build error occurred
+Error: Turbopack build 
+failed with 1 errors:
+./components/jobs/DatePicker
+.tsx:3:1
+Module not found: Can't 
+resolve 
+'@radix-ui/react-popover'
+[0m [90m 1 |[39m 
+[32m"use 
+client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 
+|[39m [36mimport[39m 
+[33m*[39m [36mas[39m 
+[33mPopover[39m 
+[36mfrom[39m [32m"@radix-
+ui/react-popover"[39m[33m;
+[39m
+ [90m   |[39m [31m[1m^[
+22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1
+m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m[1m^[
+22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1
+m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m[1m^[
+22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1
+m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m[1m^[
+22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1
+m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m[1m^[
+22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1
+m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m[1m^[
+22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1
+m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m[1m^[
+22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1
+m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m[1m^[
+22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m 
+[36mimport[39m { useState 
+} [36mfrom[39m 
+[32m"react"[39m[33m;[39m
+ [90m 5 |[39m
+ [90m 6 |[39m 
+[36minterface[39m 
+[33mDatePickerProps[39m 
+{[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/jobs/DatePi
+cker.tsx [Client Component 
+Browser]
+    ./components/jobs/Search
+Bar.tsx [Client Component 
+Browser]
+    ./app/jobseeker/browse/p
+age.tsx [Client Component 
+Browser]
+    ./app/jobseeker/browse/p
+age.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/jobs/DatePi
+cker.tsx [Client Component 
+SSR]
+    ./components/jobs/Search
+Bar.tsx [Client Component 
+SSR]
+    ./app/jobseeker/browse/p
+age.tsx [Client Component 
+SSR]
+    ./app/jobseeker/browse/p
+age.tsx [Server Component]
+
+https://nextjs.org/docs/mess
+ages/module-not-found
+
+
+    at <unknown> (./componen
+ts/jobs/DatePicker.tsx:3:1)
+    at <unknown> (https://ne
+xtjs.org/docs/messages/modul
+e-not-found)

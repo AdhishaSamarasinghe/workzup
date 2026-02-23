@@ -1,0 +1,6 @@
+﻿
+C:\Users\ASUS\Documents\GitHub\workzup\backend\utils\email.js
+  1:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+Γ£û 1 problem (1 error, 0 warnings)
+

@@ -17,6 +17,8 @@ type Job = {
     status: string;     // Active, Pending, Completed
     applicants: number; // Total count
     postedDate: string; // Date posted
+    mockNewApplicants?: number;
+    mockTotalApplicants?: number;
 };
 
 export default function MyJobsPage() {
@@ -31,11 +33,13 @@ export default function MyJobsPage() {
             .then(res => res.json())
             .then(data => {
                 // Ensure data has the new fields (defaults) since legacy data might not
-                const enhancedData = data.map((job: any) => ({
+                const enhancedData = data.map((job: Job) => ({
                     ...job,
                     status: job.status || "Active",
                     applicants: job.applicants || 0,
-                    postedDate: job.postedDate || "2026-02-01" // Fallback for legacy
+                    postedDate: job.postedDate || "2026-02-01", // Fallback for legacy
+                    mockNewApplicants: Math.floor(Math.random() * 5),
+                    mockTotalApplicants: job.applicants || Math.floor(Math.random() * 20) + 5
                 }));
                 // In a real app, we would verify the user ID here. 
                 // For now, show ALL jobs as "My Jobs"
@@ -87,8 +91,8 @@ export default function MyJobsPage() {
                                         title={job.title}
                                         location={job.location}
                                         status={job.status}
-                                        newApplicants={Math.floor(Math.random() * 5)} // Mocking 'new' count
-                                        totalApplicants={job.applicants || Math.floor(Math.random() * 20) + 5} // Mocking total if 0
+                                        newApplicants={job.mockNewApplicants || 0} // Using pre-calculated mock count
+                                        totalApplicants={job.mockTotalApplicants || 0} // Using pre-calculated total
                                         postedDate={job.postedDate}
                                         jobDate={job.date}
                                         pay={job.pay}

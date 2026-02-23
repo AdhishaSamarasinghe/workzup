@@ -1,0 +1,30 @@
+﻿
+C:\Users\ASUS\Documents\GitHub\workzup\app\recruiter\my-jobs\page.tsx
+  34:53  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+  90:67  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\ASUS\Documents\GitHub\workzup\app\recruiter\my-jobs\page.tsx:90:67
+  88 |                                         location={job.location}
+  89 |                                         status={job.status}
+> 90 |                                         newApplicants={Math.floor(Math.random() * 5)} // Mocking 'new' count
+     |                                                                   ^^^^^^^^^^^^^ Cannot call impure function
+  91 |                                         totalApplicants={job.applicants || Math.floor(Math.random() * 20) + 5} // Mocking total if 0
+  92 |                                         postedDate={job.postedDate}
+  93 |                                         jobDate={job.date}            react-hooks/purity
+  91:87  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\ASUS\Documents\GitHub\workzup\app\recruiter\my-jobs\page.tsx:91:87
+  89 |                                         status={job.status}
+  90 |                                         newApplicants={Math.floor(Math.random() * 5)} // Mocking 'new' count
+> 91 |                                         totalApplicants={job.applicants || Math.floor(Math.random() * 20) + 5} // Mocking total if 0
+     |                                                                                       ^^^^^^^^^^^^^ Cannot call impure function
+  92 |                                         postedDate={job.postedDate}
+  93 |                                         jobDate={job.date}
+  94 |                                         pay={job.pay}  react-hooks/purity
+
+Γ£û 3 problems (3 errors, 0 warnings)
+

@@ -29,7 +29,8 @@ import {
     Palette,
     AlertCircle,
     Calendar,
-    UserPlus
+    UserPlus,
+    Search
 } from "lucide-react";
 
 // Helper function to format Sri Lankan phone numbers: +94 XX-XXX-XXXX
@@ -62,6 +63,25 @@ const formatSLNumber = (value: string) => {
     return result;
 };
 
+interface Experience {
+    id: number;
+    company: string;
+    role: string;
+    rating: number;
+    feedback: string;
+}
+
+interface RatingsData {
+    overallRating: number;
+    workQualities: {
+        reliability: number;
+        technicalSkill: number;
+        communication: number;
+        punctuality: number;
+    };
+    pastExperiences: Experience[];
+}
+
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState("account");
     const [profileVisibility, setProfileVisibility] = useState(true);
@@ -75,7 +95,7 @@ export default function SettingsPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [saveStatus, setSaveStatus] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [ratings, setRatings] = useState<any>(null);
+    const [ratings, setRatings] = useState<RatingsData | null>(null);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -578,7 +598,7 @@ export default function SettingsPage() {
                                         <div className="col-span-1 md:col-span-2 bg-gray-50 rounded-3xl p-6 border border-gray-100">
                                             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Work Qualities</h3>
                                             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                                                {Object.entries(ratings?.workQualities || {}).map(([key, value]: [string, any]) => (
+                                                {Object.entries(ratings?.workQualities || {}).map(([key, value]) => (
                                                     <div key={key} className="space-y-1.5">
                                                         <div className="flex justify-between items-center text-xs font-bold text-gray-500 capitalize">
                                                             <span>{key.replace(/([A-Z])/g, ' $1').trim()}</span>
@@ -603,7 +623,9 @@ export default function SettingsPage() {
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-4">
-                                            {ratings?.pastExperiences?.map((exp: any) => (ExpItem(exp)))}
+                                            {ratings?.pastExperiences?.map((exp) => (
+                                                <ExpItem key={exp.id} exp={exp} />
+                                            ))}
                                         </div>
 
                                         <div className="bg-indigo-50/50 rounded-2xl p-6 border border-indigo-100 flex items-center gap-4">
@@ -808,7 +830,7 @@ export default function SettingsPage() {
                             </div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Logout</h3>
                             <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                                Are you sure you want to log out? You'll need to sign back in to access your dashboard.
+                                Are you sure you want to log out? You&apos;ll need to sign back in to access your dashboard.
                             </p>
 
                             <div className="grid grid-cols-2 gap-3 w-full">
@@ -842,9 +864,9 @@ export default function SettingsPage() {
     );
 }
 
-function ExpItem(exp: any) {
+function ExpItem({ exp }: { exp: Experience }) {
     return (
-        <div key={exp.id} className="p-5 bg-white border border-gray-100 rounded-2xl group hover:border-yellow-200 transition-all">
+        <div className="p-5 bg-white border border-gray-100 rounded-2xl group hover:border-yellow-200 transition-all">
             <div className="flex justify-between items-start mb-3">
                 <div>
                     <h4 className="font-bold text-gray-900 group-hover:text-yellow-700 transition-colors">{exp.role}</h4>
@@ -855,30 +877,11 @@ function ExpItem(exp: any) {
                     {exp.rating.toFixed(1)}
                 </div>
             </div>
-            <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-xl italic border-l-4 border-yellow-400">"{exp.feedback}"</p>
+            <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-xl italic border-l-4 border-yellow-400">&quot;{exp.feedback}&quot;</p>
         </div>
     );
 }
 
-// Additional missing icons for the loop
-function Search(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-        </svg>
-    )
-}
+
 
 
