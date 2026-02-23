@@ -1,10 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
+
+  const navItems = useMemo(
+    () => [
+      { href: "/jobseeker/browse", label: "Find Jobs" },
+      { href: "/recruiter/my-jobs", label: "Post a Job" },
+    ],
+    []
+  );
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,12 +44,25 @@ export default function Header() {
 
         {/* Navigation */}
         <nav className="flex items-center gap-6 text-sm font-medium">
-          <Link href="/jobs" className="hover:text-blue-600 transition">
-            Find Jobs
-          </Link>
-          <Link href="/post-job" className="hover:text-blue-600 transition">
-            Post a Job
-          </Link>
+          {navItems.map((item) => {
+            const isActive =
+              pathname === item.href || pathname?.startsWith(`${item.href}/`);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`transition ${
+                  isActive
+                    ? "text-blue-700"
+                    : "text-[#111827] hover:text-blue-600"
+                }`}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       </div>
     </header>
