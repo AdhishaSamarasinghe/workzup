@@ -19,6 +19,20 @@ type Job = {
     postedDate: string; // Date posted
 };
 
+type RawJob = Partial<Job> & {
+    id?: number;
+    title?: string;
+    company?: string;
+    description?: string;
+    location?: string;
+    pay?: string;
+    date?: string;
+    category?: string;
+};
+
+const getMockNewApplicants = (id: number) => (id % 5) + 1;
+const getMockTotalApplicants = (id: number) => 5 + (id % 20);
+
 export default function MyJobsPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -31,8 +45,16 @@ export default function MyJobsPage() {
             .then(res => res.json())
             .then(data => {
                 // Ensure data has the new fields (defaults) since legacy data might not
-                const enhancedData = data.map((job: any) => ({
-                    ...job,
+                const apiJobs: RawJob[] = Array.isArray(data) ? data : [];
+                const enhancedData: Job[] = apiJobs.map((job, index) => ({
+                    id: typeof job.id === "number" ? job.id : index + 1,
+                    title: job.title || "Untitled Job",
+                    company: job.company || "Unknown Company",
+                    description: job.description || "",
+                    location: job.location || "Not specified",
+                    pay: job.pay || "Not specified",
+                    date: job.date || "Not specified",
+                    category: job.category || "General",
                     status: job.status || "Active",
                     applicants: job.applicants || 0,
                     postedDate: job.postedDate || "2026-02-01" // Fallback for legacy
@@ -87,8 +109,8 @@ export default function MyJobsPage() {
                                         title={job.title}
                                         location={job.location}
                                         status={job.status}
-                                        newApplicants={Math.floor(Math.random() * 5)} // Mocking 'new' count
-                                        totalApplicants={job.applicants || Math.floor(Math.random() * 20) + 5} // Mocking total if 0
+                                        newApplicants={getMockNewApplicants(job.id)}
+                                        totalApplicants={job.applicants || getMockTotalApplicants(job.id)}
                                         postedDate={job.postedDate}
                                         jobDate={job.date}
                                         pay={job.pay}

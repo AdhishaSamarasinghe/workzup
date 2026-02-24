@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import GigFilters from "@/components/gigs/GigFilters";
 import GigHeader from "@/components/gigs/GigHeader";
 import GigCard from "@/components/gigs/GigCard";
@@ -20,7 +20,6 @@ type Job = {
 
 export default function FindGigPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
-    const [filteredJobs, setFilteredJobs] = useState<Job[]>([]); // For client-side sorting if needed
 
     // Filter States
     const [location, setLocation] = useState("");
@@ -95,9 +94,8 @@ export default function FindGigPage() {
         fetchJobs();
     }, []); // Run once on mount, then Apply button triggers fetch
 
-    // Handle Sort
-    useEffect(() => {
-        let sorted = [...jobs];
+    const filteredJobs = useMemo(() => {
+        const sorted = [...jobs];
         if (sortBy === "Newest") {
             // Assuming IDs are timestamp based or we have created_at. 
             // For now using ID desc as proxy for newest
@@ -117,7 +115,7 @@ export default function FindGigPage() {
                 return payA - payB;
             });
         }
-        setFilteredJobs(sorted);
+        return sorted;
     }, [jobs, sortBy]);
 
 
