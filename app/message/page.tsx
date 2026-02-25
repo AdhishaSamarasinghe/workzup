@@ -1,12 +1,44 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  ConversationList,
-  ChatWindow,
-  Conversation,
-  Message,
-} from "@/components/message";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { ConversationList, Conversation } from "@/components/message";
+
+// ============================================
+// TYPES
+// ============================================
+
+type Participant = {
+  id: string;
+  name: string;
+  avatar?: string;
+  role?: string;
+};
+
+type Message = {
+  id: string;
+  senderId: string;
+  content: string;
+  timestamp: string;
+  isRead?: boolean;
+};
+
+type JobDetails = {
+  id: string;
+  title: string;
+  payRate: string;
+  location: string;
+  date: string;
+  schedule: string;
+  description: string;
+};
+
+type ChatConversation = {
+  id: string;
+  jobId: string;
+  participant: Participant;
+  job: JobDetails;
+};
 
 // ============================================
 // MOCK DATA - Replace with API calls for backend
@@ -66,8 +98,92 @@ const mockConversations: Conversation[] = [
   },
 ];
 
-// Mock messages data - Replace with: GET /api/conversations/:id/messages
-const mockMessages: Record<string, Message[]> = {
+// Mock job chat conversations data
+const mockJobConversations: Record<string, ChatConversation> = {
+  "conv-1": {
+    id: "conv-1",
+    jobId: "job-1",
+    participant: {
+      id: "user-1",
+      name: "Jane Doe",
+      avatar: "/avatars/jane.svg",
+      role: "Hiring Manager",
+    },
+    job: {
+      id: "job-1",
+      title: "Urgent Warehouse Assistant",
+      payRate: "Rs.3000",
+      location: "Colombo",
+      date: "Nov 25",
+      schedule: "9:00 AM - 5:00 PM",
+      description:
+        "We're looking for an experienced warehouse assistant to help out during a busy event.",
+    },
+  },
+  "conv-2": {
+    id: "conv-2",
+    jobId: "job-2",
+    participant: {
+      id: "user-2",
+      name: "Mark Lee",
+      avatar: "/avatars/mark.svg",
+      role: "Logistics Coordinator",
+    },
+    job: {
+      id: "job-2",
+      title: "Logistics Support",
+      payRate: "Rs.2500",
+      location: "Kandy",
+      date: "Nov 28",
+      schedule: "8:00 AM - 4:00 PM",
+      description:
+        "Support the logistics team with inventory management and shipment coordination.",
+    },
+  },
+  "conv-3": {
+    id: "conv-3",
+    jobId: "job-3",
+    participant: {
+      id: "user-3",
+      name: "Aisha Khan",
+      avatar: "/avatars/aisha.svg",
+      role: "HR Specialist",
+    },
+    job: {
+      id: "job-3",
+      title: "HR Administrative Assistant",
+      payRate: "Rs.3500",
+      location: "Colombo",
+      date: "Dec 1",
+      schedule: "9:00 AM - 5:00 PM",
+      description:
+        "Assist with HR documentation, onboarding, and employee record management.",
+    },
+  },
+  "conv-4": {
+    id: "conv-4",
+    jobId: "job-4",
+    participant: {
+      id: "user-4",
+      name: "Carlos Mendez",
+      avatar: "/avatars/carlos.svg",
+      role: "Site Manager",
+    },
+    job: {
+      id: "job-4",
+      title: "Site Supervision Assistant",
+      payRate: "Rs.4000",
+      location: "Galle",
+      date: "Dec 5",
+      schedule: "7:00 AM - 3:00 PM",
+      description:
+        "Assist with site supervision, safety compliance, and team coordination.",
+    },
+  },
+};
+
+// Mock messages for each conversation
+const mockMessagesData: Record<string, Message[]> = {
   "conv-1": [
     {
       id: "msg-1",
@@ -80,25 +196,39 @@ const mockMessages: Record<string, Message[]> = {
       id: "msg-2",
       senderId: CURRENT_USER_ID,
       content: "Sure — what do you need?",
+      timestamp: "10:57 PM",
+      isRead: true,
+    },
+    {
+      id: "msg-3",
+      senderId: "user-1",
+      content: "Sounds great — I'll be there.",
       timestamp: "10:59 PM",
       isRead: true,
     },
   ],
   "conv-2": [
     {
-      id: "msg-3",
+      id: "msg-4",
       senderId: "user-2",
       content: "Can you cover the Saturday shift?",
       timestamp: "9:45 PM",
-      isRead: false,
+      isRead: true,
+    },
+    {
+      id: "msg-5",
+      senderId: CURRENT_USER_ID,
+      content: "Let me check my schedule and get back to you.",
+      timestamp: "9:50 PM",
+      isRead: true,
     },
   ],
   "conv-3": [
     {
-      id: "msg-4",
+      id: "msg-6",
       senderId: "user-3",
-      content: "Reminder: please complete your timesheet before Friday.",
-      timestamp: "9:00 AM",
+      content: "Please complete your timesheet.",
+      timestamp: "10:00 AM",
       isRead: true,
     },
   ],
@@ -114,40 +244,32 @@ const mockMessages: Record<string, Message[]> = {
  * Replace with: const response = await fetch('/api/conversations');
  */
 async function fetchConversations(): Promise<Conversation[]> {
-  // TODO: Replace with actual API call
-  // const response = await fetch('/api/conversations');
-  // return response.json();
   return mockConversations;
 }
 
 /**
- * Fetch messages for a specific conversation
- * Replace with: const response = await fetch(`/api/conversations/${conversationId}/messages`);
+ * Fetch job chat conversation details
  */
-async function fetchMessages(conversationId: string): Promise<Message[]> {
-  // TODO: Replace with actual API call
-  // const response = await fetch(`/api/conversations/${conversationId}/messages`);
-  // return response.json();
-  return mockMessages[conversationId] || [];
+async function fetchJobConversation(
+  conversationId: string,
+): Promise<ChatConversation | null> {
+  return mockJobConversations[conversationId] || null;
 }
 
 /**
- * Send a new message
- * Replace with: const response = await fetch('/api/messages', { method: 'POST', body: ... });
+ * Fetch messages for a conversation
+ */
+async function fetchMessages(conversationId: string): Promise<Message[]> {
+  return mockMessagesData[conversationId] || [];
+}
+
+/**
+ * Send a message
  */
 async function sendMessage(
   conversationId: string,
   content: string,
 ): Promise<Message> {
-  // TODO: Replace with actual API call
-  // const response = await fetch('/api/messages', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ conversationId, content }),
-  // });
-  // return response.json();
-
-  // Mock response
   const newMessage: Message = {
     id: `msg-${Date.now()}`,
     senderId: CURRENT_USER_ID,
@@ -170,24 +292,34 @@ async function sendMessage(
 // ============================================
 
 export default function MessagePage() {
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
   >(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [showChatOnMobile, setShowChatOnMobile] = useState(false);
 
-  // Handle conversation selection (with mobile view switch)
+  // Job chat preview state (for desktop)
+  const [jobConversation, setJobConversation] =
+    useState<ChatConversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Handle conversation selection (single click - show messages)
   const handleSelectConversation = (conversationId: string) => {
     setSelectedConversationId(conversationId);
-    setShowChatOnMobile(true);
+    // On mobile, navigate to full jobchat page (no preview available)
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      router.push(`/jobchat?id=${conversationId}`);
+    }
   };
 
-  // Handle back button on mobile
-  const handleBackToList = () => {
-    setShowChatOnMobile(false);
+  // Handle double click - navigate to full jobchat page
+  const handleDoubleClickConversation = (conversationId: string) => {
+    router.push(`/jobchat?id=${conversationId}`);
   };
 
   // Load conversations on mount
@@ -197,7 +329,7 @@ export default function MessagePage() {
       try {
         const data = await fetchConversations();
         setConversations(data);
-        // Auto-select first conversation
+        // Auto-select first conversation for desktop preview
         if (data.length > 0) {
           setSelectedConversationId(data[0].id);
         }
@@ -210,51 +342,54 @@ export default function MessagePage() {
     loadConversations();
   }, []);
 
-  // Load messages when conversation changes
+  // Load job chat data when conversation is selected
   useEffect(() => {
-    async function loadMessages() {
+    async function loadJobChat() {
       if (!selectedConversationId) {
+        setJobConversation(null);
         setMessages([]);
         return;
       }
+      setIsChatLoading(true);
       try {
-        const data = await fetchMessages(selectedConversationId);
-        setMessages(data);
+        const [convData, msgData] = await Promise.all([
+          fetchJobConversation(selectedConversationId),
+          fetchMessages(selectedConversationId),
+        ]);
+        setJobConversation(convData);
+        setMessages(msgData);
       } catch (error) {
-        console.error("Failed to load messages:", error);
+        console.error("Failed to load job chat:", error);
+      } finally {
+        setIsChatLoading(false);
       }
     }
-    loadMessages();
+    loadJobChat();
   }, [selectedConversationId]);
 
-  // Handle sending a message
-  const handleSendMessage = async (content: string) => {
-    if (!selectedConversationId) return;
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
+  // Handle sending message
+  const handleSend = async () => {
+    if (!inputValue.trim() || !jobConversation) return;
     try {
-      const newMessage = await sendMessage(selectedConversationId, content);
-      setMessages((prev) => [...prev, newMessage]);
-
-      // Update conversation's last message
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === selectedConversationId
-            ? {
-                ...conv,
-                lastMessage: content,
-                lastMessageTime: newMessage.timestamp,
-              }
-            : conv,
-        ),
-      );
+      const newMsg = await sendMessage(jobConversation.id, inputValue.trim());
+      setMessages((prev) => [...prev, newMsg]);
+      setInputValue("");
     } catch (error) {
       console.error("Failed to send message:", error);
     }
   };
 
-  // Get selected conversation
-  const selectedConversation =
-    conversations.find((conv) => conv.id === selectedConversationId) || null;
+  // Navigate to full jobchat page
+  const handleOpenFullChat = () => {
+    if (selectedConversationId) {
+      router.push(`/jobchat?id=${selectedConversationId}`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -266,32 +401,111 @@ export default function MessagePage() {
 
   return (
     <>
-      {/* Conversation List - hidden on mobile when chat is open */}
-      <div
-        className={`${showChatOnMobile ? "hidden" : "flex"} md:flex w-full md:w-auto`}
-      >
-        <ConversationList
-          conversations={conversations}
-          selectedConversationId={selectedConversationId}
-          onSelectConversation={handleSelectConversation}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          isMobileView={true}
-        />
-      </div>
+      {/* Main Content - Split View */}
+      <div className="flex w-full flex-1 overflow-hidden">
+        {/* Conversation List - Left Side */}
+        <div className="w-full md:w-80 lg:w-96 flex-shrink-0">
+          <ConversationList
+            conversations={conversations}
+            selectedConversationId={selectedConversationId}
+            onSelectConversation={handleSelectConversation}
+            onDoubleClickConversation={handleDoubleClickConversation}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            isMobileView={true}
+          />
+        </div>
 
-      {/* Chat Window - shown on mobile when chat is open, always on desktop */}
-      <div
-        className={`${showChatOnMobile ? "flex" : "hidden"} md:flex flex-1 w-full md:w-auto`}
-      >
-        <ChatWindow
-          conversation={selectedConversation}
-          messages={messages}
-          currentUserId={CURRENT_USER_ID}
-          onSendMessage={handleSendMessage}
-          onBack={handleBackToList}
-          isMobileView={showChatOnMobile}
-        />
+        {/* Job Chat Preview - Right Side (Desktop Only) */}
+        <div className="hidden md:flex flex-1 flex-col bg-white border-l border-gray-200 h-full overflow-hidden">
+          {isChatLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-gray-500">Loading chat...</div>
+            </div>
+          ) : jobConversation ? (
+            <>
+              {/* Chat Header */}
+              <div className="px-4 lg:px-6 py-4 border-b border-gray-100 flex-shrink-0">
+                <div className="flex items-center justify-between gap-2">
+                  <div
+                    className="min-w-0 flex-1 cursor-pointer"
+                    onClick={handleOpenFullChat}
+                  >
+                    <h1 className="text-lg font-semibold text-gray-900 truncate hover:text-blue-600">
+                      {jobConversation.job.title}
+                    </h1>
+                    <p className="text-sm text-gray-500 truncate">
+                      with {jobConversation.participant.name}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleOpenFullChat}
+                    className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    Open Chat
+                  </button>
+                </div>
+              </div>
+
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4">
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    No messages yet
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((msg) => (
+                      <MessageBubble
+                        key={msg.id}
+                        message={msg}
+                        participant={jobConversation.participant}
+                        isOwn={msg.senderId === CURRENT_USER_ID}
+                      />
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
+
+              {/* Message Input */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSend();
+                }}
+                className="p-4 border-t border-gray-200 bg-white flex-shrink-0"
+              >
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder="Type your message..."
+                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!inputValue.trim()}
+                    className="p-3 text-gray-600 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-gray-400">
+              Select a conversation to view chat
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Mobile Bottom Navigation */}
@@ -374,5 +588,74 @@ export default function MessagePage() {
         </a>
       </div>
     </>
+  );
+}
+
+// ============================================
+// SUB-COMPONENTS
+// ============================================
+
+function MessageBubble({
+  message,
+  participant,
+  isOwn,
+}: {
+  message: Message;
+  participant: Participant;
+  isOwn: boolean;
+}) {
+  return (
+    <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+      <div
+        className={`flex items-end gap-2 max-w-[85%] ${
+          isOwn ? "flex-row-reverse" : "flex-row"
+        }`}
+      >
+        {/* Avatar */}
+        <div className="flex-shrink-0">
+          <img
+            src={
+              isOwn
+                ? "/avatars/default.svg"
+                : participant.avatar || "/avatars/default.svg"
+            }
+            alt={isOwn ? "You" : participant.name}
+            className="w-8 h-8 rounded-full object-cover bg-gray-200"
+          />
+        </div>
+
+        {/* Message Content */}
+        <div
+          className={`${isOwn ? "items-end" : "items-start"} flex flex-col min-w-0`}
+        >
+          {/* Sender name and time */}
+          <div
+            className={`flex items-center gap-2 mb-1 ${
+              isOwn ? "flex-row-reverse" : "flex-row"
+            }`}
+          >
+            <span className="text-xs font-medium text-gray-900 truncate">
+              {isOwn ? "You" : participant.name}
+            </span>
+            <span className="text-[10px] text-gray-400 flex-shrink-0">
+              {message.timestamp}
+            </span>
+          </div>
+
+          {/* Bubble */}
+          <div
+            className={`px-3 py-2 rounded-2xl ${
+              isOwn
+                ? "bg-blue-500 text-white rounded-br-md"
+                : "bg-gray-100 text-gray-800 rounded-bl-md"
+            }`}
+          >
+            <p className="text-sm leading-relaxed break-words">
+              {message.content}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

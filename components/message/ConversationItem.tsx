@@ -7,10 +7,12 @@ export default function ConversationItem({
   conversation,
   isSelected,
   onSelect,
+  onDoubleClick,
 }: ConversationItemProps) {
   return (
     <div
       onClick={() => onSelect(conversation.id)}
+      onDoubleClick={() => onDoubleClick?.(conversation.id)}
       className={`flex items-center gap-3 p-3 cursor-pointer rounded-lg transition-all ${
         isSelected ? "bg-blue-50" : "hover:bg-gray-50"
       }`}

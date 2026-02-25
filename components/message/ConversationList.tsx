@@ -9,6 +9,7 @@ export default function ConversationList({
   conversations,
   selectedConversationId,
   onSelectConversation,
+  onDoubleClickConversation,
   searchQuery,
   onSearchChange,
   isMobileView = false,
@@ -77,6 +78,7 @@ export default function ConversationList({
               conversation={conversation}
               isSelected={selectedConversationId === conversation.id}
               onSelect={onSelectConversation}
+              onDoubleClick={onDoubleClickConversation}
             />
           ))
         )}

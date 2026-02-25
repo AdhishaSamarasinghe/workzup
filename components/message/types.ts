@@ -28,12 +28,14 @@ export interface ConversationItemProps {
   conversation: Conversation;
   isSelected: boolean;
   onSelect: (conversationId: string) => void;
+  onDoubleClick?: (conversationId: string) => void;
 }
 
 export interface ConversationListProps {
   conversations: Conversation[];
   selectedConversationId: string | null;
   onSelectConversation: (conversationId: string) => void;
+  onDoubleClickConversation?: (conversationId: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   isMobileView?: boolean;

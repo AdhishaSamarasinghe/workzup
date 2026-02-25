@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 
 // ===========================================
 // TYPES - Ready for backend integration
@@ -44,53 +45,142 @@ type ChatConversation = {
 
 const CURRENT_USER_ID = "current-user-123";
 
-// Mock conversation data - Replace with: GET /api/jobchat/:conversationId
-const mockConversation: ChatConversation = {
-  id: "conv-1",
-  jobId: "job-1",
-  participant: {
-    id: "user-jane",
-    name: "Jane Doe",
-    avatar: "/avatars/jane.svg",
-    role: "Hiring Manager",
+// Mock conversations data - Replace with: GET /api/jobchat/:conversationId
+const mockConversations: Record<string, ChatConversation> = {
+  "conv-1": {
+    id: "conv-1",
+    jobId: "job-1",
+    participant: {
+      id: "user-1",
+      name: "Jane Doe",
+      avatar: "/avatars/jane.svg",
+      role: "Hiring Manager",
+    },
+    job: {
+      id: "job-1",
+      title: "Urgent Warehouse Assistant",
+      payRate: "Rs.3000",
+      location: "Colombo",
+      date: "Nov 25",
+      schedule: "9:00 AM - 5:00 PM",
+      description:
+        "We're looking for an experienced warehouse assistant to help out during a busy event. Must be able to lift heavy items and work flexible hours.",
+    },
   },
-  job: {
-    id: "job-1",
-    title: "Urgent Barista Needed",
-    payRate: "Rs.3000",
-    location: "Colombo",
-    date: "Nov 25",
-    schedule: "9.00A< - 5.00 PM",
-    description:
-      "We're looking for an experienced barista to help out during a busy event.Must be proficient with espresso machine and latte art.",
+  "conv-2": {
+    id: "conv-2",
+    jobId: "job-2",
+    participant: {
+      id: "user-2",
+      name: "Mark Lee",
+      avatar: "/avatars/mark.svg",
+      role: "Logistics Coordinator",
+    },
+    job: {
+      id: "job-2",
+      title: "Logistics Support",
+      payRate: "Rs.2500",
+      location: "Kandy",
+      date: "Nov 28",
+      schedule: "8:00 AM - 4:00 PM",
+      description:
+        "Support the logistics team with inventory management and shipment coordination.",
+    },
+  },
+  "conv-3": {
+    id: "conv-3",
+    jobId: "job-3",
+    participant: {
+      id: "user-3",
+      name: "Aisha Khan",
+      avatar: "/avatars/aisha.svg",
+      role: "HR Specialist",
+    },
+    job: {
+      id: "job-3",
+      title: "HR Administrative Assistant",
+      payRate: "Rs.3500",
+      location: "Colombo",
+      date: "Dec 1",
+      schedule: "9:00 AM - 5:00 PM",
+      description:
+        "Assist with HR documentation, onboarding, and employee record management.",
+    },
+  },
+  "conv-4": {
+    id: "conv-4",
+    jobId: "job-4",
+    participant: {
+      id: "user-4",
+      name: "Carlos Mendez",
+      avatar: "/avatars/carlos.svg",
+      role: "Site Manager",
+    },
+    job: {
+      id: "job-4",
+      title: "Site Supervision Assistant",
+      payRate: "Rs.4000",
+      location: "Galle",
+      date: "Dec 5",
+      schedule: "7:00 AM - 3:00 PM",
+      description:
+        "Assist with site supervision, safety compliance, and team coordination.",
+    },
   },
 };
 
-// Mock messages - Replace with: GET /api/jobchat/:conversationId/messages
-const mockMessages: Message[] = [
-  {
-    id: "msg-1",
-    senderId: "user-jane",
-    content:
-      "Hi. i swa your application for the barsita postion. Are you available for a quick chat tomorrow morning?",
-    timestamp: "10.59p.m",
-    isRead: true,
-  },
-  {
-    id: "msg-2",
-    senderId: CURRENT_USER_ID,
-    content: "Hello! Yes I;m Avalibale. What time works best for You?",
-    timestamp: "10.59p.m",
-    isRead: true,
-  },
-  {
-    id: "msg-3",
-    senderId: "user-jane",
-    content: "Great.How about 9.30 Am?",
-    timestamp: "10.59p.m",
-    isRead: true,
-  },
-];
+// Mock messages for each conversation - Replace with: GET /api/jobchat/:conversationId/messages
+const mockMessagesData: Record<string, Message[]> = {
+  "conv-1": [
+    {
+      id: "msg-1",
+      senderId: "user-1",
+      content: "Hi — I need help with the shipment today.",
+      timestamp: "10:55 PM",
+      isRead: true,
+    },
+    {
+      id: "msg-2",
+      senderId: CURRENT_USER_ID,
+      content: "Sure — what do you need?",
+      timestamp: "10:57 PM",
+      isRead: true,
+    },
+    {
+      id: "msg-3",
+      senderId: "user-1",
+      content: "Sounds great — I'll be there.",
+      timestamp: "10:59 PM",
+      isRead: true,
+    },
+  ],
+  "conv-2": [
+    {
+      id: "msg-4",
+      senderId: "user-2",
+      content: "Can you cover the Saturday shift?",
+      timestamp: "9:45 PM",
+      isRead: true,
+    },
+    {
+      id: "msg-5",
+      senderId: CURRENT_USER_ID,
+      content: "Let me check my schedule and get back to you.",
+      timestamp: "9:50 PM",
+      isRead: true,
+    },
+  ],
+  "conv-3": [
+    {
+      id: "msg-6",
+      senderId: "user-3",
+      content: "Please complete your timesheet.",
+      timestamp: "10:00 AM",
+      isRead: true,
+    },
+  ],
+  "conv-4": [],
+};
 
 // ===========================================
 // API FUNCTIONS - Ready for backend
@@ -102,10 +192,10 @@ const mockMessages: Message[] = [
  */
 async function fetchConversation(
   conversationId: string,
-): Promise<ChatConversation> {
+): Promise<ChatConversation | null> {
   // TODO: Replace with actual API call
   return new Promise((resolve) =>
-    setTimeout(() => resolve(mockConversation), 200),
+    setTimeout(() => resolve(mockConversations[conversationId] || null), 200),
   );
 }
 
@@ -115,7 +205,9 @@ async function fetchConversation(
  */
 async function fetchMessages(conversationId: string): Promise<Message[]> {
   // TODO: Replace with actual API call
-  return new Promise((resolve) => setTimeout(() => resolve(mockMessages), 150));
+  return new Promise((resolve) =>
+    setTimeout(() => resolve(mockMessagesData[conversationId] || []), 150),
+  );
 }
 
 /**
@@ -149,6 +241,9 @@ async function sendMessage(
 // ===========================================
 
 export default function JobChatPage() {
+  const searchParams = useSearchParams();
+  const conversationId = searchParams.get("id") || "conv-1";
+
   const [conversation, setConversation] = useState<ChatConversation | null>(
     null,
   );
@@ -182,8 +277,6 @@ export default function JobChatPage() {
     async function loadData() {
       setIsLoading(true);
       try {
-        // In real app, get conversationId from URL params
-        const conversationId = "conv-1";
         const [convData, msgData] = await Promise.all([
           fetchConversation(conversationId),
           fetchMessages(conversationId),
@@ -201,7 +294,7 @@ export default function JobChatPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [conversationId]);
 
   // Handle sending message
   const handleSend = async () => {
