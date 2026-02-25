@@ -29,25 +29,16 @@ export default function MyJobsPage() {
 
     // Fetch Jobs
     useEffect(() => {
-        fetch("http://localhost:5000/jobs?status=All")
+        fetch("http://localhost:5000/jobs")
             .then(res => res.json())
             .then(data => {
                 // Ensure data has the new fields (defaults) since legacy data might not
                 const enhancedData = data.map((job: any) => {
                     let status = job.status || "PUBLIC";
-
-                    // Normalize status case just in case
-                    const s = status.toLowerCase();
-
-                    // Map specific legacy statuses
-                    if (s === "active") status = "PUBLIC";
-                    else if (s === "pending") status = "DRAFT";
-                    else if (s === "completed") status = "CLOSED";
-                    // If it's already PUBLIC, DRAFT, PRIVATE, CLOSED, leave it (case insensitive match handling if needed)
-                    // We can force upper case for consistency in UI
-                    else if (["public", "draft", "private", "closed"].includes(s)) {
-                        status = s.toUpperCase();
-                    }
+                    // Map legacy statuses
+                    if (status.toLowerCase() === "active") status = "PUBLIC";
+                    if (status.toLowerCase() === "pending") status = "DRAFT";
+                    if (status.toLowerCase() === "completed") status = "CLOSED";
 
                     // Force CLOSED if job date is in the past
                     const isPastDate = new Date(job.date) < new Date(new Date().setHours(0, 0, 0, 0));
@@ -124,35 +115,12 @@ export default function MyJobsPage() {
                                         onEdit={() => console.log("Edit", job.id)}
                                         onViewApplicants={() => console.log("View Applicants", job.id)}
                                         onStatusChange={(newStatus) => {
-                                            // Optimistic update
                                             const updatedJobs = jobs.map(j =>
                                                 j.id === job.id ? { ...j, status: newStatus } : j
                                             );
                                             setJobs(updatedJobs);
-
-                                            // Call API to persist status
-                                            fetch(`http://localhost:5000/jobs/${job.id}/status`, {
-                                                method: 'PATCH',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                },
-                                                body: JSON.stringify({ status: newStatus }),
-                                            })
-                                                .then(res => {
-                                                    if (!res.ok) {
-                                                        throw new Error('Failed to update status');
-                                                    }
-                                                    return res.json();
-                                                })
-                                                .then(data => {
-                                                    console.log(`Updated job ${job.id} status to ${newStatus}`, data);
-                                                })
-                                                .catch(err => {
-                                                    console.error("Error updating status:", err);
-                                                    // Revert optimistic update on error
-                                                    setJobs(jobs);
-                                                    alert("Failed to update status. Please try again.");
-                                                });
+                                            // TODO: Call API to update status
+                                            console.log(`Updated job ${job.id} status to ${newStatus}`);
                                         }}
                                         isDropdownOpen={openDropdownId === job.id}
                                         onToggleDropdown={() => setOpenDropdownId(openDropdownId === job.id ? null : job.id)}
