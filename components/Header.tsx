@@ -1,46 +1,62 @@
+/**
+ * Header.tsx — Global sticky navigation bar
+ */
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Header() {
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 0);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  //Placeholder user — swap with useSession() or similar when auth is added
+  const user = { name: "John Doe", role: "Employer", avatarUrl: "/avatar.png" };
 
   return (
-    <header
-      className={`
-        fixed top-0 left-0 w-full z-50 transition-all duration-300
-        ${
-          scrolled
-            ? "bg-white/70 backdrop-blur-md shadow-sm"
-            : "bg-transparent"
-        }
-      `}
-    >
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="text-xl font-semibold">
-          Work<span className="text-black">z</span>up
-        </Link>
 
-        {/* Navigation */}
-        <nav className="flex items-center gap-6 text-sm font-medium">
-          <Link href="/jobs" className="hover:text-blue-600 transition">
-            Find Jobs
-          </Link>
-          <Link href="/post-job" className="hover:text-blue-600 transition">
-            Post a Job
-          </Link>
-        </nav>
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+        {/* logo | nav | actions */}
+        <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center">
+
+          {/* Left — Logo */}
+          <div className="flex items-center justify-start">
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/logo_main.png" alt="WorkzUp" width={120} height={28} priority />
+            </Link>
+          </div>
+
+          {/* Center — Primary nav links (hidden on mobile) */}
+          <nav className="hidden md:flex items-center gap-8 text-sm text-slate-700">
+            <Link href="/dashboard" className="opacity-80 hover:opacity-100">Dashboard</Link>
+            {/* My postings links directly to the employer job list */}
+            <Link href="/employer/create-job/my-postings" className="opacity-80 hover:opacity-100">My postings</Link>
+            <Link href="/messages" className="opacity-80 hover:opacity-100">Messages</Link>
+            <Link href="/profile" className="opacity-80 hover:opacity-100">Profile</Link>
+          </nav>
+
+          {/* Right — CTA button + user avatar */}
+          <div className="flex items-center justify-end gap-4">
+            {/*Primary CTA navigates to the create-job form */}
+            <Link
+              href="/employer/create-job"
+              className="btn-primary min-w-[156px] w-fit px-4 h-[44px] text-sm whitespace-nowrap"
+            >
+              Post a new job
+            </Link>
+
+            {/*  Avatar links to profile page */}
+            <Link href="/profile" className="flex items-center gap-3 rounded-xl px-2 py-1 hover:bg-slate-100">
+              <div className="h-10 w-10 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+                <Image src={user.avatarUrl} alt={user.name} width={40} height={40} />
+              </div>
+              <div className="hidden sm:block leading-tight">
+                <div className="text-sm font-semibold text-slate-900">{user.name}</div>
+                <div className="text-xs text-slate-500">{user.role}</div>
+              </div>
+            </Link>
+          </div>
+
+        </div>
       </div>
     </header>
   );
