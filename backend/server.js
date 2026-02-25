@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const express = require("express");
 const cors = require("cors");
 
@@ -62,9 +63,8 @@ app.post("/jobs", (req, res) => {
     id: Date.now(),
     ...req.body,
     category: classifyJob(req.body), // Auto-detect if missing
-    status: req.body.status || "Active", // Use provided status or default
+    status: "Active", // Default status
     applicants: 0,    // Default applicants
-    newApplicants: 0, // Default new applicants
     postedDate: new Date().toISOString().split('T')[0] // Current date YYYY-MM-DD
   };
 
@@ -155,55 +155,7 @@ app.get("/jobs", (req, res) => {
     );
   }
 
-  // Auto-close past jobs before returning
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-
-  filteredJobs = filteredJobs.map(job => {
-    if (job.date && new Date(job.date) < now && job.status !== "Closed") {
-      return { ...job, status: "Closed" };
-    }
-    return job;
-  });
-
-  // Filter out active/public jobs only by default
-  const statusParam = req.query.status;
-  if (statusParam && statusParam !== "All") {
-    filteredJobs = filteredJobs.filter(job => job.status && job.status.toLowerCase() === statusParam.toLowerCase());
-  } else if (!statusParam) {
-    filteredJobs = filteredJobs.filter(job => job.status === "Active" || job.status === "PUBLIC");
-  }
-
   res.json(filteredJobs);
-});
-
-/* -------- Update Job Status -------- */
-app.patch("/jobs/:id/status", (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
-  const jobIndex = jobs.findIndex(j => j.id == id);
-  if (jobIndex === -1) {
-    return res.status(404).json({ error: "Job not found" });
-  }
-
-  const job = jobs[jobIndex];
-
-  // Validate status change
-  if (status === "PUBLIC") {
-    const jobDate = new Date(job.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (jobDate < today) {
-      return res.status(400).json({ error: "Cannot set past job to PUBLIC" });
-    }
-  }
-
-  // Update status in memory
-  jobs[jobIndex].status = status;
-
-  res.json({ message: "Status updated", job: jobs[jobIndex] });
 });
 
 
