@@ -75,6 +75,44 @@ app.post("/jobs", (req, res) => {
   });
 });
 
+/* -------- Get Single Job -------- */
+app.get("/jobs/:id", (req, res) => {
+  const jobId = req.params.id;
+  const job = jobs.find(j => String(j.id) === String(jobId) || String(j._id) === String(jobId));
+  if (job) {
+    res.json(job);
+  } else {
+    res.status(404).json({ error: "Job not found" });
+  }
+});
+
+/* -------- Update Job -------- */
+app.put("/jobs/:id", (req, res) => {
+  const jobId = req.params.id;
+  const index = jobs.findIndex(j => String(j.id) === String(jobId) || String(j._id) === String(jobId));
+
+  if (index !== -1) {
+    jobs[index] = { ...jobs[index], ...req.body };
+    res.json({ message: "Job updated", job: jobs[index] });
+  } else {
+    res.status(404).json({ error: "Job not found" });
+  }
+});
+
+/* -------- Delete Job -------- */
+app.delete("/jobs/:id", (req, res) => {
+  const jobId = req.params.id;
+  const initialLength = jobs.length;
+  jobs = jobs.filter(j => String(j.id) !== String(jobId) && String(j._id) !== String(jobId));
+
+  if (jobs.length < initialLength) {
+    res.json({ message: "Job deleted" });
+  } else {
+    res.status(404).json({ error: "Job not found" });
+  }
+});
+
+
 /* -------- Get Jobs with Filters -------- */
 app.get("/jobs", (req, res) => {
   console.log("GET /jobs params:", req.query);
