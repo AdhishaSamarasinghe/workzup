@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
+    "dev:clean": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev-clean.ps1",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import "./globals.css";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import AppShell from "../components/AppShell";
 
 export const metadata = {
   title: "Workzup",
@@ -16,11 +15,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-bg text-[#111827] antialiased" suppressHydrationWarning>
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1 pt-16">{children}</main>
-          <Footer />
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
