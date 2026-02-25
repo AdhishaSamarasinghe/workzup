@@ -20,63 +20,72 @@ body {
   padding: 0;
 }
 
-@keyframes popupFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.popup-fade-in {
-  animation: popupFadeIn 240ms ease-out;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+@layer components {
+  .btn-primary {
+    @apply rounded-[14px] bg-[#6B8CFF] text-white font-semibold flex items-center justify-center transition-all duration-200;
+    font-size: 16px;
+    box-shadow: 0 4px 14px rgba(107, 140, 255, 0.25);
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes popIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
+  .btn-primary:hover {
+    @apply -translate-y-0.5 bg-[#5979f0];
+    box-shadow: 0 6px 20px rgba(107, 140, 255, 0.4);
   }
 
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-.animate-pop-in {
-  animation: popIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  opacity: 0;
-}
-
-@keyframes gradientMove {
-  0% {
-    background-position: 100% 0;
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed transform-none;
+    box-shadow: none;
   }
 
-  100% {
-    background-position: -100% 0;
+  .btn-secondary {
+    @apply rounded-full bg-white border border-slate-200 text-slate-900 font-semibold px-8 py-3 flex items-center justify-center transition-all duration-200;
+    font-size: 16px;
   }
-}
 
-.animate-gradient-move {
-  animation: gradientMove 3s linear infinite;
+  .btn-secondary:hover {
+    @apply -translate-y-0.5 bg-slate-50 border-slate-300;
+  }
+
+  .btn-secondary:disabled {
+    @apply opacity-50 cursor-not-allowed transform-none;
+  }
+
+  .btn-tertiary {
+    @apply text-[#2952FF] font-medium px-4 py-2 flex items-center justify-center transition-all duration-200;
+    font-size: 16px;
+  }
+
+  .btn-tertiary:hover {
+    @apply text-[#1a40db] underline;
+  }
+
+  .btn-tertiary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply rounded-full bg-red-600 text-white font-semibold px-8 py-3 flex items-center justify-center transition-all duration-200;
+    font-size: 16px;
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.2);
+  }
+
+  .btn-danger:hover {
+    @apply -translate-y-0.5 bg-red-700;
+    box-shadow: 0 6px 15px rgba(220, 38, 38, 0.3);
+  }
+
+  .btn-danger:disabled {
+    @apply opacity-50 cursor-not-allowed transform-none;
+    box-shadow: none;
+  }
+
+  /* Utility to hide scrollbars while keeping functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }

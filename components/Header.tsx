@@ -1,69 +1,62 @@
-"use client";
+/**
+ * Header.tsx — Global sticky navigation bar
+ */
 
-import { useEffect, useMemo, useState } from "react";
+
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function Header() {
-  const [scrolled, setScrolled] = useState(false);
-  const pathname = usePathname();
-
-  const navItems = useMemo(
-    () => [
-      { href: "/jobseeker/browse", label: "Find Jobs" },
-      { href: "/recruiter/my-jobs", label: "Post a Job" },
-    ],
-    []
-  );
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 0);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  //Placeholder user — swap with useSession() or similar when auth is added
+  const user = { name: "John Doe", role: "Employer", avatarUrl: "/avatar.png" };
 
   return (
-    <header
-      className={`
-        fixed top-0 left-0 w-full z-50 transition-all duration-300
-        ${
-          scrolled
-            ? "bg-white/70 backdrop-blur-md shadow-sm"
-            : "bg-transparent"
-        }
-      `}
-    >
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="text-xl font-semibold">
-          Work<span className="text-black">z</span>up
-        </Link>
+    
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+        {/* logo | nav | actions */}
+        <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center">
 
-        {/* Navigation */}
-        <nav className="flex items-center gap-6 text-sm font-medium">
-          {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname?.startsWith(`${item.href}/`);
+          {/* Left — Logo */}
+          <div className="flex items-center justify-start">
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/logo_main.png" alt="WorkzUp" width={120} height={28} priority />
+            </Link>
+          </div>
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`transition ${
-                  isActive
-                    ? "text-blue-700"
-                    : "text-[#111827] hover:text-blue-600"
-                }`}
-                aria-current={isActive ? "page" : undefined}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+          {/* Center — Primary nav links (hidden on mobile) */}
+          <nav className="hidden md:flex items-center gap-8 text-sm text-slate-700">
+            <Link href="/dashboard" className="opacity-80 hover:opacity-100">Dashboard</Link>
+            {/* My postings links directly to the employer job list */}
+            <Link href="/employer/create-job/my-postings" className="opacity-80 hover:opacity-100">My postings</Link>
+            <Link href="/messages" className="opacity-80 hover:opacity-100">Messages</Link>
+            <Link href="/profile" className="opacity-80 hover:opacity-100">Profile</Link>
+          </nav>
+
+          {/* Right — CTA button + user avatar */}
+          <div className="flex items-center justify-end gap-4">
+            {/*Primary CTA navigates to the create-job form */}
+            <Link
+              href="/employer/create-job"
+              className="btn-primary min-w-[156px] w-fit px-4 h-[44px] text-sm whitespace-nowrap"
+            >
+              Post a new job
+            </Link>
+
+            {/*  Avatar links to profile page */}
+            <Link href="/profile" className="flex items-center gap-3 rounded-xl px-2 py-1 hover:bg-slate-100">
+              <div className="h-10 w-10 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+                <Image src={user.avatarUrl} alt={user.name} width={40} height={40} />
+              </div>
+              <div className="hidden sm:block leading-tight">
+                <div className="text-sm font-semibold text-slate-900">{user.name}</div>
+                <div className="text-xs text-slate-500">{user.role}</div>
+              </div>
+            </Link>
+          </div>
+
+        </div>
       </div>
     </header>
   );
