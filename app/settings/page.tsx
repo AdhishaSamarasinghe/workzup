@@ -24,7 +24,6 @@ import {
     Globe,
     Phone,
     MapPin,
-    Smartphone,
     Clock,
     Mail,
     Palette,
@@ -34,35 +33,17 @@ import {
     Search
 } from "lucide-react";
 
-// Helper function to format Sri Lankan phone numbers: +94 XX-XXX-XXXX
-const formatSLNumber = (value: string) => {
-    // Remove all non-digits except +
-    const digits = value.replace(/[^\d]/g, "");
-
-    // We always want to start with 94
-    let cleanDigits = digits;
-    if (digits.startsWith("94")) {
-        cleanDigits = digits.slice(2);
-    } else if (digits.startsWith("0")) {
-        cleanDigits = digits.slice(1);
-    }
-
-    // Take first 9 digits for the local part (XX-XXX-XXXX)
-    const local = cleanDigits.slice(0, 9);
-
-    let result = "+94 ";
-    if (local.length > 0) {
-        result += local.slice(0, 2);
-    }
-    if (local.length > 2) {
-        result += "-" + local.slice(2, 5);
-    }
-    if (local.length > 5) {
-        result += "-" + local.slice(5, 9);
-    }
-
-    return result;
-};
+const countries = [
+    { name: "Sri Lanka", code: "+94" },
+    { name: "United States", code: "+1" },
+    { name: "United Kingdom", code: "+44" },
+    { name: "India", code: "+91" },
+    { name: "Australia", code: "+61" },
+    { name: "Canada", code: "+1" },
+    { name: "Germany", code: "+49" },
+    { name: "Singapore", code: "+65" },
+    { name: "United Arab Emirates", code: "+971" },
+];
 
 interface Experience {
     id: number;
@@ -90,7 +71,6 @@ export default function SettingsPage() {
     const [appUpdates, setAppUpdates] = useState(false);
     const [marketingEmails, setMarketingEmails] = useState(false);
     const [securityEmails, setSecurityEmails] = useState(true);
-    const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
     const [theme, setTheme] = useState("light");
     const [language, setLanguage] = useState("English (United States)");
     const [isLoading, setIsLoading] = useState(false);
@@ -125,7 +105,7 @@ export default function SettingsPage() {
                         setBio(data.user.bio || "");
                         setAvatar(data.user.avatar || "");
                         const phone = data.user.phone || "";
-                        setUserPhone(formatSLNumber(phone));
+                        setUserPhone(phone);
                         setUserLocation(data.user.location || "");
                         setUserBirthday(data.user.birthday || "");
                     }
@@ -134,7 +114,6 @@ export default function SettingsPage() {
                     setAppUpdates(data.applicationUpdates ?? false);
                     setMarketingEmails(data.marketingEmails ?? false);
                     setSecurityEmails(data.securityEmails ?? true);
-                    setTwoFactorEnabled(data.twoFactorEnabled ?? false);
                     setTheme(data.theme ?? "light");
                     setLanguage(data.language ?? "English (United States)");
                     setRatings(data.ratings ?? null);
@@ -199,7 +178,6 @@ export default function SettingsPage() {
                         appUpdates,
                         marketingEmails,
                         securityEmails,
-                        twoFactorEnabled,
                         theme,
                         language,
                         ...(section === "profile" && { name, title, bio, avatar, phone: userPhone, location: userLocation, birthday: userBirthday }),
@@ -357,8 +335,17 @@ export default function SettingsPage() {
                                                     type="tel"
                                                     value={userPhone}
                                                     onChange={(e) => {
-                                                        const formatted = formatSLNumber(e.target.value);
-                                                        setUserPhone(formatted);
+                                                        const val = e.target.value;
+                                                        // Only allow numbers and the plus sign
+                                                        const numericVal = val.replace(/[^\d+]/g, "");
+                                                        setUserPhone(numericVal);
+                                                    }}
+                                                    onFocus={(e) => {
+                                                        // Only clear if it's just a dial code or empty
+                                                        const isDialCode = countries.some(c => c.code === userPhone);
+                                                        if (isDialCode || userPhone === "") {
+                                                            // Keep the dial code but allow typing after it
+                                                        }
                                                     }}
                                                     placeholder="+94 77-123-4567"
                                                     className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-[15px] font-medium"
@@ -369,13 +356,25 @@ export default function SettingsPage() {
                                             <label className="text-sm font-bold text-gray-700 ml-1">Location</label>
                                             <div className="relative group">
                                                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
-                                                <input
-                                                    type="text"
+                                                <select
                                                     value={userLocation}
-                                                    onChange={(e) => setUserLocation(e.target.value)}
-                                                    placeholder="City, Country"
-                                                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-[15px] font-medium"
-                                                />
+                                                    onChange={(e) => {
+                                                        const selectedCountry = countries.find(c => c.name === e.target.value);
+                                                        setUserLocation(e.target.value);
+                                                        if (selectedCountry) {
+                                                            setUserPhone(selectedCountry.code);
+                                                        }
+                                                    }}
+                                                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-[15px] font-medium appearance-none"
+                                                >
+                                                    <option value="" disabled>Select Country</option>
+                                                    {countries.map(c => (
+                                                        <option key={c.name} value={c.name}>{c.name}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                    <ChevronRight className="w-4 h-4 rotate-90" />
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="md:col-span-2 space-y-2.5">
@@ -469,25 +468,7 @@ export default function SettingsPage() {
                                             </button>
                                         </div>
 
-                                        <div className="pt-8 border-t border-gray-50">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600">
-                                                        <Smartphone className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="font-bold text-gray-900">Two-factor Authentication (2FA)</h3>
-                                                        <p className="text-sm text-gray-500">Add an extra layer of security to your account.</p>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                                                    className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${twoFactorEnabled ? "bg-green-500" : "bg-gray-200"}`}
-                                                >
-                                                    <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${twoFactorEnabled ? "translate-x-5" : "translate-x-0"}`} />
-                                                </button>
-                                            </div>
-                                        </div>
+
                                     </div>
                                 </div>
                             </div>

@@ -31,7 +31,6 @@ export async function GET() {
         applicationUpdates: true,
         marketingEmails: false,
         securityEmails: true,
-        twoFactorEnabled: false,
         theme: "light",
         language: "English (United States)",
         user: {
