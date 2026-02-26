@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import {
     User,
     Lock,
@@ -252,11 +253,12 @@ export default function SettingsPage() {
                         <div className="p-8 border-b border-gray-50 bg-gradient-to-br from-indigo-50/30 to-white">
                             <div className="flex flex-col items-center text-center">
                                 <div className="relative group mb-4">
-                                    <div className="w-24 h-24 rounded-3xl overflow-hidden ring-4 ring-white shadow-xl transition-transform group-hover:scale-105 duration-300">
-                                        <img
+                                    <div className="w-24 h-24 rounded-3xl overflow-hidden ring-4 ring-white shadow-xl transition-transform group-hover:scale-105 duration-300 relative">
+                                        <Image
                                             src={avatar}
                                             alt={name}
-                                            className="w-full h-full object-cover"
+                                            fill
+                                            className="object-cover"
                                         />
                                     </div>
                                     <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-4 border-white rounded-full"></div>
@@ -881,7 +883,3 @@ function ExpItem({ exp }: { exp: Experience }) {
         </div>
     );
 }
-
-
-
-
