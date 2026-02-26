@@ -38,6 +38,7 @@ export default function MyJobsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("All Status");
     const [loading, setLoading] = useState(true);
+    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
     // Fetch Jobs
     useEffect(() => {
@@ -116,6 +117,11 @@ export default function MyJobsPage() {
                                         pay={job.pay}
                                         onEdit={() => console.log("Edit", job.id)}
                                         onViewApplicants={() => console.log("View Applicants", job.id)}
+                                        onStatusChange={(newStatus) => {
+                                            setJobs(jobs.map(j => j.id === job.id ? { ...j, status: newStatus } : j));
+                                        }}
+                                        isDropdownOpen={openDropdownId === job.id}
+                                        onToggleDropdown={() => setOpenDropdownId(openDropdownId === job.id ? null : job.id)}
                                     />
                                 </div>
                             ))}

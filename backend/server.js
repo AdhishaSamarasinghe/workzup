@@ -81,6 +81,19 @@ app.get("/jobs", (req, res) => {
   console.log("GET /jobs params:", req.query);
   const { keyword, district, pay, date, category, minPay, maxPay } = req.query;
 
+  // Auto-close past jobs before filtering
+  jobs = jobs.map(job => {
+    if (job.date) {
+      const jobDate = new Date(job.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (jobDate < today && job.status !== "CLOSED") {
+        return { ...job, status: "CLOSED" };
+      }
+    }
+    return job;
+  });
+
   let filteredJobs = jobs;
 
   // ... (existing filters)
