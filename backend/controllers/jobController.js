@@ -9,15 +9,16 @@ const prisma = new PrismaClient();
 // @desc    Create a new job posting
 // @access  Private / Recruiter Only
 const createJob = catchAsync(async (req, res) => {
-    const { title, description, companyId } = req.body;
+    let { title, description, companyId } = req.body;
+    companyId = parseInt(companyId, 10);
 
-    if (!title || !description || !companyId) {
-        throw new ApiError(400, "Title, description, and companyId are required");
+    if (!title || !description || isNaN(companyId)) {
+        throw new ApiError(400, "Title, description, and valid companyId are required");
     }
 
     // Ensure the recruiter owns the company they are posting for
     const company = await prisma.company.findUnique({ where: { id: companyId } });
-    if (!company || company.recruiterId !== req.user.id) {
+    if (!company || company.ownerId !== req.user.id) {
         throw new ApiError(403, "You do not have permission to post jobs for this company.");
     }
 
@@ -41,7 +42,7 @@ const getJobs = catchAsync(async (req, res) => {
 
     // Build dynamic where clause based on query params
     const whereClause = {
-        isActive: true, // Only show active jobs to public
+        status: "OPEN", // Changed from isActive to status = OPEN
         isDeleted: false, // Never show soft-deleted jobs
     };
 
@@ -62,8 +63,8 @@ const getJobs = catchAsync(async (req, res) => {
 
     if (minSalary || maxSalary) {
         whereClause.salary = {};
-        if (minSalary) whereClause.salary.gte = parseInt(minSalary);
-        if (maxSalary) whereClause.salary.lte = parseInt(maxSalary);
+        if (minSalary) whereClause.salary.gte = parseInt(minSalary, 10);
+        if (maxSalary) whereClause.salary.lte = parseInt(maxSalary, 10);
     }
 
     // Execute query and count in parallel for performance
@@ -72,7 +73,7 @@ const getJobs = catchAsync(async (req, res) => {
             where: whereClause,
             include: {
                 company: {
-                    select: { name: true, logoUrl: true, location: true },
+                    select: { name: true, location: true }, // logoUrl removed from Company schema
                 },
             },
             orderBy: { createdAt: "desc" },

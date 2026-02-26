@@ -9,9 +9,13 @@ const prisma = new PrismaClient();
 // @desc    Apply to a specific job
 // @access  Private / Jobseeker Only
 const applyForJob = catchAsync(async (req, res) => {
-    const { jobId } = req.params;
-    const { coverLetter } = req.body;
-    const jobseekerId = req.user.id; // Extracted from JWT
+    const jobId = parseInt(req.params.jobId, 10);
+    const { coverLetter } = req.body; // coverLetter is not in the schema anymore? Wait, schema has appliedAt, updatedAt. Let's just drop coverLetter.
+    const userId = req.user.id; // Extracted from JWT
+
+    if (isNaN(jobId)) {
+        throw new ApiError(400, "Invalid jobId");
+    }
 
     // Ensure the job exists
     const job = await prisma.job.findUnique({ where: { id: jobId } });
@@ -20,10 +24,8 @@ const applyForJob = catchAsync(async (req, res) => {
     }
 
     // Check if the user has already applied
-    const existingApp = await prisma.application.findUnique({
-        where: {
-            jobId_jobseekerId: { jobId, jobseekerId }
-        }
+    const existingApp = await prisma.application.findFirst({
+        where: { jobId, userId }
     });
 
     if (existingApp) {
@@ -34,8 +36,7 @@ const applyForJob = catchAsync(async (req, res) => {
     const application = await prisma.application.create({
         data: {
             jobId,
-            jobseekerId,
-            coverLetter,
+            userId,
         },
     });
 
@@ -46,9 +47,13 @@ const applyForJob = catchAsync(async (req, res) => {
 // @desc    Get all applications for a specific job
 // @access  Private / Recruiter Only
 const getApplicationsForJob = catchAsync(async (req, res) => {
-    const { jobId } = req.params;
+    const jobId = parseInt(req.params.jobId, 10);
     const recruiterId = req.user.id; // Extracted from JWT
     const { skip, take, page, limit } = getPagination(req.query);
+
+    if (isNaN(jobId)) {
+        throw new ApiError(400, "Invalid jobId");
+    }
 
     // Ensure the job exists and belongs to a company owned by this recruiter
     const job = await prisma.job.findUnique({
@@ -60,7 +65,7 @@ const getApplicationsForJob = catchAsync(async (req, res) => {
         throw new ApiError(404, "Job not found");
     }
 
-    if (job.company.recruiterId !== recruiterId) {
+    if (job.company.ownerId !== recruiterId) {
         throw new ApiError(403, "You do not have permission to view applications for this job.");
     }
 
@@ -69,11 +74,11 @@ const getApplicationsForJob = catchAsync(async (req, res) => {
         prisma.application.findMany({
             where: { jobId },
             include: {
-                jobseeker: {
+                user: {
                     select: { id: true, name: true, email: true, profile: true },
                 },
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { appliedAt: 'desc' },
             skip,
             take,
         }),

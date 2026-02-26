@@ -27,15 +27,16 @@ const getSystemStats = catchAsync(async (req, res) => {
 // @desc    Delete a user
 // @access  Private / Admin Only
 const deleteUser = catchAsync(async (req, res) => {
-    const { userId } = req.params;
+    const userId = parseInt(req.params.userId, 10);
+
+    if (isNaN(userId)) {
+        throw new ApiError(400, "Invalid userId");
+    }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new ApiError(404, "User not found");
     if (user.id === req.user.id) throw new ApiError(400, "Cannot delete your own admin account");
 
-    // Soft delete by banning or actually deleting based on your preference
-    // A full delete also cascades and wipes their profile, jobs, etc.
-    // Given the new "soft delete" requirement, let's actually delete here but provide a separate BAN endpoint.
     await prisma.user.delete({ where: { id: userId } });
 
     // Log the action
@@ -43,8 +44,7 @@ const deleteUser = catchAsync(async (req, res) => {
         data: {
             adminId: req.user.id,
             action: "HARD_DELETE_USER",
-            targetId: userId,
-            details: `Deleted user ${user.email}`,
+            targetUserId: userId
         }
     });
 
@@ -55,7 +55,11 @@ const deleteUser = catchAsync(async (req, res) => {
 // @desc    Delete a job
 // @access  Private / Admin Only
 const deleteJob = catchAsync(async (req, res) => {
-    const { jobId } = req.params;
+    const jobId = parseInt(req.params.jobId, 10);
+
+    if (isNaN(jobId)) {
+        throw new ApiError(400, "Invalid jobId");
+    }
 
     const job = await prisma.job.findUnique({ where: { id: jobId } });
     if (!job) throw new ApiError(404, "Job not found");
@@ -63,7 +67,7 @@ const deleteJob = catchAsync(async (req, res) => {
     // Implement Soft Delete
     await prisma.job.update({
         where: { id: jobId },
-        data: { isDeleted: true, isActive: false }
+        data: { isDeleted: true, status: "CLOSED" }
     });
 
     // Log the action
@@ -71,8 +75,7 @@ const deleteJob = catchAsync(async (req, res) => {
         data: {
             adminId: req.user.id,
             action: "SOFT_DELETE_JOB",
-            targetId: jobId,
-            details: `Soft deleted job: ${job.title}`,
+            targetJobId: jobId
         }
     });
 
@@ -118,12 +121,11 @@ const getUsers = catchAsync(async (req, res) => {
 // @desc    Ban or Unban a user (Soft Delete)
 // @access  Private / Admin Only
 const banUser = catchAsync(async (req, res) => {
-    const { userId } = req.params;
+    const userId = parseInt(req.params.userId, 10);
     const { isBanned } = req.body; // Expect boolean
 
-    if (typeof isBanned !== "boolean") {
-        throw new ApiError(400, "isBanned field is required and must be a boolean");
-    }
+    if (isNaN(userId)) throw new ApiError(400, "Invalid userId");
+    if (typeof isBanned !== "boolean") throw new ApiError(400, "isBanned field is required and must be a boolean");
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new ApiError(404, "User not found");
@@ -135,21 +137,12 @@ const banUser = catchAsync(async (req, res) => {
         data: { isBanned }
     });
 
-    // Revoke all tokens if they are being banned
-    if (isBanned) {
-        await prisma.refreshToken.updateMany({
-            where: { userId },
-            data: { revoked: true }
-        });
-    }
-
     // Log the action
     await prisma.auditLog.create({
         data: {
             adminId: req.user.id,
             action: isBanned ? "BAN_USER" : "UNBAN_USER",
-            targetId: userId,
-            details: `User ${user.email} ${isBanned ? 'banned' : 'unbanned'}`,
+            targetUserId: userId
         }
     });
 
@@ -160,12 +153,15 @@ const banUser = catchAsync(async (req, res) => {
 // @desc    Suspend or Unsuspend a recruiter
 // @access  Private / Admin Only
 const suspendRecruiter = catchAsync(async (req, res) => {
-    const { userId } = req.params;
+    const userId = parseInt(req.params.userId, 10);
     const { isSuspended } = req.body;
 
-    if (typeof isSuspended !== "boolean") {
-        throw new ApiError(400, "isSuspended field is required and must be a boolean");
-    }
+    if (isNaN(userId)) throw new ApiError(400, "Invalid userId");
+    if (typeof isSuspended !== "boolean") throw new ApiError(400, "isSuspended field is required and must be a boolean");
+
+    // Wait, the User schema doesn't have `isSuspended` in the new ER diagram!
+    // It only has `isBanned` and `isDeleted`!!
+    // If it doesn't exist, we must use isBanned. Let's map isSuspended logic to isBanned for recruiter.
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new ApiError(404, "User not found");
@@ -173,26 +169,27 @@ const suspendRecruiter = catchAsync(async (req, res) => {
 
     await prisma.user.update({
         where: { id: userId },
-        data: { isSuspended }
+        data: { isBanned: isSuspended } // Map to isBanned since isSuspended isn't in User schema anymore
     });
 
-    // If suspended, soft-delete (or deactivate) all their active jobs
+    // If suspended (banned), soft-delete (or deactivate) all their active jobs
     if (isSuspended) {
-        const theirCompanies = await prisma.company.findMany({ where: { recruiterId: userId } });
+        const theirCompanies = await prisma.company.findMany({ where: { ownerId: userId } });
         const companyIds = theirCompanies.map(c => c.id);
 
-        await prisma.job.updateMany({
-            where: { companyId: { in: companyIds } },
-            data: { isActive: false } // Deactivate to hide them without deleting
-        });
+        if (companyIds.length > 0) {
+            await prisma.job.updateMany({
+                where: { companyId: { in: companyIds }, status: "OPEN" },
+                data: { status: "CLOSED" } // Deactivate to hide them without deleting
+            });
+        }
     }
 
     await prisma.auditLog.create({
         data: {
             adminId: req.user.id,
             action: isSuspended ? "SUSPEND_RECRUITER" : "UNSUSPEND_RECRUITER",
-            targetId: userId,
-            details: `Recruiter ${user.email} ${isSuspended ? 'suspended' : 'unsuspended'}`,
+            targetUserId: userId
         }
     });
 

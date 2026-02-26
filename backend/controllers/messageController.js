@@ -6,12 +6,12 @@ const prisma = new PrismaClient();
 // @access  Private / Authenticated
 const sendMessage = async (req, res) => {
     try {
-        const { applicationId } = req.params;
-        const { content, receiverId } = req.body;
+        const applicationId = parseInt(req.params.applicationId, 10);
+        const { content } = req.body;
         const senderId = req.user.id;
 
-        if (!content || !receiverId) {
-            return res.status(400).json({ error: "Content and receiverId are required" });
+        if (!content || isNaN(applicationId)) {
+            return res.status(400).json({ error: "Content and valid applicationId are required" });
         }
 
         // Verify the application exists
@@ -27,26 +27,18 @@ const sendMessage = async (req, res) => {
         }
 
         // Authorization check: User must be either the jobseeker or the recruiter who owns the job
-        const isJobseeker = application.jobseekerId === senderId;
-        const isRecruiter = application.job.company.recruiterId === senderId;
+        const isJobseeker = application.userId === senderId;
+        const isRecruiter = application.job.company.ownerId === senderId;
 
         if (!isJobseeker && !isRecruiter) {
             return res.status(403).json({ error: "You are not authorized to send messages in this application's chat." });
-        }
-
-        // Ensure the receiver is part of the application context as well
-        // If sender is jobseeker, receiver must be recruiter. If sender is recruiter, receiver must be jobseeker.
-        const expectedReceiverId = isJobseeker ? application.job.company.recruiterId : application.jobseekerId;
-        if (receiverId !== expectedReceiverId) {
-            return res.status(400).json({ error: "Invalid receiver for this application context." });
         }
 
         const message = await prisma.message.create({
             data: {
                 content,
                 applicationId,
-                senderId,
-                receiverId,
+                senderId
             }
         });
 
@@ -62,8 +54,12 @@ const sendMessage = async (req, res) => {
 // @access  Private / Authenticated
 const getMessages = async (req, res) => {
     try {
-        const { applicationId } = req.params;
+        const applicationId = parseInt(req.params.applicationId, 10);
         const userId = req.user.id;
+
+        if (isNaN(applicationId)) {
+            return res.status(400).json({ error: "Invalid applicationId" });
+        }
 
         // Verify the application exists
         const application = await prisma.application.findUnique({
@@ -78,8 +74,8 @@ const getMessages = async (req, res) => {
         }
 
         // Authorization check
-        const isJobseeker = application.jobseekerId === userId;
-        const isRecruiter = application.job.company.recruiterId === userId;
+        const isJobseeker = application.userId === userId;
+        const isRecruiter = application.job.company.ownerId === userId;
 
         if (!isJobseeker && !isRecruiter) {
             return res.status(403).json({ error: "You are not authorized to view messages in this application's chat." });
