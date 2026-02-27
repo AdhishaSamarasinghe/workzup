@@ -37,47 +37,47 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  .bg-white {
+  main .bg-white {
     background-color: var(--card) !important;
   }
 
-  .bg-gray-50 {
+  main .bg-gray-50 {
     background-color: var(--input) !important;
   }
 
   /* Map light backgrounds to subtle dark shades */
-  .bg-indigo-50,
-  .bg-blue-50,
-  .bg-amber-50,
-  .bg-purple-50,
-  .bg-teal-50,
-  .bg-gray-100 {
+  main .bg-indigo-50,
+  main .bg-blue-50,
+  main .bg-amber-50,
+  main .bg-purple-50,
+  main .bg-teal-50,
+  main .bg-gray-100 {
     background-color: var(--muted) !important;
   }
 
-  .border-gray-100,
-  .border-gray-50,
-  .border-gray-200 {
+  main .border-gray-100,
+  main .border-gray-50,
+  main .border-gray-200 {
     border-color: var(--border) !important;
   }
 
   /* Text Class Mappings for Dark Mode visibility */
-  .text-gray-900 {
+  main .text-gray-900 {
     color: var(--foreground) !important;
   }
 
-  .text-gray-800,
-  .text-gray-700 {
+  main .text-gray-800,
+  main .text-gray-700 {
     color: var(--foreground) !important;
     opacity: 0.9;
   }
 
-  .text-gray-600,
-  .text-gray-500 {
+  main .text-gray-600,
+  main .text-gray-500 {
     color: var(--muted-foreground) !important;
   }
 
-  .text-gray-400 {
+  main .text-gray-400 {
     color: var(--muted-foreground) !important;
     opacity: 0.8;
   }
