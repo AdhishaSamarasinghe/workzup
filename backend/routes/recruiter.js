@@ -9,12 +9,19 @@ let jobs = [
 let applicants = [
     {
         _id: "u1",
-        name: "Jane Doe",
-        title: "Senior UX designer",
+        name: "Elara Vance",
+        title: "Event Staff",
         avatarUrl: "https://i.pravatar.cc/150?u=jane",
+        rating: 4.5,
+        about: "Dynamic and reliable professional with 3+ years of experience in fast-paced hospitality and event environments. Proven ability to deliver exceptional customer service and adapt quickly to new challenges.",
         summary: "Creative and detail-oriented UX Designer with 5+ years of experience in crafting user-centric digital experiences for web and mobile applications",
-        skills: ["User research", "Wireframing", "Prototyping", "Figma"],
-        email: "jane.doe@example.com",
+        skills: ["Customer service", "Cash Handling", "Event setup", "Food Service", "Teamwork"],
+        recentExperience: [
+            { role: "Event Staff", company: "Starlight Events co" },
+            { role: "Catering Assistant", company: "The Grand Pizza Hotel" },
+            { role: "Retail Associate", company: "Downtown Pop-up Market" }
+        ],
+        email: "elara.vance@example.com",
         phone: "012-3456789",
         resumeUrl: "#",
         portfolioUrl: "#"
@@ -64,8 +71,13 @@ for (let i = 5; i <= 24; i++) {
         name: `Applicant ${i}`,
         title: "UX Designer",
         avatarUrl: `https://i.pravatar.cc/150?u=${i}`,
+        rating: 4.2,
+        about: `About applicant ${i}, standard mock description.`,
         summary: `Summary for applicant ${i}`,
         skills: ["Design", "Research"],
+        recentExperience: [
+            { role: "Designer", company: "Tech Corp" }
+        ],
         email: `app${i}@example.com`,
         phone: `012-00000${i}`,
         resumeUrl: "#",
@@ -221,6 +233,34 @@ router.get("/applicants/:applicantId", (req, res) => {
         res.json(applicant);
     } catch (error) {
         console.error("Error fetching applicant profile:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// GET /api/recruiter/applications/:applicationId
+router.get("/applications/:applicationId", (req, res) => {
+    try {
+        const { applicationId } = req.params;
+        const application = applications.find(a => a._id === applicationId);
+
+        if (!application) {
+            return res.status(404).json({ message: "Application not found" });
+        }
+
+        const job = jobs.find(j => j._id === application.jobId) || { _id: application.jobId, title: "Unknown Job" };
+        const applicant = applicants.find(a => a._id === application.applicantId);
+
+        if (!applicant) {
+            return res.status(404).json({ message: "Applicant not found" });
+        }
+
+        res.json({
+            application,
+            job,
+            applicant
+        });
+    } catch (error) {
+        console.error("Error fetching application details:", error);
         res.status(500).json({ message: "Server Error" });
     }
 });

@@ -266,8 +266,8 @@ export default function JobApplicantsPage() {
                                         key={app.applicationId}
                                         onClick={() => setSelectedApplicantId(app.applicantId)}
                                         className={`bg-white rounded-xl shadow-sm border p-4 flex items-center justify-between cursor-pointer transition-all ${selectedApplicantId === app.applicantId
-                                                ? 'border-[#5c7cfa] ring-1 ring-[#5c7cfa]'
-                                                : 'border-transparent hover:border-gray-200'
+                                            ? 'border-[#5c7cfa] ring-1 ring-[#5c7cfa]'
+                                            : 'border-transparent hover:border-gray-200'
                                             }`}
                                     >
                                         <div className="flex items-center gap-4">
@@ -288,11 +288,20 @@ export default function JobApplicantsPage() {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-6">
+                                        <div className="flex items-center gap-4 sm:gap-6">
                                             <span className={`px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusStyles(app.status)}`}>
                                                 {formatStatusDisplay(app.status)}
                                             </span>
-                                            <span className="text-gray-400 font-medium">›</span>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    router.push(`/recruiter/applications/${app.applicationId}`);
+                                                }}
+                                                className="text-[#647DF5] hover:underline font-semibold text-sm"
+                                            >
+                                                View
+                                            </button>
+                                            <span className="text-gray-400 font-medium hidden sm:inline">›</span>
                                         </div>
                                     </div>
                                 ))}
