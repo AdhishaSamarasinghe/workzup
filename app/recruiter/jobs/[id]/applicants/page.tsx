@@ -1,33 +1,33 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 
-// Types
-interface ApplicantSummary {
+// [DATA] Types based on API responses
+interface ApplicantItem {
     applicationId: string;
     applicantId: string;
     name: string;
-    rating: number;
-    skills: string[];
+    title: string;
+    avatarUrl?: string;
+    matchScore: number;
+    relevantSkillsCount: number;
     status: string;
     appliedAt: string;
-}
-
-interface Experience {
-    title: string;
-    company: string;
 }
 
 interface ApplicantProfile {
     _id: string;
     name: string;
+    title: string;
     avatarUrl?: string;
-    rating: number;
-    about: string;
+    summary: string;
     skills: string[];
-    recentExperience: Experience[];
+    email: string;
+    phone: string;
+    resumeUrl: string;
+    portfolioUrl: string;
 }
 
 export default function JobApplicantsPage() {
@@ -36,24 +36,53 @@ export default function JobApplicantsPage() {
     const jobId = params.id as string;
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
-    const [applicants, setApplicants] = useState<ApplicantSummary[]>([]);
+    // [STATE] Left Column State
+    const [applicants, setApplicants] = useState<ApplicantItem[]>([]);
+    const [totalItems, setTotalItems] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [sortMethod, setSortMethod] = useState("match_desc");
 
-    // Modal State
+    // [STATE] Right Column (Selected Profile) State
     const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
     const [applicantProfile, setApplicantProfile] = useState<ApplicantProfile | null>(null);
     const [profileLoading, setProfileLoading] = useState(false);
+    const [jobDetails, setJobDetails] = useState({ title: "Loading..." });
 
-    // Fetch Applicants List
+    // [API] Fetch Applicants List
     useEffect(() => {
         if (!jobId) return;
 
         const fetchApplicants = async () => {
+            setLoading(true);
             try {
-                const res = await fetch(`${API_BASE}/api/recruiter/jobs/${jobId}/applicants`);
+                const queryParams = new URLSearchParams({
+                    q: searchQuery,
+                    status: statusFilter,
+                    sort: sortMethod,
+                    page: "1",
+                    limit: "8"
+                }).toString();
+
+                const res = await fetch(`${API_BASE}/api/recruiter/jobs/${jobId}/applicants?${queryParams}`);
                 if (!res.ok) throw new Error("Failed to fetch applicants");
                 const data = await res.json();
-                setApplicants(data);
+
+                setApplicants(data.items);
+                setTotalItems(data.totalItems);
+                if (data.job) {
+                    setJobDetails(data.job);
+                }
+
+                // Auto-select first applicant if list is not empty and none selected or list changed
+                if (data.items.length > 0) {
+                    // Always select the first one when search/filter changes
+                    setSelectedApplicantId(data.items[0].applicantId);
+                } else {
+                    setSelectedApplicantId(null);
+                    setApplicantProfile(null);
+                }
             } catch (error) {
                 console.error("Error:", error);
             } finally {
@@ -61,10 +90,15 @@ export default function JobApplicantsPage() {
             }
         };
 
-        fetchApplicants();
-    }, [jobId, API_BASE]);
+        // Debounce search
+        const timeoutId = setTimeout(() => {
+            fetchApplicants();
+        }, 300);
 
-    // Fetch Full Profile when Modal Opens
+        return () => clearTimeout(timeoutId);
+    }, [jobId, API_BASE, searchQuery, statusFilter, sortMethod]);
+
+    // [API] Fetch Full Profile
     useEffect(() => {
         if (!selectedApplicantId) {
             setApplicantProfile(null);
@@ -88,205 +122,300 @@ export default function JobApplicantsPage() {
         fetchProfile();
     }, [selectedApplicantId, API_BASE]);
 
-    const closeModal = () => setSelectedApplicantId(null);
+    // [ACTIONS] Update Application Status
+    const updateStatus = async (status: string) => {
+        // We need the applicationId, not just applicantId.
+        // Find the application ID in the list.
+        const applicantItem = applicants.find(a => a.applicantId === selectedApplicantId);
+        if (!applicantItem) return;
 
-    // Helper for stars
-    const renderStars = (rating: number) => {
-        return (
-            <div className="flex items-center text-blue-500">
-                {[...Array(5)].map((_, i) => (
-                    <svg key={i} className={`w-5 h-5 ${i < Math.floor(rating) ? "fill-current" : "text-gray-300 fill-current"}`} viewBox="0 0 24 24">
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                    </svg>
-                ))}
-                <span className="ml-2 text-gray-600 text-sm font-medium">{rating}/5 Stars</span>
-            </div>
-        );
+        try {
+            const res = await fetch(`${API_BASE}/api/recruiter/applications/${applicantItem.applicationId}/status`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status })
+            });
+
+            if (!res.ok) throw new Error("Failed to update status");
+
+            // Update local state to reflect change without refetching entire list
+            setApplicants(prev => prev.map(app =>
+                app.applicationId === applicantItem.applicationId
+                    ? { ...app, status }
+                    : app
+            ));
+
+        } catch (error) {
+            console.error("Error updating status:", error);
+            alert("Failed to update status");
+        }
+    };
+
+    const handleMessage = () => {
+        console.log("Messaging applicant:", applicantProfile?.name);
+    };
+
+    // [UI] Helper: Status Badge Colors
+    const getStatusStyles = (status: string) => {
+        switch (status) {
+            case "NEW": return "bg-gray-100 text-gray-600";
+            case "CONTACTED": return "bg-green-100 text-green-700";
+            case "SHORTLISTED": return "bg-blue-100 text-blue-700";
+            case "HIRED": return "bg-emerald-100 text-emerald-800";
+            case "REJECTED": return "bg-red-100 text-red-700";
+            default: return "bg-gray-100 text-gray-600";
+        }
+    };
+
+    // [UI] Helper: Format Status Display
+    const formatStatusDisplay = (status: string) => {
+        return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
     };
 
     return (
-        <div className="min-h-screen bg-[#f7fafc] p-8 font-sans">
-            <div className="max-w-5xl mx-auto">
-                <div className="flex items-center mb-8">
-                    <button onClick={() => router.back()} className="mr-4 text-gray-500 hover:text-gray-700">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                    </button>
-                    <h1 className="text-3xl font-bold text-gray-900">Applicants for Job</h1>
+        <div className="min-h-screen bg-[#f8fafc] p-8 font-sans">
+            <div className="max-w-7xl mx-auto">
+                {/* [UI] Breadcrumb & Header */}
+                <div className="text-sm text-gray-500 mb-4 font-medium">
+                    Dashboard / Jobs / {jobDetails.title} / Applicants
                 </div>
 
-                {loading ? (
-                    <div className="text-center py-20">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                        <p className="mt-2 text-gray-500">Loading applicants...</p>
+                <div className="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{jobDetails.title} - Applicants</h1>
+                        <p className="text-gray-600">Showing {applicants.length} of {totalItems} applicants</p>
                     </div>
-                ) : applicants.length === 0 ? (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
-                        No applicants found for this job yet.
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {applicants.map((app) => (
-                                    <tr key={app.applicationId} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                                                    {app.name.charAt(0)}
-                                                </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900">{app.name}</div>
-                                                    <div className="text-xs text-gray-500">{app.skills.join(", ")}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex text-yellow-400 text-sm">
-                                                <span className="text-gray-700 font-medium mr-1">{app.rating}</span> ★
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                    app.status === 'Reviewed' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-green-100 text-green-800'}`}>
-                                                {app.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(app.appliedAt).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button
-                                                onClick={() => setSelectedApplicantId(app.applicantId)}
-                                                className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md hover:bg-blue-100 transition-colors"
-                                            >
-                                                View
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                    <button
+                        onClick={() => console.log("Add applicant clicked")}
+                        className="bg-[#5c7cfa] hover:bg-[#4c6bf0] text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
+                    >
+                        + Add applicant
+                    </button>
+                </div>
 
-                {/* Modal */}
-                {selectedApplicantId && (
-                    <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={closeModal} aria-hidden="true"></div>
-                            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <div className="flex gap-6">
+                    {/* [UI] Left Column: List */}
+                    <div className="flex-1">
+                        {/* Filters Card */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+                            {/* Search Bar */}
+                            <div className="relative mb-5">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </span>
+                                <input
+                                    type="text"
+                                    placeholder="Search by name or keyword......"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full bg-gray-100 text-gray-900 rounded-full py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[#5c7cfa] focus:bg-white transition-colors"
+                                />
+                            </div>
 
-                            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-                                {/* Close Button */}
-                                <div className="absolute top-4 right-4 z-10">
-                                    <button onClick={closeModal} className="text-gray-400 hover:text-gray-500 bg-white rounded-full p-1 shadow-sm">
-                                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
+                            {/* Dropdowns */}
+                            <div className="flex gap-4">
+                                <div className="relative">
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                        className="appearance-none bg-gray-200 text-sm font-medium text-gray-700 py-2.5 pl-4 pr-10 rounded-full focus:outline-none cursor-pointer"
+                                    >
+                                        <option value="ALL">Status : All</option>
+                                        <option value="NEW">Status : New</option>
+                                        <option value="CONTACTED">Status : Contacted</option>
+                                        <option value="SHORTLISTED">Status : Shortlisted</option>
+                                        <option value="HIRED">Status : Hired</option>
+                                        <option value="REJECTED">Status : Rejected</option>
+                                    </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
                                 </div>
 
+                                <div className="relative">
+                                    <select
+                                        value={sortMethod}
+                                        onChange={(e) => setSortMethod(e.target.value)}
+                                        className="appearance-none bg-gray-200 text-sm font-medium text-gray-700 py-2.5 pl-4 pr-10 rounded-full focus:outline-none cursor-pointer"
+                                    >
+                                        <option value="match_desc">Sort by : Match Score</option>
+                                        <option value="name_asc">Sort by : Name</option>
+                                        <option value="newest">Sort by : Newest</option>
+                                        <option value="oldest">Sort by : Oldest</option>
+                                    </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Applicants List */}
+                        {loading ? (
+                            <div className="text-center py-12">
+                                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#5c7cfa]"></div>
+                            </div>
+                        ) : applicants.length === 0 ? (
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
+                                No applicants found matching your criteria.
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {applicants.map((app) => (
+                                    <div
+                                        key={app.applicationId}
+                                        onClick={() => setSelectedApplicantId(app.applicantId)}
+                                        className={`bg-white rounded-xl shadow-sm border p-4 flex items-center justify-between cursor-pointer transition-all ${selectedApplicantId === app.applicantId
+                                                ? 'border-[#5c7cfa] ring-1 ring-[#5c7cfa]'
+                                                : 'border-transparent hover:border-gray-200'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative h-14 w-14 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                                                {app.avatarUrl && !app.avatarUrl.includes("placeholder") ? (
+                                                    <Image src={app.avatarUrl} alt={app.name} layout="fill" objectFit="cover" />
+                                                ) : (
+                                                    <div className="h-full w-full flex items-center justify-center text-xl text-gray-500 font-bold bg-gray-200">
+                                                        {app.name.charAt(0)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <h3 className="text-[17px] font-bold text-gray-900">{app.name}</h3>
+                                                <p className="text-[15px] text-gray-600 mt-1.5">
+                                                    {app.matchScore}% Match | {app.relevantSkillsCount} relevant skills
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-6">
+                                            <span className={`px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusStyles(app.status)}`}>
+                                                {formatStatusDisplay(app.status)}
+                                            </span>
+                                            <span className="text-gray-400 font-medium">›</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* [UI] Right Column: Profile Panel */}
+                    {selectedApplicantId && (
+                        <div className="w-[420px] flex-shrink-0">
+                            <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-8 sticky top-8">
                                 {profileLoading || !applicantProfile ? (
-                                    <div className="p-12 text-center">
-                                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                                    <div className="text-center py-12">
+                                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#5c7cfa]"></div>
                                     </div>
                                 ) : (
-                                    <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                                        {/* Header: Avatar, Name, Rating */}
-                                        <div className="flex flex-col items-start mb-6">
-                                            <div className="flex items-center w-full mb-4">
-                                                <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-gray-100 flex-shrink-0">
-                                                    {applicantProfile.avatarUrl && !applicantProfile.avatarUrl.includes("placeholder") ? (
-                                                        <Image src={applicantProfile.avatarUrl} alt={applicantProfile.name} layout="fill" objectFit="cover" />
-                                                    ) : (
-                                                        <div className="h-full w-full bg-gray-200 flex items-center justify-center text-2xl text-gray-500 font-bold">
-                                                            {applicantProfile.name.charAt(0)}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="ml-4">
-                                                    <h3 className="text-2xl font-bold text-gray-900">{applicantProfile.name}</h3>
-                                                    {renderStars(applicantProfile.rating)}
-                                                </div>
-                                            </div>
-
-                                            {/* Action Buttons */}
-                                            <div className="flex space-x-3 w-full mb-6">
-                                                <button className="flex-1 bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors shadow-sm">
-                                                    Hire for job
-                                                </button>
-                                                <button className="flex-1 bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">
-                                                    Message
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* About Section */}
-                                        <div className="mb-6">
-                                            <h4 className="text-lg font-bold text-gray-900 mb-2">About</h4>
-                                            <p className="text-gray-600 text-sm leading-relaxed">
-                                                {applicantProfile.about}
-                                            </p>
-                                        </div>
-
-                                        {/* Skills Section */}
-                                        <div className="mb-6">
-                                            <h4 className="text-lg font-bold text-gray-900 mb-2">Skills</h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {applicantProfile.skills.map((skill, index) => (
-                                                    <span key={index} className="px-3 py-1 bg-blue-50 text-blue-600 text-sm font-medium rounded-md">
-                                                        {skill}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Recent Experience Section */}
-                                        <div className="mb-6">
-                                            <h4 className="text-lg font-bold text-gray-900 mb-2">Recent Experience</h4>
-                                            <div className="space-y-4">
-                                                {applicantProfile.recentExperience.map((exp, index) => (
-                                                    <div key={index} className="flex items-start">
-                                                        <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 mr-3 mt-1">
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                                            </svg>
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-sm font-bold text-gray-900">{exp.title}</div>
-                                                            <div className="text-xs text-gray-500">{exp.company}</div>
-                                                        </div>
+                                    <>
+                                        {/* Avatar & Info */}
+                                        <div className="flex flex-col items-center text-center mb-8">
+                                            <div className="relative h-28 w-28 rounded-full overflow-hidden mb-4 bg-gray-200">
+                                                {applicantProfile.avatarUrl ? (
+                                                    <Image src={applicantProfile.avatarUrl} alt={applicantProfile.name} layout="fill" objectFit="cover" />
+                                                ) : (
+                                                    <div className="h-full w-full flex items-center justify-center text-3xl text-gray-500 font-bold bg-gray-200">
+                                                        {applicantProfile.name.charAt(0)}
                                                     </div>
-                                                ))}
+                                                )}
                                             </div>
+                                            <h2 className="text-2xl font-bold text-gray-900">{applicantProfile.name}</h2>
+                                            <p className="text-lg text-gray-600">{applicantProfile.title}</p>
                                         </div>
 
-                                        {/* Bottom Link */}
-                                        <div className="pt-4 border-t border-gray-100 text-center">
-                                            <button className="text-blue-500 font-medium hover:text-blue-700 flex items-center justify-center mx-auto">
-                                                View full profile
-                                                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                                </svg>
+                                        {/* Primary Actions */}
+                                        <div className="flex gap-4 mb-8">
+                                            <button
+                                                onClick={handleMessage}
+                                                className="flex-1 bg-[#5c7cfa] hover:bg-[#4c6bf0] text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                                Message
+                                            </button>
+                                            <button
+                                                onClick={() => updateStatus("HIRED")}
+                                                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                                Hire
                                             </button>
                                         </div>
-                                    </div>
+
+                                        <div className="space-y-6">
+                                            {/* Summary */}
+                                            <div>
+                                                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-3">SUMMARY</h3>
+                                                <p className="text-[15px] text-gray-700 leading-relaxed font-medium">
+                                                    {applicantProfile.summary}
+                                                </p>
+                                            </div>
+
+                                            <hr className="border-gray-100" />
+
+                                            {/* Skills */}
+                                            <div>
+                                                <h3 className="text-[16px] font-bold text-gray-900 mb-3">Key skills</h3>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {applicantProfile.skills.map((skill, index) => (
+                                                        <span key={index} className="px-4 py-1.5 bg-[#dbe4ff] text-[#4263eb] text-[13px] font-bold rounded-full">
+                                                            {skill}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <hr className="border-gray-100" />
+
+                                            {/* Contact Info */}
+                                            <div>
+                                                <h3 className="text-[16px] font-bold text-gray-900 mb-3">Contact Info</h3>
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-3 text-gray-600 text-[15px] font-medium">
+                                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
+                                                        {applicantProfile.email}
+                                                    </div>
+                                                    <div className="flex items-center gap-3 text-gray-600 text-[15px] font-medium">
+                                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path></svg>
+                                                        {applicantProfile.phone}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Quick Links */}
+                                            <div>
+                                                <h3 className="text-[16px] font-bold text-gray-900 mb-3">Quick Links</h3>
+                                                <div className="space-y-3">
+                                                    <a href={applicantProfile.resumeUrl} className="flex items-center gap-3 text-gray-500 hover:text-gray-800 text-[15px] font-medium transition-colors">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                        Download resume
+                                                    </a>
+                                                    <a href={applicantProfile.portfolioUrl} className="flex items-center gap-3 text-gray-500 hover:text-gray-800 text-[15px] font-medium transition-colors">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                                                        View portfolio
+                                                    </a>
+                                                </div>
+                                            </div>
+
+                                            {/* Reject Button */}
+                                            <div className="pt-6 border-t border-gray-100">
+                                                <button
+                                                    onClick={() => updateStatus("REJECTED")}
+                                                    className="w-full bg-[#ffe3e3] hover:bg-[#ffc9c9] text-[#fa5252] font-bold py-3 rounded-lg transition-colors text-[14px]"
+                                                >
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
-            );
+        </div>
+    );
 }
+
