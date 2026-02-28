@@ -2,9 +2,12 @@ const express = require("express");
 const router = express.Router();
 
 let jobs = [
-    { _id: "job1", title: "Senior UX Designer" },
-    { _id: "job2", title: "Frontend Developer" }
+    { _id: "job1", title: "Event Staff", pay: 20, payType: "hour", status: "Active" },
+    { _id: "job2", title: "Frontend Developer", pay: 50, payType: "hour", status: "Active" }
 ];
+
+let completions = [];
+let issues = [];
 
 let applicants = [
     {
@@ -307,6 +310,121 @@ router.get("/jobs", (req, res) => {
         items: formattedJobs,
         page: 1, limit: 10, totalItems: formattedJobs.length, totalPages: 1
     });
+});
+
+// GET /api/recruiter/jobs/:jobId/completion-summary
+router.get("/jobs/:jobId/completion-summary", (req, res) => {
+    try {
+        const { jobId } = req.params;
+        const { workerId } = req.query;
+
+        if (!workerId) {
+            return res.status(400).json({ message: "workerId is required" });
+        }
+
+        const job = jobs.find(j => j._id === jobId);
+        const worker = applicants.find(a => a._id === workerId);
+
+        if (!job || !worker) {
+            return res.status(404).json({ message: "Job or Worker not found" });
+        }
+
+        const hoursWorked = 8;
+        let finalPayment = 0;
+
+        if (job.payType === "hour") {
+            finalPayment = (job.pay || 0) * hoursWorked;
+        } else if (job.payType === "day") {
+            finalPayment = job.pay || 0;
+        }
+
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+        res.json({
+            jobId,
+            workerId,
+            jobTitle: job.title,
+            workerName: worker.name,
+            completionDate: today,
+            hoursWorked,
+            finalPayment
+        });
+
+    } catch (error) {
+        console.error("Error fetching completion summary:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// POST /api/recruiter/jobs/:jobId/complete
+router.post("/jobs/:jobId/complete", (req, res) => {
+    try {
+        const { jobId } = req.params;
+        const { workerId, completionDate, hoursWorked, finalPayment } = req.body;
+
+        if (!workerId || !completionDate || hoursWorked <= 0 || finalPayment < 0) {
+            return res.status(400).json({ message: "Invalid input data" });
+        }
+
+        const jobIndex = jobs.findIndex(j => j._id === jobId);
+        if (jobIndex === -1) {
+            return res.status(404).json({ message: "Job not found" });
+        }
+
+        // Update job status
+        jobs[jobIndex].status = "COMPLETED";
+
+        // Store completion record
+        const completion = {
+            _id: `comp_${Date.now()}`,
+            jobId,
+            workerId,
+            completionDate,
+            hoursWorked,
+            finalPayment,
+            createdAt: new Date().toISOString()
+        };
+        completions.push(completion);
+
+        res.json({ message: "Job marked as completed", completion });
+
+    } catch (error) {
+        console.error("Error completing job:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// POST /api/recruiter/jobs/:jobId/report-issue
+router.post("/jobs/:jobId/report-issue", (req, res) => {
+    try {
+        const { jobId } = req.params;
+        const { workerId, note } = req.body;
+
+        if (!workerId || !note) {
+            return res.status(400).json({ message: "Worker ID and note are required" });
+        }
+
+        const issue = {
+            _id: `issue_${Date.now()}`,
+            jobId,
+            workerId,
+            note,
+            createdAt: new Date().toISOString()
+        };
+        issues.push(issue);
+
+        // Optionally set job status
+        const jobIndex = jobs.findIndex(j => j._id === jobId);
+        if (jobIndex !== -1) {
+            jobs[jobIndex].status = "ISSUE_REPORTED";
+        }
+
+        res.json({ message: "Issue reported" });
+
+    } catch (error) {
+        console.error("Error reporting issue:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
 });
 
 module.exports = router;
