@@ -265,25 +265,29 @@ export default function MessagePage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {messages.map((msg) => (
-                      <ContextMenu
-                        key={msg.id}
-                        options={getMessageContextOptions(msg)}
-                        disabled={msg.isDeleted}
-                      >
-                        <MessageBubble
-                          message={msg}
-                          participant={
-                            (
-                              jobConversation as unknown as {
-                                participant?: User;
-                              }
-                            ).participant || { id: "", name: "Unknown" }
-                          }
-                          isOwn={msg.senderId === CURRENT_USER_ID}
-                        />
-                      </ContextMenu>
-                    ))}
+                    {messages.map((msg) => {
+                      const options = getMessageContextOptions(msg);
+                      return (
+                        <ContextMenu
+                          key={msg.id}
+                          options={options}
+                          disabled={msg.isDeleted}
+                        >
+                          <MessageBubble
+                            message={msg}
+                            participant={
+                              (
+                                jobConversation as unknown as {
+                                  participant?: User;
+                                }
+                              ).participant || { id: "", name: "Unknown" }
+                            }
+                            isOwn={msg.senderId === CURRENT_USER_ID}
+                            options={options}
+                          />
+                        </ContextMenu>
+                      );
+                    })}
                     <div ref={messagesEndRef} />
                   </div>
                 )}
@@ -450,11 +454,29 @@ interface MessageBubbleProps {
   isOwn: boolean;
 }
 
-function MessageBubble({ message, participant, isOwn }: MessageBubbleProps) {
+function MessageBubble({
+  message,
+  participant,
+  isOwn,
+  options,
+}: MessageBubbleProps & { options?: any[] }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [menuOpen]);
+
   return (
     <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
       <div
-        className={`flex items-end gap-2 max-w-[85%] ${
+        className={`relative flex items-end gap-2 max-w-[85%] ${
           isOwn ? "flex-row-reverse" : "flex-row"
         }`}
       >
@@ -506,7 +528,78 @@ function MessageBubble({ message, participant, isOwn }: MessageBubbleProps) {
               {message.content}
             </p>
           </div>
+
+          {/* Attachments (responsive) */}
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="mt-2 flex flex-col gap-2">
+              {message.attachments.map((att) =>
+                att.type === "image" ? (
+                  <img
+                    key={att.id}
+                    src={att.url}
+                    alt={att.name}
+                    className="max-w-full h-auto rounded-md object-cover border border-gray-100"
+                  />
+                ) : (
+                  <a
+                    key={att.id}
+                    href={att.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-md text-sm"
+                  >
+                    {att.name}
+                  </a>
+                ),
+              )}
+            </div>
+          )}
         </div>
+
+        {/* Mobile overflow menu (visible on small screens) */}
+        {options && (
+          <div className="md:hidden ml-1 flex items-start">
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen((s) => !s)}
+                aria-label="Message actions"
+                className="p-1 text-gray-400 hover:text-gray-700"
+              >
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="19" cy="12" r="1" />
+                  <circle cx="5" cy="12" r="1" />
+                </svg>
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-44 py-1 bg-white rounded-lg shadow-lg border border-gray-200 z-40">
+                  {options.map((opt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        opt.onClick();
+                        setMenuOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${opt.danger ? "text-red-600 hover:bg-red-50" : "text-gray-700 hover:bg-gray-50"}`}
+                    >
+                      {opt.icon && <span className="w-4 h-4">{opt.icon}</span>}
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
