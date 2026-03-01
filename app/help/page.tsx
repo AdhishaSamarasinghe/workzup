@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ChatWidget from "../../components/ChatWidget";
 
 const faqs = [
     {
@@ -236,6 +237,7 @@ export default function HelpSupportPage() {
                     </div>
                 </div>
             </div>
+            <ChatWidget />
         </div>
     );
 }
