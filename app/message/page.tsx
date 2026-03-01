@@ -1,291 +1,25 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ConversationList, Conversation } from "@/components/message";
+import { ConversationList } from "@/components/message";
+import { useConversations, useChat } from "@/lib/hooks";
+import {
+  ContextMenu,
+  EditIcon,
+  DeleteIcon,
+  CopyIcon,
+  ReplyIcon,
+  EditMessageModal,
+  DeleteConfirmModal,
+} from "@/components/ui";
+import { Message as MessageType, User } from "@/lib/types";
 
 // ============================================
-// TYPES
-// ============================================
-
-type Participant = {
-  id: string;
-  name: string;
-  avatar?: string;
-  role?: string;
-};
-
-type Message = {
-  id: string;
-  senderId: string;
-  content: string;
-  timestamp: string;
-  isRead?: boolean;
-};
-
-type JobDetails = {
-  id: string;
-  title: string;
-  payRate: string;
-  location: string;
-  date: string;
-  schedule: string;
-  description: string;
-};
-
-type ChatConversation = {
-  id: string;
-  jobId: string;
-  participant: Participant;
-  job: JobDetails;
-};
-
-// ============================================
-// MOCK DATA - Replace with API calls for backend
+// CONSTANTS
 // ============================================
 
 const CURRENT_USER_ID = "current-user-123";
-
-// Mock conversations data - Replace with: GET /api/conversations
-const mockConversations: Conversation[] = [
-  {
-    id: "conv-1",
-    participant: {
-      id: "user-1",
-      name: "Jane Doe",
-      avatar: "/avatars/jane.svg",
-      role: "Urgent Warehouse Assistant",
-    },
-    lastMessage: "Sounds great — I'll be there.",
-    lastMessageTime: "10:59 PM",
-    unreadCount: 2,
-  },
-  {
-    id: "conv-2",
-    participant: {
-      id: "user-2",
-      name: "Mark Lee",
-      avatar: "/avatars/mark.svg",
-      role: "Logistics Coordinator",
-    },
-    lastMessage: "Can you cover the Saturday shift?",
-    lastMessageTime: "9:50 PM",
-    unreadCount: 0,
-  },
-  {
-    id: "conv-3",
-    participant: {
-      id: "user-3",
-      name: "Aisha Khan",
-      avatar: "/avatars/aisha.svg",
-      role: "HR Specialist",
-    },
-    lastMessage: "Please complete your timesheet.",
-    lastMessageTime: "10:00 AM",
-    unreadCount: 0,
-  },
-  {
-    id: "conv-4",
-    participant: {
-      id: "user-4",
-      name: "Carlos Mendez",
-      avatar: "/avatars/carlos.svg",
-      role: "Site Manager",
-    },
-    lastMessage: "",
-    lastMessageTime: "Yesterday",
-    unreadCount: 0,
-  },
-];
-
-// Mock job chat conversations data
-const mockJobConversations: Record<string, ChatConversation> = {
-  "conv-1": {
-    id: "conv-1",
-    jobId: "job-1",
-    participant: {
-      id: "user-1",
-      name: "Jane Doe",
-      avatar: "/avatars/jane.svg",
-      role: "Hiring Manager",
-    },
-    job: {
-      id: "job-1",
-      title: "Urgent Warehouse Assistant",
-      payRate: "Rs.3000",
-      location: "Colombo",
-      date: "Nov 25",
-      schedule: "9:00 AM - 5:00 PM",
-      description:
-        "We're looking for an experienced warehouse assistant to help out during a busy event.",
-    },
-  },
-  "conv-2": {
-    id: "conv-2",
-    jobId: "job-2",
-    participant: {
-      id: "user-2",
-      name: "Mark Lee",
-      avatar: "/avatars/mark.svg",
-      role: "Logistics Coordinator",
-    },
-    job: {
-      id: "job-2",
-      title: "Logistics Support",
-      payRate: "Rs.2500",
-      location: "Kandy",
-      date: "Nov 28",
-      schedule: "8:00 AM - 4:00 PM",
-      description:
-        "Support the logistics team with inventory management and shipment coordination.",
-    },
-  },
-  "conv-3": {
-    id: "conv-3",
-    jobId: "job-3",
-    participant: {
-      id: "user-3",
-      name: "Aisha Khan",
-      avatar: "/avatars/aisha.svg",
-      role: "HR Specialist",
-    },
-    job: {
-      id: "job-3",
-      title: "HR Administrative Assistant",
-      payRate: "Rs.3500",
-      location: "Colombo",
-      date: "Dec 1",
-      schedule: "9:00 AM - 5:00 PM",
-      description:
-        "Assist with HR documentation, onboarding, and employee record management.",
-    },
-  },
-  "conv-4": {
-    id: "conv-4",
-    jobId: "job-4",
-    participant: {
-      id: "user-4",
-      name: "Carlos Mendez",
-      avatar: "/avatars/carlos.svg",
-      role: "Site Manager",
-    },
-    job: {
-      id: "job-4",
-      title: "Site Supervision Assistant",
-      payRate: "Rs.4000",
-      location: "Galle",
-      date: "Dec 5",
-      schedule: "7:00 AM - 3:00 PM",
-      description:
-        "Assist with site supervision, safety compliance, and team coordination.",
-    },
-  },
-};
-
-// Mock messages for each conversation
-const mockMessagesData: Record<string, Message[]> = {
-  "conv-1": [
-    {
-      id: "msg-1",
-      senderId: "user-1",
-      content: "Hi — I need help with the shipment today.",
-      timestamp: "10:55 PM",
-      isRead: true,
-    },
-    {
-      id: "msg-2",
-      senderId: CURRENT_USER_ID,
-      content: "Sure — what do you need?",
-      timestamp: "10:57 PM",
-      isRead: true,
-    },
-    {
-      id: "msg-3",
-      senderId: "user-1",
-      content: "Sounds great — I'll be there.",
-      timestamp: "10:59 PM",
-      isRead: true,
-    },
-  ],
-  "conv-2": [
-    {
-      id: "msg-4",
-      senderId: "user-2",
-      content: "Can you cover the Saturday shift?",
-      timestamp: "9:45 PM",
-      isRead: true,
-    },
-    {
-      id: "msg-5",
-      senderId: CURRENT_USER_ID,
-      content: "Let me check my schedule and get back to you.",
-      timestamp: "9:50 PM",
-      isRead: true,
-    },
-  ],
-  "conv-3": [
-    {
-      id: "msg-6",
-      senderId: "user-3",
-      content: "Please complete your timesheet.",
-      timestamp: "10:00 AM",
-      isRead: true,
-    },
-  ],
-  "conv-4": [],
-};
-
-// ============================================
-// API FUNCTIONS - Ready to connect to backend
-// ============================================
-
-/**
- * Fetch all conversations for the current user
- * Replace with: const response = await fetch('/api/conversations');
- */
-async function fetchConversations(): Promise<Conversation[]> {
-  return mockConversations;
-}
-
-/**
- * Fetch job chat conversation details
- */
-async function fetchJobConversation(
-  conversationId: string,
-): Promise<ChatConversation | null> {
-  return mockJobConversations[conversationId] || null;
-}
-
-/**
- * Fetch messages for a conversation
- */
-async function fetchMessages(conversationId: string): Promise<Message[]> {
-  return mockMessagesData[conversationId] || [];
-}
-
-/**
- * Send a message
- */
-async function sendMessage(
-  conversationId: string,
-  content: string,
-): Promise<Message> {
-  const newMessage: Message = {
-    id: `msg-${Date.now()}`,
-    senderId: CURRENT_USER_ID,
-    content,
-    timestamp: new Date()
-      .toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      })
-      .toLowerCase()
-      .replace(" ", ""),
-    isRead: false,
-  };
-  return newMessage;
-}
 
 // ============================================
 // MAIN COMPONENT
@@ -293,24 +27,53 @@ async function sendMessage(
 
 export default function MessagePage() {
   const router = useRouter();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+
+  // Use the conversations hook for real API calls
+  const {
+    conversations,
+    isLoading: isConversationsLoading,
+    refreshConversations,
+    markAsRead,
+  } = useConversations();
+
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
   >(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Job chat preview state (for desktop)
-  const [jobConversation, setJobConversation] =
-    useState<ChatConversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Use the chat hook for the selected conversation
+  const {
+    conversation: jobConversation,
+    messages,
+    isLoading: isChatLoading,
+    typingUsers,
+    sendMessage,
+    editMessage,
+    deleteMessage,
+    setTyping,
+  } = useChat(selectedConversationId);
+
   const [inputValue, setInputValue] = useState("");
-  const [isChatLoading, setIsChatLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Edit/Delete modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<MessageType | null>(
+    null,
+  );
+
+  // Auto-select first conversation
+  useEffect(() => {
+    if (conversations.length > 0 && !selectedConversationId) {
+      setSelectedConversationId(conversations[0].id);
+    }
+  }, [conversations, selectedConversationId]);
 
   // Handle conversation selection (single click - show messages)
   const handleSelectConversation = (conversationId: string) => {
     setSelectedConversationId(conversationId);
+    markAsRead(conversationId);
     // On mobile, navigate to full jobchat page (no preview available)
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       router.push(`/jobchat?id=${conversationId}`);
@@ -322,51 +85,6 @@ export default function MessagePage() {
     router.push(`/jobchat?id=${conversationId}`);
   };
 
-  // Load conversations on mount
-  useEffect(() => {
-    async function loadConversations() {
-      setIsLoading(true);
-      try {
-        const data = await fetchConversations();
-        setConversations(data);
-        // Auto-select first conversation for desktop preview
-        if (data.length > 0) {
-          setSelectedConversationId(data[0].id);
-        }
-      } catch (error) {
-        console.error("Failed to load conversations:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadConversations();
-  }, []);
-
-  // Load job chat data when conversation is selected
-  useEffect(() => {
-    async function loadJobChat() {
-      if (!selectedConversationId) {
-        setJobConversation(null);
-        setMessages([]);
-        return;
-      }
-      setIsChatLoading(true);
-      try {
-        const [convData, msgData] = await Promise.all([
-          fetchJobConversation(selectedConversationId),
-          fetchMessages(selectedConversationId),
-        ]);
-        setJobConversation(convData);
-        setMessages(msgData);
-      } catch (error) {
-        console.error("Failed to load job chat:", error);
-      } finally {
-        setIsChatLoading(false);
-      }
-    }
-    loadJobChat();
-  }, [selectedConversationId]);
-
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -374,13 +92,40 @@ export default function MessagePage() {
 
   // Handle sending message
   const handleSend = async () => {
-    if (!inputValue.trim() || !jobConversation) return;
-    try {
-      const newMsg = await sendMessage(jobConversation.id, inputValue.trim());
-      setMessages((prev) => [...prev, newMsg]);
-      setInputValue("");
-    } catch (error) {
-      console.error("Failed to send message:", error);
+    if (!inputValue.trim() || !selectedConversationId) return;
+    await sendMessage(inputValue.trim());
+    setInputValue("");
+    setTyping(false);
+    refreshConversations();
+  };
+
+  // Handle message editing
+  const handleEditMessage = async (content: string) => {
+    if (selectedMessage) {
+      await editMessage(selectedMessage.id, content);
+      setSelectedMessage(null);
+    }
+  };
+
+  // Handle message deletion
+  const handleDeleteMessage = async () => {
+    if (selectedMessage) {
+      await deleteMessage(selectedMessage.id);
+      setSelectedMessage(null);
+      refreshConversations();
+    }
+  };
+
+  // Handle copy to clipboard
+  const handleCopyMessage = (content: string) => {
+    navigator.clipboard.writeText(content);
+  };
+
+  // Handle input change with typing indicator
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+    if (e.target.value.trim()) {
+      setTyping(true);
     }
   };
 
@@ -391,7 +136,70 @@ export default function MessagePage() {
     }
   };
 
-  if (isLoading) {
+  // Get context menu options for a message
+  const getMessageContextOptions = (message: MessageType) => {
+    const isOwn = message.senderId === CURRENT_USER_ID;
+    const options: Array<{
+      label: string;
+      icon: React.ReactNode;
+      onClick: () => void;
+      danger?: boolean;
+    }> = [
+      {
+        label: "Copy",
+        icon: <CopyIcon />,
+        onClick: () => handleCopyMessage(message.content),
+      },
+      {
+        label: "Reply",
+        icon: <ReplyIcon />,
+        onClick: () => {
+          setInputValue(`@reply: ${message.content.substring(0, 20)}... `);
+        },
+      },
+    ];
+
+    if (isOwn && !message.isDeleted) {
+      options.push({
+        label: "Edit",
+        icon: <EditIcon />,
+        onClick: () => {
+          setSelectedMessage(message);
+          setEditModalOpen(true);
+        },
+      });
+      options.push({
+        label: "Delete",
+        icon: <DeleteIcon />,
+        onClick: () => {
+          setSelectedMessage(message);
+          setDeleteModalOpen(true);
+        },
+        danger: true,
+      });
+    }
+
+    return options;
+  };
+
+  // Transform conversations for the list component
+  const transformedConversations = conversations.map((conv) => {
+    const participant = (conv as unknown as { participant?: User }).participant;
+    return {
+      id: conv.id,
+      participant: {
+        id: participant?.id || "unknown",
+        name: participant?.name || "Unknown",
+        avatar: participant?.avatar || "/avatars/default.svg",
+        role: participant?.role,
+      },
+      lastMessage: conv.lastMessage?.content || "",
+      lastMessageTime: conv.lastMessageTime || "",
+      unreadCount: conv.unreadCount,
+    };
+  });
+
+  if (isConversationsLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-gray-500">Loading...</div>
@@ -406,7 +214,7 @@ export default function MessagePage() {
         {/* Conversation List - Left Side */}
         <div className="w-full md:w-80 lg:w-96 flex-shrink-0">
           <ConversationList
-            conversations={conversations}
+            conversations={transformedConversations}
             selectedConversationId={selectedConversationId}
             onSelectConversation={handleSelectConversation}
             onDoubleClickConversation={handleDoubleClickConversation}
@@ -432,10 +240,12 @@ export default function MessagePage() {
                     onClick={handleOpenFullChat}
                   >
                     <h1 className="text-lg font-semibold text-gray-900 truncate hover:text-blue-600">
-                      {jobConversation.job.title}
+                      {jobConversation.job?.title || "Chat"}
                     </h1>
                     <p className="text-sm text-gray-500 truncate">
-                      with {jobConversation.participant.name}
+                      with{" "}
+                      {(jobConversation as unknown as { participant?: User })
+                        .participant?.name || "Unknown"}
                     </p>
                   </div>
                   <button
@@ -456,14 +266,32 @@ export default function MessagePage() {
                 ) : (
                   <div className="space-y-4">
                     {messages.map((msg) => (
-                      <MessageBubble
+                      <ContextMenu
                         key={msg.id}
-                        message={msg}
-                        participant={jobConversation.participant}
-                        isOwn={msg.senderId === CURRENT_USER_ID}
-                      />
+                        options={getMessageContextOptions(msg)}
+                        disabled={msg.isDeleted}
+                      >
+                        <MessageBubble
+                          message={msg}
+                          participant={
+                            (
+                              jobConversation as unknown as {
+                                participant?: User;
+                              }
+                            ).participant || { id: "", name: "Unknown" }
+                          }
+                          isOwn={msg.senderId === CURRENT_USER_ID}
+                        />
+                      </ContextMenu>
                     ))}
                     <div ref={messagesEndRef} />
+                  </div>
+                )}
+
+                {/* Typing Indicator */}
+                {typingUsers.length > 0 && (
+                  <div className="mt-2 text-sm text-gray-400 italic">
+                    {typingUsers.map((u) => u.name).join(", ")} is typing...
                   </div>
                 )}
               </div>
@@ -480,7 +308,7 @@ export default function MessagePage() {
                   <input
                     type="text"
                     value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
+                    onChange={handleInputChange}
                     placeholder="Type your message..."
                     className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -587,6 +415,27 @@ export default function MessagePage() {
           <span className="text-xs mt-1">Profile</span>
         </a>
       </div>
+
+      {/* Edit Message Modal */}
+      <EditMessageModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedMessage(null);
+        }}
+        onSave={handleEditMessage}
+        initialContent={selectedMessage?.content || ""}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSelectedMessage(null);
+        }}
+        onConfirm={handleDeleteMessage}
+      />
     </>
   );
 }
@@ -595,15 +444,13 @@ export default function MessagePage() {
 // SUB-COMPONENTS
 // ============================================
 
-function MessageBubble({
-  message,
-  participant,
-  isOwn,
-}: {
-  message: Message;
-  participant: Participant;
+interface MessageBubbleProps {
+  message: MessageType;
+  participant: User;
   isOwn: boolean;
-}) {
+}
+
+function MessageBubble({ message, participant, isOwn }: MessageBubbleProps) {
   return (
     <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
       <div
@@ -640,14 +487,19 @@ function MessageBubble({
             <span className="text-[10px] text-gray-400 flex-shrink-0">
               {message.timestamp}
             </span>
+            {message.isEdited && (
+              <span className="text-[10px] text-gray-400 italic">(edited)</span>
+            )}
           </div>
 
           {/* Bubble */}
           <div
             className={`px-3 py-2 rounded-2xl ${
-              isOwn
-                ? "bg-blue-500 text-white rounded-br-md"
-                : "bg-gray-100 text-gray-800 rounded-bl-md"
+              message.isDeleted
+                ? "bg-gray-100 text-gray-400 italic"
+                : isOwn
+                  ? "bg-blue-500 text-white rounded-br-md"
+                  : "bg-gray-100 text-gray-800 rounded-bl-md"
             }`}
           >
             <p className="text-sm leading-relaxed break-words">
