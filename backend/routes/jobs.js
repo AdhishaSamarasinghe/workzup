@@ -7,8 +7,8 @@
  */
 
 
-import express from "express";
-import crypto from "crypto";
+const express = require("express");
+const crypto = require("crypto");
 
 const router = express.Router();
 
@@ -59,7 +59,7 @@ router.post("/", (req, res) => {
     const currentStatus = status || "DRAFT";
 
     // VALIDATION PUBLIC/PRIVATE jobs require full details so they can be shown to candidates.
-   
+
     if (currentStatus === "PUBLIC" || currentStatus === "PRIVATE") {
       if (!title?.trim()) return res.status(400).json({ message: "Job title is required" });
       if (!description?.trim()) return res.status(400).json({ message: "Job description is required" });
@@ -77,7 +77,7 @@ router.post("/", (req, res) => {
     }
 
     //Build the new job object.
-   
+
     const newJob = {
       _id: crypto.randomBytes(12).toString("hex"),
       title: title?.trim(),
@@ -208,4 +208,4 @@ router.delete("/:id", (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;

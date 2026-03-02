@@ -6,6 +6,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+/* -------- Mount API Routes -------- */
+const jobsRouter = require("./routes/jobs");
+app.use("/api/jobs", jobsRouter);
+
 /* -------- Temporary Job Storage -------- */
 /* -------- Temporary Job Storage -------- */
 // TODO: Replace this in-memory array with a real database connection (e.g., MongoDB, PostgreSQL)
