@@ -9,7 +9,7 @@ import {
   markAllMessagesAsRead,
   CURRENT_USER_ID,
 } from "@/lib/db";
-import { ApiResponse, Message, SendMessageRequest } from "@/lib/types";
+import { ApiResponse, Message, SendMessageRequest, User } from "@/lib/types";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -29,7 +29,9 @@ export async function GET(
     }
 
     // Check if user is a participant
-    if (!conversation.participants.some((p) => p.id === CURRENT_USER_ID)) {
+    if (
+      !conversation.participants.some((p: User) => p.id === CURRENT_USER_ID)
+    ) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 403 },
@@ -79,7 +81,9 @@ export async function POST(
     }
 
     // Check if user is a participant
-    if (!conversation.participants.some((p) => p.id === CURRENT_USER_ID)) {
+    if (
+      !conversation.participants.some((p: User) => p.id === CURRENT_USER_ID)
+    ) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 403 },

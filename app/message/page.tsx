@@ -184,7 +184,26 @@ export default function MessagePage() {
 
   // Transform conversations for the list component
   const transformedConversations = conversations.map((conv) => {
-    const participant = (conv as unknown as { participant?: User }).participant;
+    const convAny = conv as unknown as {
+      participant?: User;
+      participants?: User[];
+      lastMessage?: unknown;
+      lastMessageTime?: string;
+      unreadCount?: number;
+    };
+
+    const participantFromParticipants = Array.isArray(convAny.participants)
+      ? convAny.participants.find((u) => u.id !== CURRENT_USER_ID)
+      : undefined;
+
+    const participant = convAny.participant || participantFromParticipants;
+
+    const lastMessageValue = convAny.lastMessage;
+    const lastMessageText =
+      typeof lastMessageValue === "string"
+        ? lastMessageValue
+        : (lastMessageValue as { content?: string } | undefined)?.content || "";
+
     return {
       id: conv.id,
       participant: {
@@ -193,11 +212,18 @@ export default function MessagePage() {
         avatar: participant?.avatar || "/avatars/default.svg",
         role: participant?.role,
       },
-      lastMessage: conv.lastMessage?.content || "",
-      lastMessageTime: conv.lastMessageTime || "",
-      unreadCount: conv.unreadCount,
+      lastMessage: lastMessageText,
+      lastMessageTime: convAny.lastMessageTime || "",
+      unreadCount: convAny.unreadCount || 0,
     };
   });
+
+  const activeParticipant =
+    (jobConversation as unknown as { participant?: User } | null)
+      ?.participant ||
+    (
+      jobConversation as unknown as { participants?: User[] } | null
+    )?.participants?.find((u) => u.id !== CURRENT_USER_ID);
 
   if (isConversationsLoading) {
     return (
@@ -243,9 +269,7 @@ export default function MessagePage() {
                       {jobConversation.job?.title || "Chat"}
                     </h1>
                     <p className="text-sm text-gray-500 truncate">
-                      with{" "}
-                      {(jobConversation as unknown as { participant?: User })
-                        .participant?.name || "Unknown"}
+                      with {activeParticipant?.name || "Unknown"}
                     </p>
                   </div>
                   <button
@@ -276,11 +300,7 @@ export default function MessagePage() {
                           <MessageBubble
                             message={msg}
                             participant={
-                              (
-                                jobConversation as unknown as {
-                                  participant?: User;
-                                }
-                              ).participant || { id: "", name: "Unknown" }
+                              activeParticipant || { id: "", name: "Unknown" }
                             }
                             isOwn={msg.senderId === CURRENT_USER_ID}
                             options={options}

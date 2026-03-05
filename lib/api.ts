@@ -14,10 +14,10 @@ import {
   User,
 } from "./types";
 
-const API_BASE = "/api";
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 // Helper function for API calls
-async function fetchApi<T>(
+export async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
@@ -29,10 +29,23 @@ async function fetchApi<T>(
       },
       ...options,
     });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("API Error Response:", text);
+      throw new Error(`API request failed with status: ${response.status}`);
+    }
+
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      throw new Error("Server returned non-JSON response: " + text);
+    }
+
     return await response.json();
   } catch (error) {
     console.error("API Error:", error);
-    return { success: false, error: "Network error" };
+    return { success: false, error: error instanceof Error ? error.message : "Network error" };
   }
 }
 
@@ -94,16 +107,16 @@ export async function markConversationAsRead(
 export async function getMessages(
   conversationId: string,
 ): Promise<ApiResponse<Message[]>> {
-  return fetchApi<Message[]>(`/conversations/${conversationId}/messages`);
+  return fetchApi<Message[]>(`/messages?conversationId=${conversationId}`);
 }
 
 export async function sendMessage(
   conversationId: string,
   data: SendMessageRequest,
 ): Promise<ApiResponse<Message>> {
-  return fetchApi<Message>(`/conversations/${conversationId}/messages`, {
+  return fetchApi<Message>(`/messages`, {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, conversationId }),
   });
 }
 
@@ -113,10 +126,10 @@ export async function editMessage(
   data: UpdateMessageRequest,
 ): Promise<ApiResponse<Message>> {
   return fetchApi<Message>(
-    `/conversations/${conversationId}/messages/${messageId}`,
+    `/messages/${messageId}`,
     {
       method: "PATCH",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, conversationId }),
     },
   );
 }
@@ -126,9 +139,10 @@ export async function deleteMessage(
   messageId: string,
 ): Promise<ApiResponse<null>> {
   return fetchApi<null>(
-    `/conversations/${conversationId}/messages/${messageId}`,
+    `/messages/${messageId}`,
     {
       method: "DELETE",
+      body: JSON.stringify({ conversationId })
     },
   );
 }
@@ -138,10 +152,10 @@ export async function markMessageAsRead(
   messageId: string,
 ): Promise<ApiResponse<Message>> {
   return fetchApi<Message>(
-    `/conversations/${conversationId}/messages/${messageId}`,
+    `/messages/${messageId}`,
     {
       method: "PATCH",
-      body: JSON.stringify({ action: "markRead" }),
+      body: JSON.stringify({ action: "markRead", conversationId }),
     },
   );
 }
