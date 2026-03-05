@@ -1,26 +1,15 @@
 import type { ReactNode } from "react";
-import "../globals.css";
-import Footer from "@/components/Footer";
-import SkillsHeader from "@/components/skills/Header";
 
-export const metadata = {
-  title: "Workzup",
-  description: "Workzup job board",
-};
-
-type RootLayoutProps = {
+type PreferencesLayoutProps = {
   children: ReactNode;
 };
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function PreferencesLayout({
+  children,
+}: PreferencesLayoutProps) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-bg text-[#111827] antialiased">
-        <div className="flex min-h-screen flex-col">
-          <SkillsHeader />
-          <main className="flex-1">{children}</main>
-        </div>
-      </body>
-    </html>
+    <div className="flex min-h-screen flex-col">
+      <main className="flex-1">{children}</main>
+    </div>
   );
 }

@@ -10,10 +10,7 @@ export default function ConditionalHeader() {
     return null;
   }
 
-  if (
-    typeof pathname === "string" &&
-    pathname.startsWith("/recruiterprofile")
-  ) {
+  if (typeof pathname === "string" && pathname.startsWith("/recruiterprofile")) {
     return null;
   }
 

@@ -1,401 +1,308 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Bell, User, Hammer, Home, Truck, Star, CheckCircle } from "lucide-react";
+import { fetchRecruiter, fetchRecruiterJobs, fetchRecruiterReviews, contactRecruiter } from "@/lib/api";
 
-type RecruiterProfile = {
+// --- Types ---
+
+interface Recruiter {
+  id: string;
   companyName: string;
-  isVerified: boolean;
-
+  logoUrl: string;
+  verified: boolean;
+  location: string;
+  tagline: string;
   about: string;
   industry: string;
   companySize: string;
   memberSince: string;
   website: string;
+}
 
-  companyAddress: string;
-  city: string;
-  zipCode: string;
-
-  logoBase64: string | null;
-};
-
-type RecruiterReview = {
+interface Job {
   id: string;
-  recruiterId: string;
-  reviewerName: string;
-  rating: number;
-  comment: string;
-  createdAt: string;
-};
-
-type RecruiterJob = {
-  id: string;
-  recruiterId: string;
   title: string;
-  postedDate: string;
-  status: "Active" | "Completed" | "Expired";
+  postedOn: string;
+  status: "Completed" | "Expired" | "Active";
   applicants: number;
   icon: string;
+}
+
+interface Review {
+  id: string;
+  reviewerName: string;
+  rating: number;
+  date: string;
+  comment: string;
+}
+
+// --- Icons ---
+
+const VerifiedBadge = () => <CheckCircle className="w-5 h-5 text-green-500 fill-current bg-white rounded-full" />;
+
+const StarIcon = ({ filled }: { filled: boolean }) => (
+  <Star className={`w-4 h-4 ${filled ? "text-yellow-400 fill-current" : "text-gray-200"}`} />
+);
+
+const JobIconWrapper = ({ type }: { type: string }) => {
+  const iconClass = "w-8 h-8 text-[#111827]";
+  switch (type) {
+    case "tool":
+      return <Hammer className={iconClass} />;
+    case "home":
+      return <Home className={iconClass} />;
+    case "truck":
+      return <Truck className={iconClass} />;
+    default:
+      return <Hammer className={iconClass} />;
+  }
 };
 
+// --- Page ---
+
 export default function RecruiterProfilePage() {
-  const [activeTab, setActiveTab] = useState<"history" | "reviews">("history");
-
-  const [data, setData] = useState<RecruiterProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const [reviews, setReviews] = useState<RecruiterReview[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-
-  const [jobs, setJobs] = useState<RecruiterJob[]>([]);
-  const [jobsLoading, setJobsLoading] = useState(false);
-
-  const loadProfile = async () => {
-    const res = await fetch("/api/recruiter-profile", { cache: "no-store" });
-    const json = await res.json();
-    if (json.ok) setData(json.data);
-  };
-
-  const loadReviews = async () => {
-    setReviewsLoading(true);
-    try {
-      const res = await fetch("/api/recruiter-reviews?recruiterId=default", {
-        cache: "no-store",
-      });
-      const json = await res.json();
-      if (json.ok) setReviews(json.data);
-    } finally {
-      setReviewsLoading(false);
-    }
-  };
-
-  const loadJobs = async () => {
-    setJobsLoading(true);
-    try {
-      const res = await fetch("/api/recruiter-jobs?recruiterId=default", {
-        cache: "no-store",
-      });
-      const json = await res.json();
-      if (json.ok) setJobs(json.data);
-    } finally {
-      setJobsLoading(false);
-    }
-  };
+  const router = useRouter();
+  const [recruiter, setRecruiter] = useState<Recruiter | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [activeTab, setActiveTab] = useState<"jobs" | "reviews">("jobs");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [contactStatus, setContactStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   useEffect(() => {
-    const init = async () => {
+    async function loadData() {
       try {
-        await Promise.all([loadProfile(), loadReviews(), loadJobs()]);
+        const id = "default";
+        const [profileRes, jobsRes, reviewsRes] = await Promise.all([
+          fetchRecruiter(id),
+          fetchRecruiterJobs(id),
+          fetchRecruiterReviews(id),
+        ]);
+
+        if (profileRes.success) setRecruiter(profileRes.data);
+        if (jobsRes.success) setJobs(jobsRes.data);
+        if (reviewsRes.success) setReviews(reviewsRes.data);
+      } catch (err: any) {
+        console.error("Failed to load recruiter data:", err);
+        setError(`Backend not reachable. ${err.message}`);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
-    };
-    init();
+    }
+    loadData();
   }, []);
 
-  if (loading) {
+  const handleContact = async () => {
+    if (!recruiter) return;
+    setContactStatus("sending");
+    try {
+      await contactRecruiter("default");
+      setContactStatus("sent");
+      setTimeout(() => setContactStatus("idle"), 3000);
+    } catch {
+      setContactStatus("error");
+      setTimeout(() => setContactStatus("idle"), 3000);
+    }
+  };
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-bg grid place-items-center">
-        <p className="text-muted">Loading recruiter profile...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F9FC]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0090FF] mx-auto mb-4"></div>
+          <p className="text-gray-500 font-medium">Loading profile...</p>
+        </div>
       </div>
     );
   }
 
-  if (!data) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-bg grid place-items-center">
-        <p className="text-muted">Could not load profile.</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F9FC] px-4">
+        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full border border-red-100">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Connection Error</h1>
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            {error}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full bg-[#0090FF] text-white py-3 rounded-xl font-bold hover:bg-[#0070CC] transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
-  // ✅ Dynamic location text built from your Edit page inputs
-  const locationLine =
-    [data.city?.trim(), data.zipCode?.trim()].filter(Boolean).join(" • ") ||
-    "—";
+  if (!recruiter) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#F7F9FC] text-gray-500 font-medium">Recruiter not found</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-bg py-8">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[320px_1fr]">
-          {/* Left */}
-          <div className="space-y-6">
-            {/* Profile Card */}
-            <div className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-4">
-                  <div className="relative h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 mx-auto rounded-full overflow-hidden bg-[#3d5a4c]">
-                    {data.logoBase64 ? (
-                      <Image
-                        src={data.logoBase64}
-                        alt={`${data.companyName} logo`}
-                        fill
-                        className="object-cover"
-                        priority
-                        unoptimized
-                      />
-                    ) : (
-                      <Image
-                        src="/company_logo.png"
-                        alt={`${data.companyName} logo`}
-                        fill
-                        className="object-cover"
-                        priority
-                      />
-                    )}
-                  </div>
-                </div>
+    <div className="min-h-screen bg-[#F7F9FC] pb-20 font-sans antialiased text-[#111827]">
+      {/* Main Container */}
+      <main className="max-w-[1240px] mx-auto px-6 mt-12 pb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-12">
 
-                <div className="mb-1 flex items-center gap-1.5">
-                  <h1 className="text-xl font-semibold text-[#1F2937]">
-                    {data.companyName}
-                  </h1>
-                  {data.isVerified && (
-                    <svg
-                      className="h-5 w-5 text-[#3B82F6]"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <circle cx="12" cy="12" r="10" fill="#3B82F6" />
-                      <path
-                        d="M9 12l2 2 4-4"
-                        stroke="white"
-                        strokeWidth="2"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                </div>
-
-                {/* ✅ This is now dynamic from City + Zip */}
-                <p className="text-sm text-muted">{locationLine}</p>
-                <p className="mt-1 text-sm text-muted">Verified Employer</p>
-
-                <Link
-                  href="#"
-                  className="mt-5 inline-block w-full max-w-[180px] rounded-full bg-accent py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-accent/90"
-                >
-                  Contact
-                </Link>
-
-                <Link
-                  href="/editrecruiter"
-                  className="mt-3 inline-block w-full max-w-[180px] rounded-full border border-[#E5E7EB] bg-card py-2.5 text-center text-sm font-medium text-[#1F2937] hover:bg-[#F9FAFB]"
-                >
-                  Edit recruiter
-                </Link>
+          {/* LEFT COLUMN */}
+          <div className="space-y-8">
+            {/* Company Card */}
+            <div className="bg-white rounded-[40px] p-10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] text-center flex flex-col items-center border border-white">
+              <div className="w-[124px] h-[124px] bg-[#67805F] rounded-full flex items-center justify-center mb-6 border-[6px] border-white shadow-sm overflow-hidden p-4">
+                <span className="text-white text-[12px] leading-[1.1] font-bold text-center uppercase tracking-tighter opacity-90 select-none">CONSTRUCT...C<br /><span className="text-[6px] opacity-60">NATIONALFOUNDATION</span></span>
               </div>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <h1 className="text-[28px] font-bold text-[#111827] tracking-tight">{recruiter.companyName}</h1>
+                <VerifiedBadge />
+              </div>
+              <div className="text-[#9CA3AF] font-bold text-[15px] leading-relaxed mb-8">
+                {recruiter.location}<br />
+                {recruiter.tagline}
+              </div>
+              <button
+                onClick={handleContact}
+                disabled={contactStatus === "sending"}
+                className={`w-full text-white py-4 rounded-[24px] font-bold text-[18px] shadow-lg transition-all transform active:scale-95 ${contactStatus === "sending"
+                    ? "bg-[#A0AFFF] cursor-not-allowed"
+                    : "bg-[#758FFF] hover:bg-[#657EF5] shadow-[#758FFF]/25"
+                  }`}
+              >
+                {contactStatus === "sending" ? "Sending..." : "Contact"}
+              </button>
+              {contactStatus === "sent" && (
+                <p className="mt-3 text-center text-[14px] font-bold text-green-600 animate-pulse">
+                  ✓ Message request sent!
+                </p>
+              )}
+              {contactStatus === "error" && (
+                <p className="mt-3 text-center text-[14px] font-bold text-red-500">
+                  ✗ Failed to send. Try again.
+                </p>
+              )}
             </div>
 
-            {/* About */}
-            <div className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
-              <h2 className="mb-4 text-lg font-semibold text-[#1F2937]">
-                About
-              </h2>
-              <p className="mb-6 text-sm leading-relaxed text-muted">
-                {data.about}
+            {/* About Card */}
+            <div className="bg-white rounded-[40px] p-10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-white">
+              <h2 className="text-[24px] font-bold text-[#111827] mb-6">About</h2>
+              <p className="text-[#6B7280] font-bold text-[16px] leading-relaxed mb-10">
+                {recruiter.about}
               </p>
 
-              <div className="space-y-4">
-                {/* ✅ Show full address nicely */}
-                <div className="flex items-start justify-between">
-                  <span className="text-sm text-muted">Company address</span>
-                  <span className="text-right text-sm font-medium text-[#1F2937]">
-                    {data.companyAddress || "—"}
-                  </span>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center text-[15px] font-bold">
+                  <span className="text-[#9CA3AF]">Industry</span>
+                  <span className="text-[#111827]">{recruiter.industry}</span>
                 </div>
-
-                <div className="flex items-start justify-between">
-                  <span className="text-sm text-muted">City</span>
-                  <span className="text-right text-sm font-medium text-[#1F2937]">
-                    {data.city || "—"}
-                  </span>
+                <div className="flex justify-between items-center text-[15px] font-bold">
+                  <span className="text-[#9CA3AF]">Company size</span>
+                  <span className="text-[#111827] text-right">{recruiter.companySize}</span>
                 </div>
-
-                <div className="flex items-start justify-between">
-                  <span className="text-sm text-muted">Zip code</span>
-                  <span className="text-right text-sm font-medium text-[#1F2937]">
-                    {data.zipCode || "—"}
-                  </span>
+                <div className="flex justify-between items-center text-[15px] font-bold">
+                  <span className="text-[#9CA3AF]">Member since</span>
+                  <span className="text-[#111827]">{recruiter.memberSince}</span>
                 </div>
-
-                <div className="flex items-start justify-between">
-                  <span className="text-sm text-muted">Industry</span>
-                  <span className="text-right text-sm font-medium text-[#1F2937]">
-                    {data.industry}
-                  </span>
-                </div>
-
-                <div className="flex items-start justify-between">
-                  <span className="text-sm text-muted">Company size</span>
-                  <span className="text-right text-sm font-medium text-[#1F2937]">
-                    {data.companySize}
-                  </span>
-                </div>
-
-                <div className="flex items-start justify-between">
-                  <span className="text-sm text-muted">Member since</span>
-                  <span className="text-right text-sm font-medium text-[#1F2937]">
-                    {data.memberSince}
-                  </span>
-                </div>
-
-                <div className="flex items-start justify-between">
-                  <span className="text-sm text-muted">Website</span>
-                  <a
-                    href={data.website ? `https://${data.website}` : "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium text-accent hover:underline"
-                  >
-                    {data.website || "—"}
+                <div className="flex justify-between items-center text-[15px] font-bold">
+                  <span className="text-[#9CA3AF]">Website</span>
+                  <a href={`https://${recruiter.website}`} className="text-[#0090FF] hover:underline transition-colors" target="_blank" rel="noopener noreferrer">
+                    {recruiter.website}
                   </a>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column (same as your jobs+reviews setup) */}
-          <div className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
-            <div className="mb-6 flex gap-6 border-b border-[#E5E7EB]">
-              <button
-                onClick={() => {
-                  setActiveTab("history");
-                  loadJobs();
-                }}
-                className={`pb-3 text-sm font-medium transition-colors ${
-                  activeTab === "history"
-                    ? "border-b-2 border-accent text-accent"
-                    : "text-muted hover:text-[#1F2937]"
-                }`}
-              >
-                Job History
-              </button>
+          {/* RIGHT COLUMN */}
+          <div>
+            <div className="bg-white rounded-[32px] border-[3px] border-[#0090FF] overflow-hidden shadow-[0_8px_30px_rgba(0,144,255,0.04)] min-h-[640px] flex flex-col">
 
-              <button
-                onClick={() => {
-                  setActiveTab("reviews");
-                  loadReviews();
-                }}
-                className={`pb-3 text-sm font-medium transition-colors ${
-                  activeTab === "reviews"
-                    ? "border-b-2 border-accent text-accent"
-                    : "text-muted hover:text-[#1F2937]"
-                }`}
-              >
-                Reviews
-              </button>
-            </div>
-
-            {activeTab === "history" && (
-              <div className="space-y-4">
-                {jobsLoading ? (
-                  <p className="text-muted">Loading jobs...</p>
-                ) : jobs.length === 0 ? (
-                  <div className="py-8 text-center text-muted">
-                    <p>No jobs posted yet.</p>
-                  </div>
-                ) : (
-                  jobs.map((job) => (
-                    <div
-                      key={job.id}
-                      className="flex flex-col gap-3 rounded-xl border border-[#E5E7EB] p-4 transition-colors hover:bg-[#F9FAFB] sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                    >
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#F3F4F6] text-lg sm:h-12 sm:w-12 sm:text-xl">
-                          {job.icon}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="truncate font-medium text-[#1F2937]">
-                            {job.title}
-                          </h3>
-                          <p className="text-xs text-muted sm:text-sm">
-                            Posted on{" "}
-                            {new Date(job.postedDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium sm:px-3 ${
-                            job.status === "Completed"
-                              ? "bg-[#D1FAE5] text-[#059669]"
-                              : job.status === "Active"
-                                ? "bg-[#DBEAFE] text-[#2563EB]"
-                                : "bg-[#F3F4F6] text-[#6B7280]"
-                          }`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              job.status === "Completed"
-                                ? "bg-[#059669]"
-                                : job.status === "Active"
-                                  ? "bg-[#2563EB]"
-                                  : "bg-[#6B7280]"
-                            }`}
-                          />
-                          {job.status}
-                        </span>
-
-                        <span className="text-xs text-muted sm:text-sm">
-                          {job.applicants} Applicants
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
+              {/* Tabs */}
+              <div className="flex border-b border-[#E5E7EB] px-8 pt-6">
+                <button
+                  onClick={() => setActiveTab("jobs")}
+                  className={`pb-4 px-6 font-bold text-[18px] transition-all relative ${activeTab === "jobs" ? "text-[#0090FF]" : "text-[#9CA3AF] hover:text-[#111827]"
+                    }`}
+                >
+                  Job History
+                  {activeTab === "jobs" && <div className="absolute bottom-[-3px] left-6 right-6 h-[4px] bg-[#0090FF] rounded-full" />}
+                </button>
+                <button
+                  onClick={() => setActiveTab("reviews")}
+                  className={`pb-4 px-6 font-bold text-[18px] transition-all relative ${activeTab === "reviews" ? "text-[#0090FF]" : "text-[#9CA3AF] hover:text-[#111827]"
+                    }`}
+                >
+                  Reviews
+                  {activeTab === "reviews" && <div className="absolute bottom-[-3px] left-6 right-6 h-[4px] bg-[#0090FF] rounded-full" />}
+                </button>
               </div>
-            )}
 
-            {activeTab === "reviews" && (
-              <div className="space-y-4">
-                {reviewsLoading ? (
-                  <p className="text-muted">Loading reviews...</p>
-                ) : reviews.length === 0 ? (
-                  <div className="py-8 text-center text-muted">
-                    <p>No reviews yet.</p>
-                  </div>
-                ) : (
-                  reviews.map((r) => (
-                    <div
-                      key={r.id}
-                      className="rounded-xl border border-[#E5E7EB] p-3 sm:p-4"
-                    >
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-[#1F2937]">
-                            {r.reviewerName}
-                          </p>
-                          <p className="text-xs text-muted">
-                            {new Date(r.createdAt).toLocaleString()}
-                          </p>
+              {/* Tab Content */}
+              <div className="flex-1 overflow-y-auto">
+                {activeTab === "jobs" ? (
+                  <div className="divide-y divide-[#E5E7EB]">
+                    {jobs.map((job) => (
+                      <div key={job.id} className="p-10 flex items-center justify-between hover:bg-[#F9FAFB] transition-all duration-300">
+                        <div className="flex items-center gap-6">
+                          <div className="w-[72px] h-[72px] bg-[#F3F4F6] rounded-[24px] flex items-center justify-center border border-[#E5E7EB] shadow-sm">
+                            <JobIconWrapper type={job.icon} />
+                          </div>
+                          <div>
+                            <h3 className="text-[22px] font-bold text-[#111827] mb-0.5 tracking-tight">{job.title}</h3>
+                            <p className="text-[#9CA3AF] text-[16px] font-bold tracking-tight">Posted on {job.postedOn}</p>
+                          </div>
                         </div>
-
-                        <div className="flex items-center gap-1 text-sm">
-                          <span className="font-semibold text-[#1F2937]">
-                            {r.rating}
+                        <div className="flex items-center gap-10">
+                          <div className={`flex items-center gap-2.5 px-6 py-2 rounded-full font-bold text-[16px] border ${job.status === "Completed"
+                            ? "bg-[#E6FAF1] text-[#00C853] border-transparent"
+                            : "bg-[#F3F4F6] text-[#6B7280] border-transparent"
+                            }`}>
+                            <div className={`w-2.5 h-2.5 rounded-full ${job.status === "Completed" ? "bg-[#00C853]" : "bg-[#6B7280]"}`} />
+                            {job.status}
+                          </div>
+                          <span className="text-[#9CA3AF] text-[16px] font-bold min-w-[120px] text-right">
+                            {job.applicants} Applicants
                           </span>
-                          <span className="text-yellow-500">★</span>
-                          <span className="text-muted">/ 5</span>
                         </div>
                       </div>
-
-                      <p className="mt-2 text-xs leading-relaxed text-muted sm:mt-3 sm:text-sm">
-                        {r.comment}
-                      </p>
-                    </div>
-                  ))
+                    ))}
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#E5E7EB]">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="p-10 hover:bg-[#F9FAFB] transition-all duration-300">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-[#DEEBFF] text-[#0090FF] rounded-full flex items-center justify-center font-bold text-[20px] uppercase border-2 border-white shadow-sm">
+                              {review.reviewerName[0]}
+                            </div>
+                            <div>
+                              <h4 className="text-[18px] font-bold text-[#111827] mb-0.5 tracking-tight">{review.reviewerName}</h4>
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <StarIcon key={s} filled={s <= review.rating} />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-[#9CA3AF] text-[14px] font-bold uppercase tracking-[0.15em]">{review.date}</span>
+                        </div>
+                        <p className="text-[#4B5563] font-bold text-[17px] leading-relaxed italic opacity-90">"{review.comment}"</p>
+                      </div>
+                    ))}
+                    {reviews.length === 0 && (
+                      <div className="p-20 text-center text-gray-400 font-bold">No reviews yet</div>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
+
         </div>
-      </div>
+      </main>
     </div>
   );
 }

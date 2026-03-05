@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { fetchRecruiter } from "@/lib/api";
 import type { ChangeEvent, FormEvent } from "react";
+
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 type RecruiterProfile = {
   companyName: string;
@@ -11,13 +14,10 @@ type RecruiterProfile = {
   companyAddress: string;
   city: string;
   zipCode: string;
-
   about: string;
-
   contactPersonName: string;
   contactEmail: string;
   contactPhoneNumber: string;
-
   logoBase64: string | null;
 };
 
@@ -28,7 +28,7 @@ export default function EditRecruiterPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [success, setSuccess] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<RecruiterProfile>({
@@ -44,17 +44,17 @@ export default function EditRecruiterPage() {
     logoBase64: null,
   });
 
-  // load existing profile and prefill
+  // Load existing profile on mount
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/recruiter-profile", {
-          cache: "no-store",
-        });
-        const json = await res.json();
-        if (!json.ok) throw new Error("Failed to load");
+        console.log("[EditRecruiter] Loading profile from backend...");
+        const json = await fetchRecruiter("default");
+
+        if (!json.success) throw new Error(json.error || "Failed to load");
 
         const d = json.data;
+        console.log("[EditRecruiter] Profile loaded:", d);
 
         setFormData({
           companyName: d.companyName ?? "",
@@ -69,9 +69,12 @@ export default function EditRecruiterPage() {
           logoBase64: d.logoBase64 ?? null,
         });
 
-        setLogoPreview(d.logoBase64 ?? null);
-      } catch {
-        setError("Could not load recruiter profile.");
+        if (d.logoBase64) setLogoPreview(d.logoBase64);
+        else if (d.logoUrl) setLogoPreview(d.logoUrl);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        console.error("[EditRecruiter] Load error:", msg);
+        setError("Could not load recruiter profile. Make sure the backend is running on port 5000.");
       } finally {
         setLoading(false);
       }
@@ -119,34 +122,32 @@ export default function EditRecruiterPage() {
     e.preventDefault();
     setSaving(true);
     setError(null);
+    setSuccess(false);
 
     try {
-      const payload = {
-        companyName: formData.companyName,
-        website: formData.website,
-        companyAddress: formData.companyAddress,
-        city: formData.city,
-        zipCode: formData.zipCode,
-        about: formData.about,
-        contactPersonName: formData.contactPersonName,
-        contactEmail: formData.contactEmail,
-        contactPhoneNumber: formData.contactPhoneNumber,
-        logoBase64: formData.logoBase64,
-      };
+      if (!BASE) throw new Error("NEXT_PUBLIC_BACKEND_URL is not set in .env.local");
 
-      const res = await fetch("/api/recruiter-profile", {
+      const url = `${BASE}/recruiters/default`;
+      console.log(`[EditRecruiter] Saving to ${url}`);
+
+      const res = await fetch(url, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       });
 
       const json = await res.json();
-      if (!json.ok) throw new Error(json.message || "Save failed");
+      if (!json.success) throw new Error(json.error || "Save failed");
 
-      router.push("/recruiterprofile");
-      router.refresh();
+      console.log("[EditRecruiter] Saved successfully:", json.data);
+      setSuccess(true);
+      setTimeout(() => {
+        router.push("/recruiterprofile");
+        router.refresh();
+      }, 1200);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Save failed";
+      console.error("[EditRecruiter] Save error:", msg);
       setError(msg);
     } finally {
       setSaving(false);
@@ -158,7 +159,10 @@ export default function EditRecruiterPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-bg grid place-items-center">
-        <p className="text-muted">Loading edit form...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-accent mx-auto mb-3" />
+          <p className="text-muted text-sm">Loading edit form...</p>
+        </div>
       </div>
     );
   }
@@ -175,9 +179,17 @@ export default function EditRecruiterPage() {
           </p>
         </div>
 
+        {/* Error banner */}
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {error}
+          </div>
+        )}
+
+        {/* Success banner */}
+        {success && (
+          <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700 font-medium">
+            ✓ Profile saved! Redirecting to profile page...
           </div>
         )}
 
@@ -201,7 +213,9 @@ export default function EditRecruiterPage() {
                       unoptimized
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center" />
+                    <div className="flex h-full w-full items-center justify-center text-gray-400 text-xs text-center p-2">
+                      No logo
+                    </div>
                   )}
                 </div>
 
