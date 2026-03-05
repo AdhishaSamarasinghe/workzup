@@ -69,11 +69,10 @@ const SuggestionChip = ({
 }) => (
   <button
     onClick={onClick}
-    className={`border px-4 py-2 rounded-lg text-sm font-medium transition-all active:scale-95 ${
-      active
+    className={`border px-4 py-2 rounded-lg text-sm font-medium transition-all active:scale-95 ${active
         ? "bg-blue-600 border-blue-600 text-white"
         : "bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:bg-blue-50"
-    }`}
+      }`}
   >
     {label}
   </button>
@@ -226,7 +225,7 @@ export default function PreferencesPage() {
     setShowSavedMsg(true);
 
     setTimeout(() => {
-      router.push("/profile");
+      router.push("/");
     }, 1500);
   };
 
@@ -494,11 +493,10 @@ export default function PreferencesPage() {
                               <button
                                 key={type}
                                 onClick={() => toggleJobType(type)}
-                                className={`h-14 flex items-center justify-center px-4 rounded-xl border-2 font-semibold text-sm transition-all active:scale-95 ${
-                                  jobTypes.includes(type)
+                                className={`h-14 flex items-center justify-center px-4 rounded-xl border-2 font-semibold text-sm transition-all active:scale-95 ${jobTypes.includes(type)
                                     ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100"
                                     : "bg-white border-slate-50 text-slate-600 hover:border-blue-200"
-                                }`}
+                                  }`}
                               >
                                 {type}
                               </button>
@@ -509,10 +507,10 @@ export default function PreferencesPage() {
                             .toLowerCase()
                             .includes(jobTypeSearch.toLowerCase()),
                         ).length === 0 && (
-                          <div className="text-center py-8 text-gray-400 text-sm">
-                            No matching job types found.
-                          </div>
-                        )}
+                            <div className="text-center py-8 text-gray-400 text-sm">
+                              No matching job types found.
+                            </div>
+                          )}
                       </div>
 
                       <p className="text-sm text-gray-400 text-center italic">

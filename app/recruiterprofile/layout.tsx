@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import ProfileHeader from "../../components/profile/Header";
-import Footer from "../../components/Footer";
+import Header from "../../components/Header";
 
 type RecruiterProfileLayoutProps = {
   children: ReactNode;
@@ -11,7 +10,7 @@ export default function RecruiterProfileLayout({
 }: RecruiterProfileLayoutProps) {
   return (
     <>
-      <ProfileHeader />
+      <Header />
       {children}
     </>
   );

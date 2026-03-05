@@ -87,10 +87,6 @@ export async function fetchApi(path: string, options: RequestInit = {}) {
   }
 }
 
-export const fetchProfile = (userId: string) => fetchApi(`/profile/${userId}`);
-export const updateProfile = (userId: string, data: any) =>
-  fetchApi(`/profile/${userId}`, { method: "PUT", body: JSON.stringify(data) });
-
 export const fetchPreferences = (userId: string) =>
   fetchApi(`/preferences/${userId}`);
 export const updatePreferences = (userId: string, data: any) =>

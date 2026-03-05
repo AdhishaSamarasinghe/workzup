@@ -1,6 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-const profileRoutes = require("./routes/profile");
 const preferencesRoutes = require("./routes/preferences");
 const recruitersRoutes = require("./routes/recruiters");
 
@@ -12,7 +11,6 @@ app.use(express.json());
 
 app.get("/health", (req, res) => res.json({ ok: true, port: PORT }));
 
-app.use("/profile", profileRoutes);
 app.use("/preferences", preferencesRoutes);
 app.use("/recruiters", recruitersRoutes);
 
