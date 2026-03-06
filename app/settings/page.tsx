@@ -73,6 +73,7 @@ export default function SettingsPage() {
     const [securityEmails, setSecurityEmails] = useState(true);
     const [theme, setTheme] = useState("light");
     const [language, setLanguage] = useState("English (United States)");
+    const [searchEngineIndexing, setSearchEngineIndexing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [saveStatus, setSaveStatus] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -116,6 +117,7 @@ export default function SettingsPage() {
                     setSecurityEmails(data.securityEmails ?? true);
                     setTheme(data.theme ?? "light");
                     setLanguage(data.language ?? "English (United States)");
+                    setSearchEngineIndexing(data.searchEngineIndexing ?? false);
                     setRatings(data.ratings ?? null);
                 }
             } catch (error) {
@@ -178,6 +180,7 @@ export default function SettingsPage() {
                         appUpdates,
                         marketingEmails,
                         securityEmails,
+                        searchEngineIndexing,
                         theme,
                         language,
                         ...(section === "profile" && { name, title, bio, avatar, phone: userPhone, location: userLocation, birthday: userBirthday }),
@@ -677,8 +680,14 @@ export default function SettingsPage() {
                                                     Allow external search engines like Google and Bing to index your professional profile.
                                                 </p>
                                             </div>
-                                            <button className="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-gray-200">
-                                                <span className="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-card shadow ring-0 transition duration-200 translate-x-0" />
+                                            <button
+                                                onClick={() => {
+                                                    setSearchEngineIndexing(!searchEngineIndexing);
+                                                    handleSave("privacy");
+                                                }}
+                                                className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent-2 focus:ring-offset-2 ${searchEngineIndexing ? "bg-accent-2" : "bg-gray-200"}`}
+                                            >
+                                                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-card shadow ring-0 transition duration-200 ease-in-out ${searchEngineIndexing ? "translate-x-5" : "translate-x-0"}`} />
                                             </button>
                                         </div>
 

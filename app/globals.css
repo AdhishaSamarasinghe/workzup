@@ -37,12 +37,14 @@
   --primary-foreground: #ffffff;
   --card: #0f172a;
   --card-foreground: #f8fafc;
-  --muted: #1e293b;
+  --muted: #94a3b8;
   --muted-foreground: #94a3b8;
-  --accent: #1e293b;
+  --accent: #6b8bff;
+  --accent-2: #8be3c7;
   --accent-foreground: #f8fafc;
   --border: #1e293b;
   --input: #1e293b;
+  --bg: #020617;
 }
 
 @layer base {
