@@ -86,6 +86,9 @@ export default function SettingsPage() {
     const [title, setTitle] = useState("Product Designer");
     const [bio, setBio] = useState("Passionate about creating seamless user experiences and connecting talent with great opportunities.");
     const [avatar, setAvatar] = useState("https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=250&h=250&auto=format&fit=crop");
+    const [savedName, setSavedName] = useState("Alex Doe");
+    const [savedTitle, setSavedTitle] = useState("Product Designer");
+    const [savedAvatar, setSavedAvatar] = useState("https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=250&h=250&auto=format&fit=crop");
     const [userPhone, setUserPhone] = useState("+94 ");
     const [userLocation, setUserLocation] = useState("");
     const [userBirthday, setUserBirthday] = useState("");
@@ -102,9 +105,12 @@ export default function SettingsPage() {
                     const data = await response.json();
                     if (data.user) {
                         setName(data.user.name || "");
+                        setSavedName(data.user.name || "");
                         setTitle(data.user.title || "");
+                        setSavedTitle(data.user.title || "");
                         setBio(data.user.bio || "");
                         setAvatar(data.user.avatar || "");
+                        setSavedAvatar(data.user.avatar || "");
                         const phone = data.user.phone || "";
                         setUserPhone(phone);
                         setUserLocation(data.user.location || "");
@@ -196,6 +202,11 @@ export default function SettingsPage() {
                     setCurrentPassword("");
                     setNewPassword("");
                 }
+                if (section === "profile") {
+                    setSavedName(name);
+                    setSavedTitle(title);
+                    setSavedAvatar(avatar);
+                }
             } else {
                 setSaveStatus("error");
                 setErrorMessage("Something went wrong. Please try again.");
@@ -225,6 +236,31 @@ export default function SettingsPage() {
         window.location.href = "/"; // Redirect to home
     };
 
+    const handleDownloadData = () => {
+        const userData = {
+            profile: {
+                name, title, bio, phone: userPhone, location: userLocation, birthday: userBirthday
+            },
+            preferences: {
+                theme, language, searchEngineIndexing, profileVisibility
+            },
+            notifications: {
+                jobMatches, appUpdates, marketingEmails, securityEmails
+            },
+            ratings: ratings
+        };
+
+        const blob = new Blob([JSON.stringify(userData, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "workzup_archive.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div className="max-w-[var(--max-width)] mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="flex flex-col lg:flex-row gap-10">
@@ -236,16 +272,16 @@ export default function SettingsPage() {
                                 <div className="relative group mb-4">
                                     <div className="w-24 h-24 rounded-[var(--radius)] overflow-hidden ring-4 ring-white shadow-xl transition-transform group-hover:scale-105 duration-300 relative">
                                         <Image
-                                            src={avatar}
-                                            alt={name}
+                                            src={savedAvatar}
+                                            alt={savedName}
                                             fill
                                             className="object-cover"
                                         />
                                     </div>
                                     <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-accent-2 border-4 border-white rounded-full"></div>
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900">{name}</h3>
-                                <p className="text-sm font-medium text-accent">{title}</p>
+                                <h3 className="text-xl font-bold text-gray-900">{savedName}</h3>
+                                <p className="text-sm font-medium text-accent">{savedTitle}</p>
                                 <p className="text-xs text-gray-400 mt-1">alex.doe@workzup.com</p>
                             </div>
                         </div>
@@ -428,7 +464,7 @@ export default function SettingsPage() {
                             <div className="bg-card rounded-[var(--radius)] border border-gray-100 shadow-sm overflow-hidden border-t-4 border-t-amber-500">
                                 <div className="p-8">
                                     <div className="flex items-center gap-3 mb-8">
-                                        <div className="p-2.5 bg-amber-50 rounded-xl text-amber-600">
+                                        <div className="p-2.5 bg-accent/10 rounded-xl text-accent">
                                             <Lock className="w-5 h-5" />
                                         </div>
                                         <div>
@@ -483,7 +519,7 @@ export default function SettingsPage() {
                             <div className="bg-card rounded-[var(--radius)] border border-gray-100 shadow-sm overflow-hidden border-t-4 border-t-blue-500">
                                 <div className="p-8">
                                     <div className="flex items-center gap-3 mb-8">
-                                        <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600">
+                                        <div className="p-2.5 bg-accent/10 rounded-xl text-accent">
                                             <Bell className="w-5 h-5" />
                                         </div>
                                         <div>
@@ -556,7 +592,7 @@ export default function SettingsPage() {
                             <div className="bg-card rounded-[var(--radius)] border border-gray-100 shadow-sm overflow-hidden border-t-4 border-t-yellow-500">
                                 <div className="p-8">
                                     <div className="flex items-center gap-3 mb-8">
-                                        <div className="p-2.5 bg-yellow-50 rounded-xl text-yellow-600">
+                                        <div className="p-2.5 bg-accent-2/10 rounded-xl text-accent-2">
                                             <Star className="w-5 h-5" />
                                         </div>
                                         <div>
@@ -698,7 +734,10 @@ export default function SettingsPage() {
                                                     Generate a machine-readable JSON archive of all your activities, profile data, and job application history.
                                                 </p>
                                             </div>
-                                            <button className="px-6 py-3 bg-bg border border-gray-200 text-gray-700 rounded-[var(--radius)] text-[14px] font-bold hover:bg-gray-100 active:scale-95 transition-all flex items-center gap-2.5 flex-shrink-0">
+                                            <button
+                                                onClick={handleDownloadData}
+                                                className="px-6 py-3 bg-bg border border-gray-200 text-gray-700 rounded-[var(--radius)] text-[14px] font-bold hover:bg-gray-100 active:scale-95 transition-all flex items-center gap-2.5 flex-shrink-0"
+                                            >
                                                 <Download className="w-4 h-4" />
                                                 Request Archive
                                             </button>
@@ -734,7 +773,7 @@ export default function SettingsPage() {
                                                     <p className="text-sm text-muted">Select how the platform looks on your device.</p>
                                                 </div>
                                             </div>
-                                            <div className="flex bg-gray-100 p-1 rounded-[var(--radius)] w-fit">
+                                            <div className="flex bg-bg border border-gray-100 p-1 rounded-[var(--radius)] w-fit">
                                                 {["light", "dark", "system"].map((t) => (
                                                     <button
                                                         key={t}
@@ -752,7 +791,7 @@ export default function SettingsPage() {
 
                                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-10 border-t border-gray-50">
                                             <div className="flex items-center gap-4">
-                                                <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600">
+                                                <div className="p-2.5 bg-accent/10 rounded-xl text-accent">
                                                     <Globe className="w-5 h-5" />
                                                 </div>
                                                 <div>
