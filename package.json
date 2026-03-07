@@ -9,6 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.34",
+    "@ai-sdk/openai": "^3.0.37",
+    "@ai-sdk/react": "^3.0.107",
+    "@radix-ui/react-popover": "^1.1.15",
+    "ai": "^6.0.105",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.33.0",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "react": "19.2.3",

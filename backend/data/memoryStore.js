@@ -1,9 +1,22 @@
+const nowIso = new Date().toISOString();
+
 const users = [
   {
     id: "current-user-123",
     role: "JOB_SEEKER",
     name: "Viraj",
     email: "viraj@workzup.com",
+    avatar: "/avatars/default.svg",
+    isOnline: true,
+    lastSeen: nowIso,
+  },
+  {
+    id: "recruiter-1",
+    name: "John Recruiter",
+    avatar: "/logo_main.png",
+    role: "Recruiter",
+    isOnline: true,
+    lastSeen: nowIso,
   },
 ];
 
@@ -94,10 +107,59 @@ const recruiterReviews = {
   ],
 };
 
+const jobs = [];
+
+const conversations = [
+  {
+    id: "1",
+    type: "direct",
+    participants: [users[0], users[1]],
+    participant: users[1],
+    lastMessage: "Hello, are you available for the job?",
+    lastMessageTime: "10:30 AM",
+    unreadCount: 1,
+    isArchived: false,
+    isPinned: false,
+    createdAt: nowIso,
+  },
+];
+
+const messages = [
+  {
+    id: "m1",
+    conversationId: "1",
+    senderId: "recruiter-1",
+    content: "Hello, are you available for the job?",
+    text: "Hello, are you available for the job?",
+    replyToId: null,
+    isRead: false,
+    isEdited: false,
+    isDeleted: false,
+    timestamp: "10:30 AM",
+    createdAt: nowIso,
+  },
+  {
+    id: "m2",
+    conversationId: "1",
+    senderId: "current-user-123",
+    content: "Yes — I’m interested. What time should I be there?",
+    text: "Yes — I’m interested. What time should I be there?",
+    replyToId: null,
+    isRead: true,
+    isEdited: false,
+    isDeleted: false,
+    timestamp: "10:32 AM",
+    createdAt: nowIso,
+  },
+];
+
 module.exports = {
   users,
   preferencesByUserId,
   recruiterProfiles,
   recruiterJobs,
   recruiterReviews,
+  jobs,
+  messages,
+  conversations,
 };
