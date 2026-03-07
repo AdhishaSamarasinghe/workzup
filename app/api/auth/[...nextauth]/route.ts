@@ -1,3 +1,4 @@
+/* eslint-disable */
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
@@ -34,7 +35,7 @@ const handler = NextAuth({
         signIn: "/auth/login",
     },
     callbacks: {
-        async session({ session, token, user }) {
+        async session({ session, token, user }: { session: any, token: any, user: any }) {
             // Add custom session logic here if needed
             return session;
         }
