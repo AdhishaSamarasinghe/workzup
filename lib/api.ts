@@ -19,31 +19,108 @@ export const API_BASE =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   "http://localhost:5000";
 
+let detectedBaseUrl: string | null = null;
+
+// ============================================
+// CORE FETCH ENGINE (with 5001 fallback)
+// ============================================
+async function executeFetch(path: string, options: RequestInit = {}) {
+  const performFetch = async (baseUrl: string) => {
+    const url = `${baseUrl}${path}`;
+    const method = options.method || "GET";
+    console.log(`[API] ${method} ${url}`);
+
+    try {
+      const res = await fetch(url, options);
+      return res;
+    } catch (error: any) {
+      if (error.name === "TypeError" && error.message === "Failed to fetch") {
+        throw new Error("REACHABILITY_ERROR");
+      }
+      throw error;
+    }
+  };
+
+  if (detectedBaseUrl) {
+    try {
+      return await performFetch(detectedBaseUrl);
+    } catch (e: any) {
+      if (e.message !== "REACHABILITY_ERROR") throw e;
+      detectedBaseUrl = null;
+    }
+  }
+
+  try {
+    const res = await performFetch(API_BASE);
+    detectedBaseUrl = API_BASE;
+    return res;
+  } catch (error: any) {
+    if (error.message === "REACHABILITY_ERROR") {
+      const isDev = process.env.NODE_ENV === "development";
+      if (isDev && API_BASE.includes("localhost:5000")) {
+        const fallbackUrl = API_BASE.replace("5000", "5001");
+        console.warn(`[API] Localhost:5000 unreachable. Detecting if backend is on 5001...`);
+        try {
+          const healthRes = await fetch(`${fallbackUrl}/health`);
+          if (healthRes.ok) {
+            console.log(`[API] Backend detected on ${fallbackUrl}. Caching for future calls.`);
+            detectedBaseUrl = fallbackUrl;
+            return await performFetch(fallbackUrl);
+          }
+        } catch (healthError) { }
+      }
+      throw new Error("Backend not reachable. Check if server is running on port 5000 or 5001.");
+    }
+    throw error;
+  }
+}
+
 // ============================================
 // LOW-LEVEL FETCH HELPER (auth-aware)
-// Used by auth/onboarding/recruiter flows
+// Used by auth/onboarding/recruiter flows and preferences profiles
 // ============================================
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const isFormData = options.body instanceof FormData;
+  const isFormData = !!(options.body && typeof FormData !== 'undefined' && options.body instanceof FormData);
   const headers = {
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
-  };
+  } as HeadersInit;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  const res = await executeFetch(path, { ...options, headers });
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || "Request failed");
   return data;
 }
+
+// ============================================
+// PREFERENCES & RECRUITER API
+// ============================================
+
+export const fetchPreferences = (userId: string) =>
+  apiFetch(`/preferences/${userId}`);
+export const updatePreferences = (userId: string, data: any) =>
+  apiFetch(`/preferences/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+
+export const fetchRecruiter = (id: string) => apiFetch(`/recruiters/${id}`);
+export const fetchRecruiterJobs = (id: string) =>
+  apiFetch(`/recruiters/${id}/jobs`);
+export const fetchRecruiterReviews = (id: string) =>
+  apiFetch(`/recruiters/${id}/reviews`);
+export const contactRecruiter = (id: string, body?: object) =>
+  apiFetch(`/recruiters/${id}/contact`, {
+    method: "POST",
+    body: JSON.stringify(body ?? {}),
+  });
+
 
 // ============================================
 // LOW-LEVEL FETCH HELPER (generic, typed)
@@ -55,27 +132,27 @@ export async function fetchApi<T>(
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
   try {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const res = await executeFetch(endpoint, {
+      ...options,
       headers: {
         "Content-Type": "application/json",
         ...options?.headers,
       },
-      ...options,
     });
 
-    if (!response.ok) {
-      const text = await response.text();
+    if (!res.ok) {
+      const text = await res.text();
       console.error("API Error Response:", text);
-      throw new Error(`API request failed with status: ${response.status}`);
+      throw new Error(`API request failed with status: ${res.status}`);
     }
 
-    const contentType = response.headers.get("content-type");
+    const contentType = res.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
-      const text = await response.text();
+      const text = await res.text();
       throw new Error("Server returned non-JSON response: " + text);
     }
 
-    return await response.json();
+    return await res.json();
   } catch (error) {
     console.error("API Error:", error);
     return { success: false, error: error instanceof Error ? error.message : "Network error" };

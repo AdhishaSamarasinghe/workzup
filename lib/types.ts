@@ -2,11 +2,15 @@
 // SHARED TYPES FOR BACKEND AND FRONTEND
 // ============================================
 
+export type ApiResponse<T> =
+  | { success: boolean; data?: T; error?: string; message?: string;[key: string]: any };
+
 export interface User {
   id: string;
   name: string;
   email?: string;
   avatar?: string;
+  avatarUrl?: string;
   role?: string;
   isOnline?: boolean;
   lastSeen?: string;
@@ -17,13 +21,14 @@ export interface Message {
   conversationId: string;
   senderId: string;
   content: string;
+  text?: string;
   timestamp: string;
   createdAt: string;
   updatedAt?: string;
   isRead: boolean;
   isEdited: boolean;
   isDeleted: boolean;
-  replyToId?: string;
+  replyToId?: string | null;
   attachments?: Attachment[];
 }
 
@@ -38,41 +43,47 @@ export interface Attachment {
 export interface JobDetails {
   id: string;
   title: string;
-  payRate: string;
-  location: string;
-  date: string;
-  schedule: string;
-  description: string;
-  status: "open" | "filled" | "closed";
-  createdBy: string;
-  createdAt: string;
+  payRate?: string;
+  location?: string;
+  date?: string;
+  schedule?: string;
+  description?: string;
+  status?: "open" | "filled" | "closed";
+  createdBy?: string;
+  createdAt?: string;
   updatedAt?: string;
+  [key: string]: any;
 }
 
 export interface Conversation {
   id: string;
   type: "direct" | "job";
   participants: User[];
+  participant?: User;
   jobId?: string;
   job?: JobDetails;
-  lastMessage?: Message;
+  lastMessage?: string | Message;
   lastMessageTime?: string;
-  unreadCount: number;
-  createdAt: string;
+  unreadCount?: number;
+  createdAt?: string;
   updatedAt?: string;
-  isArchived: boolean;
-  isPinned: boolean;
+  isArchived?: boolean;
+  isPinned?: boolean;
 }
 
 // API Request/Response types
 export interface SendMessageRequest {
-  content: string;
+  content?: string;
+  text?: string;
   replyToId?: string;
   attachments?: Attachment[];
+  [key: string]: any;
 }
 
 export interface UpdateMessageRequest {
-  content: string;
+  content?: string;
+  text?: string;
+  [key: string]: any;
 }
 
 export interface UpdateJobDetailsRequest {
@@ -83,20 +94,15 @@ export interface UpdateJobDetailsRequest {
   schedule?: string;
   description?: string;
   status?: "open" | "filled" | "closed";
+  [key: string]: any;
 }
 
 export interface CreateConversationRequest {
-  participantIds: string[];
-  type: "direct" | "job";
+  participantIds?: string[];
+  type?: "direct" | "job";
   jobId?: string;
   initialMessage?: string;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
+  [key: string]: any;
 }
 
 // Typing indicator

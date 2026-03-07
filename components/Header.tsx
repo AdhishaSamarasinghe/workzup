@@ -11,8 +11,11 @@ export default function Header() {
   const path = pathname ? pathname.toLowerCase() : "";
   if (path.startsWith("/message") || path.startsWith("/jobchat")) return null;
 
-  // Placeholder user — swap with useSession() or similar when auth is added
-  const user = { name: "John Doe", role: "Employer", avatarUrl: "/avatar.png" };
+  const user = {
+    name: "Viraj",
+    role: "Job Seeker",
+    avatarUrl: "/avatars/default.svg",
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -48,8 +51,8 @@ export default function Header() {
 
             {/* Avatar links to profile page */}
             <Link href="/profile" className="flex items-center gap-3 rounded-xl px-2 py-1 hover:bg-slate-100">
-              <div className="h-10 w-10 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
-                <Image src={user.avatarUrl} alt={user.name} width={40} height={40} />
+              <div className="h-10 w-10 overflow-hidden rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center">
+                <Image src={user.avatarUrl} alt={user.name} width={40} height={40} className="object-cover" />
               </div>
               <div className="hidden sm:block leading-tight">
                 <div className="text-sm font-semibold text-slate-900">{user.name}</div>

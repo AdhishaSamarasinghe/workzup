@@ -348,8 +348,8 @@ export function getAllConversations(userId: string): Conversation[] {
       if (!a.isPinned && b.isPinned) return 1;
       // Then by last message time
       return (
-        new Date(b.updatedAt || b.createdAt).getTime() -
-        new Date(a.updatedAt || a.createdAt).getTime()
+        new Date(b.updatedAt || b.createdAt || 0).getTime() -
+        new Date(a.updatedAt || a.createdAt || 0).getTime()
       );
     });
 }
@@ -502,7 +502,7 @@ export function deleteMessage(
 
   // Update last message in conversation if needed
   const conversation = conversations.get(conversationId);
-  if (conversation && conversation.lastMessage?.id === messageId) {
+  if (conversation && typeof conversation.lastMessage === 'object' && conversation.lastMessage?.id === messageId) {
     const visibleMessages = conversationMessages.filter((m) => !m.isDeleted);
     conversation.lastMessage = visibleMessages[visibleMessages.length - 1];
     conversation.lastMessageTime =

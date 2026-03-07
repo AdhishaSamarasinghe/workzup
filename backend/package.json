@@ -1,7 +1,7 @@
 {
   "name": "workzup-backend",
   "version": "1.0.0",
-  "description": "Backend for Workzup",
+  "description": "Express backend for Workzup",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
@@ -21,6 +21,7 @@
     "multer": "^2.0.2-rc.1"
   },
   "devDependencies": {
+    "@ljharb/tsconfig": "^0.3.2",
     "nodemon": "^3.1.11"
   }
 }
