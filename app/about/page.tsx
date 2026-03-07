@@ -3,7 +3,7 @@ import React from 'react';
 
 const AboutPage = () => {
     return (
-        <div className="flex flex-col gap-20 py-10 px-4 md:px-0 max-w-[1100px] mx-auto w-full">
+        <div className="flex flex-col gap-20 py-10 px-4 md:px-0 max-w-275 mx-auto w-full">
 
             {/* Hero Section */}
             <section className="flex flex-col md:flex-row items-center justify-between gap-10">
@@ -17,7 +17,7 @@ const AboutPage = () => {
                         Workzup is the one-day job hiring platform that connects job seekers with employers who need short-term or urgent workers.
                     </p>
                     <div className="flex gap-4 pt-4">
-                        <button className="bg-[var(--accent)] text-white px-6 py-2.5 rounded-lg font-medium hover:opacity-90 transition-opacity">
+                        <button className="bg-(--accent) text-white px-6 py-2.5 rounded-lg font-medium hover:opacity-90 transition-opacity">
                             Find a job
                         </button>
                         <button className="bg-white border border-gray-200 text-[#111827] px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors">
@@ -27,7 +27,7 @@ const AboutPage = () => {
                 </div>
                 <div className="flex-1 w-full">
                     {/* Placeholder for Hero Image */}
-                    <div className="w-full h-[300px] md:h-[400px] bg-gradient-to-br from-[#A7D7C5] to-[#74B49B] rounded-2xl shadow-sm relative overflow-hidden">
+                    <div className="w-full h-75 md:h-100 bg-linear-to-br from-[#A7D7C5] to-[#74B49B] rounded-2xl shadow-sm relative overflow-hidden">
                         <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]"></div>
                     </div>
                 </div>
@@ -105,7 +105,7 @@ const AboutPage = () => {
 
                     {/* Item 1 */}
                     <div className="relative pl-12">
-                        <div className="absolute -left-[17px] top-0 w-9 h-9 bg-blue-400 rounded-full border-4 border-white shadow-sm"></div>
+                        <div className="absolute -left-4.25 top-0 w-9 h-9 bg-blue-400 rounded-full border-4 border-white shadow-sm"></div>
                         <div>
                             <span className="text-blue-500 font-medium block mb-1">2024 - The Idea</span>
                             <h4 className="text-lg font-bold text-[#111827]">Workzup is Born</h4>
@@ -117,7 +117,7 @@ const AboutPage = () => {
 
                     {/* Item 2 */}
                     <div className="relative pl-12">
-                        <div className="absolute -left-[17px] top-0 w-9 h-9 bg-blue-400 rounded-full border-4 border-white shadow-sm"></div>
+                        <div className="absolute -left-4.25 top-0 w-9 h-9 bg-blue-400 rounded-full border-4 border-white shadow-sm"></div>
                         <div>
                             <span className="text-blue-500 font-medium block mb-1">2025 - Platform Launch</span>
                             <h4 className="text-lg font-bold text-[#111827]">Connecting Our First Users</h4>
@@ -129,7 +129,7 @@ const AboutPage = () => {
 
                     {/* Item 3 */}
                     <div className="relative pl-12">
-                        <div className="absolute -left-[17px] top-0 w-9 h-9 bg-blue-400 rounded-full border-4 border-white shadow-sm opacity-50"></div>
+                        <div className="absolute -left-4.25 top-0 w-9 h-9 bg-blue-400 rounded-full border-4 border-white shadow-sm opacity-50"></div>
                         <div>
                             <span className="text-blue-500 font-medium block mb-1">Future - Expansion</span>
                             <h4 className="text-lg font-bold text-[#111827]">Growing Our Community</h4>
@@ -144,7 +144,7 @@ const AboutPage = () => {
 
             {/* CTA Section */}
             <section className="w-full">
-                <div className="bg-[var(--accent)] rounded-3xl p-10 md:p-16 text-center text-white shadow-lg overflow-hidden relative">
+                <div className="bg-(--accent) rounded-3xl p-10 md:p-16 text-center text-white shadow-lg overflow-hidden relative">
                     <div className="absolute top-0 left-0 w-full h-full bg-white/5 pointer-events-none"></div>
                     <h2 className="text-3xl md:text-4xl font-bold mb-6">
                         Ready to Find Your Next Opportunity Or <br className="hidden md:block" /> Hire?
@@ -156,7 +156,7 @@ const AboutPage = () => {
                         <button className="bg-transparent border border-white text-white px-8 py-3 rounded-xl hover:bg-white/10 transition-colors w-full sm:w-auto">
                             Find a job
                         </button>
-                        <button className="bg-white text-[var(--accent)] px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity w-full sm:w-auto shadow-sm">
+                        <button className="bg-white text-(--accent) px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity w-full sm:w-auto shadow-sm">
                             Post a job
                         </button>
                     </div>

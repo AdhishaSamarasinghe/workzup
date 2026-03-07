@@ -7,6 +7,7 @@ const helmet = require("helmet");
 const connectDB = require("./config/db");
 // const { globalLimiter } = require("./middleware/rateLimiter"); // Uncomment if exists
 // const errorHandler = require("./middleware/errorHandler"); // Uncomment if exists
+const recruiterRoutes = require("./routes/recruiter");
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ const jobRoutes = require("./routes/jobs");
 app.use("/api/auth", authRoutes);
 app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/recruiter", recruiterRoutes);
 
 /* -------- Home Route -------- */
 app.get("/", (req, res) => res.send("Workzup API running ✅"));
@@ -178,7 +180,7 @@ app.get("/jobs", (req, res) => {
 });
 
 /* -------- Start Server -------- */
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
