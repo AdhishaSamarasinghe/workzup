@@ -14,48 +14,13 @@ export default function RoleSelectionPage() {
 
     const handleRoleSelect = async (role: "JOB_SEEKER" | "EMPLOYER") => {
         setLoading(true);
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-            // router.push("/auth/register/step-1");
-            // return;
-            console.warn("No token found - bypassing API calls for UI testing");
-
-            // 3. Redirect based on role (Bypass persistence)
-            if (role === "JOB_SEEKER") {
-                router.push("/auth/register/job-seeker");
-            } else {
-                router.push("/auth/register/recruiter");
-            }
-            return;
+        // Simulating immediate routing without testing backend
+        if (role === "JOB_SEEKER") {
+            router.push("/auth/register/job-seeker");
+        } else {
+            router.push("/auth/register/recruiter");
         }
-
-        try {
-            // 1. Persist Role
-            await apiFetch("/api/auth/role", {
-                method: "PATCH",
-                body: JSON.stringify({ role }),
-            });
-
-            // 2. Update Onboarding Step
-            await apiFetch("/api/onboarding/step", {
-                method: "PATCH",
-                body: JSON.stringify({ step: 3 }),
-            });
-
-            // 3. Redirect based on role
-            if (role === "JOB_SEEKER") {
-                router.push("/auth/register/job-seeker");
-            } else {
-                router.push("/auth/register/recruiter");
-            }
-        } catch (error) {
-            console.error("Failed to update role:", error);
-            // Fallback
-            router.push("/auth/register/step-1");
-        } finally {
-            setLoading(false);
-        }
+        setLoading(false);
     };
 
     return (

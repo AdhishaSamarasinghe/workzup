@@ -13,27 +13,7 @@ export default function WelcomePage() {
 
     const handleGetStarted = async () => {
         setLoading(true);
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-            // TEMPORARY: Redirect to profile prompt for UI verification as requested
-            router.push("/onboarding/profile-prompt");
-            return;
-        }
-
-        try {
-            await apiFetch("/api/onboarding/step", {
-                method: "PATCH",
-                body: JSON.stringify({ step: 1 }),
-            });
-            router.push("/onboarding/profile-prompt");
-        } catch (error) {
-            console.error("Failed to update onboarding step:", error);
-            // Fallback: assume token might be invalid or something else is wrong, redirect to register
-            router.push("/auth/register/step-1");
-        } finally {
-            setLoading(false);
-        }
+        router.push("/onboarding/profile-prompt");
     };
 
     return (
