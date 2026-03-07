@@ -1,62 +1,35 @@
-/**
- * Header.tsx — Global sticky navigation bar
- */
-"use client";
-
-import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Logo from "@/components/Logo";
 
 export default function Header() {
-  //Placeholder user — swap with useSession() or similar when auth is added
-  const user = { name: "John Doe", role: "Employer", avatarUrl: "/avatar.png" };
-
   return (
-
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* logo | nav | actions */}
-        <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center">
-
-          {/* Left — Logo */}
-          <div className="flex items-center justify-start">
-            <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo_main.png" alt="WorkzUp" width={120} height={28} priority />
-            </Link>
-          </div>
-
-          {/* Center — Primary nav links (hidden on mobile) */}
-          <nav className="hidden md:flex items-center gap-8 text-sm text-slate-700">
-            <Link href="/dashboard" className="opacity-80 hover:opacity-100">Dashboard</Link>
-            {/* My postings links directly to the employer job list */}
-            <Link href="/employer/create-job/my-postings" className="opacity-80 hover:opacity-100">My postings</Link>
-            <Link href="/messages" className="opacity-80 hover:opacity-100">Messages</Link>
-            <Link href="/profile" className="opacity-80 hover:opacity-100">Profile</Link>
-          </nav>
-
-          {/* Right — CTA button + user avatar */}
-          <div className="flex items-center justify-end gap-4">
-            {/*Primary CTA navigates to the create-job form */}
-            <Link
-              href="/employer/create-job"
-              className="btn-primary min-w-[156px] w-fit px-4 h-[44px] text-sm whitespace-nowrap"
-            >
-              Post a new job
-            </Link>
-
-            {/*  Avatar links to profile page */}
-            <Link href="/profile" className="flex items-center gap-3 rounded-xl px-2 py-1 hover:bg-slate-100">
-              <div className="h-10 w-10 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
-                <Image src={user.avatarUrl} alt={user.name} width={40} height={40} />
-              </div>
-              <div className="hidden sm:block leading-tight">
-                <div className="text-sm font-semibold text-slate-900">{user.name}</div>
-                <div className="text-xs text-slate-500">{user.role}</div>
-              </div>
-            </Link>
-          </div>
-
+    <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-card/90 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
+        <div className="-ml-10 flex items-center gap-2">
+          <Logo textSize="text-2xl" />
         </div>
+
+        <nav className="hidden items-center gap-8 text-base font-medium text-[#1F2937] md:flex md:ml-auto">
+          <Link href="#" className="transition-colors hover:text-accent">
+            Find Jobs
+          </Link>
+          <Link href="#" className="transition-colors hover:text-accent">
+            Post a Job
+          </Link>
+        </nav>
+
+        <div className="md:hidden" />
+      </div>
+
+      <div className="border-t border-[#E5E7EB] bg-card md:hidden">
+        <nav className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-3 text-sm font-medium text-[#1F2937] sm:px-6 lg:px-8">
+          <Link href="#" className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]">
+            Find Jobs
+          </Link>
+          <Link href="#" className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]">
+            Post a Job
+          </Link>
+        </nav>
       </div>
     </header>
   );
