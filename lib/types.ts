@@ -3,8 +3,7 @@
 // ============================================
 
 export type ApiResponse<T> =
-  | { success: boolean; data?: T; error?: string; message?: string;[key: string]: any }
-  | T;
+  | { success: boolean; data?: T; error?: string; message?: string;[key: string]: any };
 
 export interface User {
   id: string;

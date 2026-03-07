@@ -161,19 +161,19 @@ function JobChatPage() {
       onClick: () => void;
       danger?: boolean;
     }> = [
-      {
-        label: "Copy",
-        icon: <CopyIcon />,
-        onClick: () => handleCopyMessage(message.content),
-      },
-      {
-        label: "Reply",
-        icon: <ReplyIcon />,
-        onClick: () => {
-          setInputValue(`@reply: ${message.content.substring(0, 20)}... `);
+        {
+          label: "Copy",
+          icon: <CopyIcon />,
+          onClick: () => handleCopyMessage(message.content),
         },
-      },
-    ];
+        {
+          label: "Reply",
+          icon: <ReplyIcon />,
+          onClick: () => {
+            setInputValue(`@reply: ${message.content.substring(0, 20)}... `);
+          },
+        },
+      ];
 
     if (isOwn && !message.isDeleted) {
       options.push({
@@ -494,9 +494,8 @@ function MessageBubble({ message, participant, isOwn }: MessageBubbleProps) {
   return (
     <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
       <div
-        className={`flex items-end gap-2 sm:gap-3 max-w-[90%] xs:max-w-[85%] sm:max-w-[75%] md:max-w-[70%] ${
-          isOwn ? "flex-row-reverse" : "flex-row"
-        }`}
+        className={`flex items-end gap-2 sm:gap-3 max-w-[90%] xs:max-w-[85%] sm:max-w-[75%] md:max-w-[70%] ${isOwn ? "flex-row-reverse" : "flex-row"
+          }`}
       >
         {/* Avatar */}
         <div className="flex-shrink-0 hidden xs:block">
@@ -517,9 +516,8 @@ function MessageBubble({ message, participant, isOwn }: MessageBubbleProps) {
         >
           {/* Sender name and time */}
           <div
-            className={`flex items-center gap-1 sm:gap-2 mb-1 ${
-              isOwn ? "flex-row-reverse" : "flex-row"
-            }`}
+            className={`flex items-center gap-1 sm:gap-2 mb-1 ${isOwn ? "flex-row-reverse" : "flex-row"
+              }`}
           >
             <span className="text-xs sm:text-sm font-medium text-gray-900 truncate">
               {isOwn ? "You" : participant.name}
@@ -534,13 +532,12 @@ function MessageBubble({ message, participant, isOwn }: MessageBubbleProps) {
 
           {/* Bubble */}
           <div
-            className={`px-3 sm:px-4 py-2 sm:py-3 rounded-2xl ${
-              message.isDeleted
+            className={`px-3 sm:px-4 py-2 sm:py-3 rounded-2xl ${message.isDeleted
                 ? "bg-gray-100 text-gray-400 italic"
                 : isOwn
                   ? "bg-blue-500 text-white rounded-br-md"
                   : "bg-gray-100 text-gray-800 rounded-bl-md"
-            }`}
+              }`}
           >
             <p className="text-xs sm:text-sm leading-relaxed break-words">
               {message.content}
@@ -626,15 +623,14 @@ function JobDetailsPanel({
       {/* Status Badge */}
       <div className="mb-4">
         <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            job.status === "open"
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${job.status === "open"
               ? "bg-green-100 text-green-800"
               : job.status === "filled"
                 ? "bg-blue-100 text-blue-800"
                 : "bg-gray-100 text-gray-800"
-          }`}
+            }`}
         >
-          {job.status?.charAt(0).toUpperCase() + job.status?.slice(1) || "Open"}
+          {job.status ? job.status.charAt(0).toUpperCase() + job.status.slice(1) : "Open"}
         </span>
       </div>
 
