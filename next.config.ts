@@ -27,6 +27,16 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return {
+      fallback: [
+        {
+          source: '/api/:path*',
+          destination: 'http://localhost:5000/api/:path*',
+        },
+      ],
+    };
+  },
   images: {
     remotePatterns: [
       {
@@ -46,5 +56,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
-

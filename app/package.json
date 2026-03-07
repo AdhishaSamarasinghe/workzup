@@ -1,0 +1,11 @@
+{
+    "name": "workzup-app",
+    "version": "1.0.0",
+    "description": "Frontend for Workzup — run scripts from here, they proxy to the project root.",
+    "scripts": {
+        "dev": "npm run dev --prefix ..",
+        "build": "npm run build --prefix ..",
+        "start": "npm run start --prefix ..",
+        "lint": "npm run lint --prefix .."
+    }
+}
