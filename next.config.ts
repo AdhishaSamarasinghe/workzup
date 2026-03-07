@@ -1,7 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  devIndicators: false,
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+        ignored: ['**/.next/**', '**/node_modules/**'],
+      };
+    }
+    return config;
+  },
   async redirects() {
     return [
       {
@@ -14,7 +24,19 @@ const nextConfig: NextConfig = {
         destination: '/auth/register/job-seeker',
         permanent: true,
       },
-    ]
+    ];
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+      },
+    ],
   },
 };
 
