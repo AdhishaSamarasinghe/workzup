@@ -13,6 +13,7 @@ import SuccessModal from "@/components/SuccessModal";
 export default function RecruiterRegisterPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -42,12 +43,14 @@ export default function RecruiterRegisterPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError("");
+
         if (formData.password !== formData.confirmPassword) {
-            alert("Passwords do not match");
+            setError("Passwords do not match");
             return;
         }
         if (!formData.termsAccepted) {
-            alert("Please accept the Privacy Policy and Terms");
+            setError("Please accept the Privacy Policy and Terms");
             return;
         }
 
@@ -74,7 +77,7 @@ export default function RecruiterRegisterPage() {
 
         } catch (error: any) {
             console.error("Registration failed:", error);
-            alert(error.message || "Registration failed. Please try again.");
+            setError(error.message || "Registration failed. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -296,6 +299,13 @@ export default function RecruiterRegisterPage() {
                                 </label>
                             </div>
 
+
+                            {/* Error Message Display */}
+                            {error && (
+                                <div className="text-sm text-red-500 font-medium text-center bg-red-50 py-2 rounded">
+                                    {error}
+                                </div>
+                            )}
 
                             {/* Login Container (with gray background wrapping form controls as in design) */}
                             <div className="bg-[#f2f4f7] rounded-xl p-4 sm:p-5 mt-4">

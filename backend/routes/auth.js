@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const User = require("../models/User");
+const prisma = require("../prismaClient");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
@@ -52,13 +52,15 @@ router.patch("/role", auth, async (req, res) => {
     return res.status(400).json({ message: "Invalid role" });
   }
 
-  const user = await User.findById(req.user.userId);
+  const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
   if (!user) return res.status(404).json({ message: "User not found" });
 
-  user.role = role;
-  await user.save();
+  const updatedUser = await prisma.user.update({
+    where: { id: req.user.userId },
+    data: { role: role }
+  });
 
-  res.json({ message: "Role updated", role: user.role });
+  res.json({ message: "Role updated", role: updatedUser.role });
 });
 
 // POST /api/auth/register
@@ -81,7 +83,7 @@ router.post("/register", upload.single("cv"), async (req, res) => {
       return res.status(400).json({ message: "email and password required" });
     }
 
-    const existing = await User.findOne({ email });
+    const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return res.status(409).json({ message: "Email already used" });
     }
@@ -91,20 +93,22 @@ router.post("/register", upload.single("cv"), async (req, res) => {
     // Get CV path if file uploaded
     const cvPath = req.file ? req.file.path : null;
 
-    const user = await User.create({
-      email,
-      passwordHash,
-      role: role || null,
-      firstName,
-      lastName,
-      gender,
-      homeTown,
-      cv: cvPath,
-      termsAccepted: termsAccepted === "true" || termsAccepted === true, // Multipart sends strings
-      emailNotifications: emailNotifications === "true" || emailNotifications === true,
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        role: role || null,
+        firstName,
+        lastName,
+        gender,
+        homeTown,
+        cv: cvPath,
+        termsAccepted: termsAccepted === "true" || termsAccepted === true, // Multipart sends strings
+        emailNotifications: emailNotifications === "true" || emailNotifications === true,
+      }
     });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
@@ -122,13 +126,13 @@ router.post("/login", async (req, res) => {
   if (!email || !password)
     return res.status(400).json({ message: "email and password required" });
 
-  const user = await User.findOne({ email });
+  const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
-  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
 

@@ -1,0 +1,78 @@
+﻿node.exe : Prisma 
+schema loaded from 
+prisma\schema.prisma.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Prisma schema   
+  l...\schema.prism    
+a.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+Error: Prisma schema 
+validation - 
+(get-config wasm)
+Error code: P1012
+error: The datasource 
+property `url` is no 
+longer supported in 
+schema files. Move 
+connection URLs for 
+Migrate to 
+`prisma.config.ts` and 
+pass either `adapter` 
+for a direct database 
+connection or 
+`accelerateUrl` for 
+Accelerate to the 
+`PrismaClient` 
+constructor. See https:
+//pris.ly/d/config-data
+source and https://pris
+.ly/d/prisma7-client-co
+nfig
+  -->  
+prisma\schema.prisma:7
+   | 
+ 6 |   provider  = 
+"postgresql"
+ 7 |   url       = 
+env("DATABASE_URL")
+   | 
+
+
+error: The datasource 
+property `directUrl` 
+is no longer supported 
+in schema files. Move 
+connection URLs to 
+`prisma.config.ts`. 
+See https://pris.ly/d/c
+onfig-datasource
+  -->  
+prisma\schema.prisma:8
+   | 
+ 7 |   url       = 
+env("DATABASE_URL")
+ 8 |   directUrl = 
+env("DIRECT_URL")
+   | 
+
+Validation Error 
+Count: 2
+[Context: getConfig]
+
+Prisma CLI Version : 
+7.4.2

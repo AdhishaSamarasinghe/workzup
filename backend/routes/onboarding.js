@@ -1,14 +1,15 @@
 const express = require("express");
-const User = require("../models/User");
+const prisma = require("../prismaClient");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
 
 // GET /api/onboarding/status
 router.get("/status", auth, async (req, res) => {
-  const user = await User.findById(req.user.userId).select(
-    "onboardingStep isProfileComplete"
-  );
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.userId },
+    select: { onboardingStep: true, isProfileComplete: true }
+  });
 
   if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -25,13 +26,16 @@ router.patch("/step", auth, async (req, res) => {
   if (typeof step !== "number")
     return res.status(400).json({ message: "step must be a number" });
 
-  const user = await User.findById(req.user.userId);
+  const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
   if (!user) return res.status(404).json({ message: "User not found" });
 
-  user.onboardingStep = Math.max(user.onboardingStep, step);
-  await user.save();
+  const nextStep = Math.max(user.onboardingStep, step);
+  const updatedUser = await prisma.user.update({
+    where: { id: req.user.userId },
+    data: { onboardingStep: nextStep }
+  });
 
-  res.json({ message: "Updated", onboardingStep: user.onboardingStep });
+  res.json({ message: "Updated", onboardingStep: updatedUser.onboardingStep });
 });
 
 module.exports = router;

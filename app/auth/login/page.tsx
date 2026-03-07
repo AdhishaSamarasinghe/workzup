@@ -14,6 +14,7 @@ export default function JobSeekerLoginPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState("");
 
     const [formData, setFormData] = useState({
         email: "",
@@ -31,6 +32,7 @@ export default function JobSeekerLoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError("");
 
         try {
             const res = await apiFetch("/api/auth/login", {
@@ -51,7 +53,7 @@ export default function JobSeekerLoginPage() {
             }
         } catch (error: any) {
             console.error("Login failed:", error);
-            alert(error.message || "Login failed. Please check your credentials.");
+            setError(error.message || "Login failed. Please check your credentials.");
         } finally {
             setLoading(false);
         }
@@ -157,6 +159,13 @@ export default function JobSeekerLoginPage() {
                                     RESET NOW
                                 </Link>
                             </div>
+
+                            {/* Error Message Display */}
+                            {error && (
+                                <div className="text-sm text-red-500 font-medium text-center bg-red-50 py-2 rounded">
+                                    {error}
+                                </div>
+                            )}
 
                             {/* Login Container (with gray background wrapping form controls as in design) */}
                             <div className="bg-[#f2f4f7] rounded-xl p-4 sm:p-5 mt-4">

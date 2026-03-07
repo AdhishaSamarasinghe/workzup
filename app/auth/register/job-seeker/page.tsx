@@ -15,6 +15,8 @@ import SuccessModal from "@/components/SuccessModal";
 export default function JobSeekerRegisterPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [successMsg, setSuccessMsg] = useState("");
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -46,8 +48,10 @@ export default function JobSeekerRegisterPage() {
     };
 
     const handleSendOtp = async () => {
+        setError("");
+        setSuccessMsg("");
         if (!formData.email) {
-            alert("Please enter your email first.");
+            setError("Please enter your email first.");
             return;
         }
         setOtpLoading(true);
@@ -59,18 +63,20 @@ export default function JobSeekerRegisterPage() {
             });
             if (!res.ok) throw new Error("Failed to send code");
             setIsOtpSent(true);
-            alert("Verification code sent to your email!");
+            setSuccessMsg("Verification code sent to your email!");
         } catch (error: any) {
             console.error("Failed to send OTP:", error);
-            alert(error.message || "Failed to send verification code.");
+            setError(error.message || "Failed to send verification code.");
         } finally {
             setOtpLoading(false);
         }
     };
 
     const handleVerifyOtp = async () => {
+        setError("");
+        setSuccessMsg("");
         if (!otp) {
-            alert("Please enter the verification code.");
+            setError("Please enter the verification code.");
             return;
         }
         setOtpLoading(true);
@@ -83,10 +89,10 @@ export default function JobSeekerRegisterPage() {
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error("Invalid code");
             setIsOtpVerified(true);
-            alert("Email verified successfully!");
+            setSuccessMsg("Email verified successfully!");
         } catch (error: any) {
             console.error("Failed to verify OTP:", error);
-            alert(error.message || "Invalid verification code.");
+            setError(error.message || "Invalid verification code.");
         } finally {
             setOtpLoading(false);
         }
@@ -94,16 +100,19 @@ export default function JobSeekerRegisterPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError("");
+        setSuccessMsg("");
+
         if (formData.password !== formData.confirmPassword) {
-            alert("Passwords do not match");
+            setError("Passwords do not match");
             return;
         }
         if (!isOtpVerified) {
-            alert("Please verify your email address before registering.");
+            setError("Please verify your email address before registering.");
             return;
         }
         if (!formData.termsAccepted) {
-            alert("Please accept the Privacy Policy and Terms");
+            setError("Please accept the Privacy Policy and Terms");
             return;
         }
 
@@ -130,7 +139,7 @@ export default function JobSeekerRegisterPage() {
 
         } catch (error: any) {
             console.error("Registration failed:", error);
-            alert(error.message || "Registration failed. Please try again.");
+            setError(error.message || "Registration failed. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -385,6 +394,18 @@ export default function JobSeekerRegisterPage() {
                                 </label>
                             </div>
 
+
+                            {/* Feedback Messages Display */}
+                            {error && (
+                                <div className="text-sm text-red-500 font-medium text-center bg-red-50 py-2 rounded">
+                                    {error}
+                                </div>
+                            )}
+                            {successMsg && (
+                                <div className="text-sm text-green-600 font-medium text-center bg-green-50 py-2 rounded">
+                                    {successMsg}
+                                </div>
+                            )}
 
                             {/* Login Container (with gray background wrapping form controls as in design) */}
                             <div className="bg-[#f2f4f7] rounded-xl p-4 sm:p-5 mt-4">
