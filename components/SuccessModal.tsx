@@ -4,9 +4,16 @@ import Link from "next/link";
 interface SuccessModalProps {
     isOpen: boolean;
     onClose?: () => void;
+    title?: string;
+    message?: React.ReactNode;
 }
 
-export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
+export default function SuccessModal({
+    isOpen,
+    onClose,
+    title = "Account Created Successfully!",
+    message
+}: SuccessModalProps) {
     if (!isOpen) return null;
 
     return (
@@ -28,16 +35,20 @@ export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
 
                 {/* Heading */}
                 <h2 className="mb-4 text-2xl font-black text-black sm:text-3xl">
-                    Account Created Successfully!
+                    {title}
                 </h2>
 
                 {/* Description */}
                 <div className="mb-10 text-lg leading-relaxed text-gray-800">
-                    <p>Your account has been created successfully.</p>
-                    <p>Welcome to WorkzUp!</p>
-                    <p className="mt-2">Your profile is now active and ready to use.</p>
-                    <p>Start applying for jobs, tracking applications, and building your</p>
-                    <p>career with us.</p>
+                    {message || (
+                        <>
+                            <p>Your account has been created successfully.</p>
+                            <p>Welcome to WorkzUp!</p>
+                            <p className="mt-2">Your profile is now active and ready to use.</p>
+                            <p>Start applying for jobs, tracking applications, and building your</p>
+                            <p>career with us.</p>
+                        </>
+                    )}
                 </div>
 
                 {/* Action Buttons */}
@@ -54,7 +65,7 @@ export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
                         className="flex-1 rounded-2xl bg-[#6B8BFF] px-8 py-4 text-lg font-bold text-white transition-colors hover:bg-[#5A75D9]"
                         onClick={onClose}
                     >
-                        Explore Jobs
+                        {title.includes("Recruiter") ? "Post a Job" : "Explore Jobs"}
                     </Link>
                 </div>
             </div>

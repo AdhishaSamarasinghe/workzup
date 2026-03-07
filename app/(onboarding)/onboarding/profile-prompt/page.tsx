@@ -13,7 +13,28 @@ export default function ProfilePromptPage() {
 
   const handleSetup = async () => {
     setLoading(true);
-    router.push("/onboarding/role-selection");
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      console.warn("No token found - bypassing API call for UI testing");
+      router.push("/onboarding/role-selection");
+      return;
+    }
+
+    try {
+      await apiFetch("/api/onboarding/step", {
+        method: "PATCH",
+        body: JSON.stringify({ step: 2 }),
+      });
+      // Redirect to role selection
+      router.push("/onboarding/role-selection");
+    } catch (error) {
+      console.error("Failed to update onboarding step:", error);
+      // Fallback: assume token might be invalid or something else is wrong
+      router.push("/auth/register/step-1");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  turbopack: {},
   webpack: (config, { dev }) => {
     if (dev) {
       config.watchOptions = {
@@ -11,6 +12,32 @@ const nextConfig: NextConfig = {
       };
     }
     return config;
+  },
+  async redirects() {
+    return [
+      {
+        source: '/recruiter/register',
+        destination: '/auth/register/recruiter',
+        permanent: true,
+      },
+      {
+        source: '/job-seeker/register',
+        destination: '/auth/register/job-seeker',
+        permanent: true,
+      },
+    ];
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+      },
+    ],
   },
 };
 

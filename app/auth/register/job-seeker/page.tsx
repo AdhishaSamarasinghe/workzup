@@ -17,12 +17,10 @@ export default function JobSeekerRegisterPage() {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [showVerificationCode, setShowVerificationCode] = useState(false);
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
         email: "",
-        verificationCode: "",
         password: "",
         confirmPassword: "",
         gender: "",
@@ -42,22 +40,8 @@ export default function JobSeekerRegisterPage() {
         setFormData((prev) => ({ ...prev, gender }));
     };
 
-    const handleSendCode = () => {
-        if (!formData.email) {
-            alert("Please enter an email address first.");
-            return;
-        }
-        // In a real app, you would send an API request here to dispatch the code
-        alert(`Verification code sent to ${formData.email}`);
-        setShowVerificationCode(true);
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (showVerificationCode && !formData.verificationCode) {
-            alert("Please enter the verification code sent to your email.");
-            return;
-        }
         if (formData.password !== formData.confirmPassword) {
             alert("Passwords do not match");
             return;
@@ -68,9 +52,32 @@ export default function JobSeekerRegisterPage() {
         }
 
         setLoading(true);
-        // Simulating immediate success without testing backend
-        setShowSuccessModal(true);
-        setLoading(false);
+        try {
+            const data = new FormData();
+            data.append("firstName", formData.firstName);
+            data.append("lastName", formData.lastName);
+            data.append("email", formData.email);
+            data.append("password", formData.password);
+            data.append("gender", formData.gender);
+            data.append("homeTown", formData.homeTown);
+            data.append("role", "JOB_SEEKER");
+            data.append("termsAccepted", String(formData.termsAccepted));
+            data.append("emailNotifications", String(formData.emailNotifications));
+
+            await apiFetch("/api/auth/register", {
+                method: "POST",
+                body: data,
+            });
+
+            // Show success modal instead of redirecting immediately
+            setShowSuccessModal(true);
+
+        } catch (error: any) {
+            console.error("Registration failed:", error);
+            alert(error.message || "Registration failed. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -87,14 +94,14 @@ export default function JobSeekerRegisterPage() {
                 </div>
                 <div className="flex gap-4">
                     <Link
-                        href="/auth/login"
-                        className="rounded-md bg-[#586CB6] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+                        href="/auth/login/recruiter"
+                        className="rounded-md bg-[#586CB6] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
                     >
                         RECRUITERS LOGIN
                     </Link>
                     <Link
                         href="/auth/login"
-                        className="rounded-md bg-[#6C8BFF] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+                        className="rounded-md bg-[#6C8BFF] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
                     >
                         JOB SEEKER LOGIN
                     </Link>
@@ -133,7 +140,7 @@ export default function JobSeekerRegisterPage() {
                                                 name="firstName"
                                                 required
                                                 placeholder="First Name *"
-                                                className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                                className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                                 value={formData.firstName}
                                                 onChange={handleChange}
                                             />
@@ -146,7 +153,7 @@ export default function JobSeekerRegisterPage() {
                                                 name="lastName"
                                                 required
                                                 placeholder="Last Name *"
-                                                className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                                className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                                 value={formData.lastName}
                                                 onChange={handleChange}
                                             />
@@ -156,63 +163,17 @@ export default function JobSeekerRegisterPage() {
                             </div>
 
                             {/* Email */}
-                            <div className="relative">
+                            <div>
                                 <input
                                     type="email"
                                     name="email"
                                     required
                                     placeholder="Email *"
-                                    className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 pr-32 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                    className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                     value={formData.email}
                                     onChange={handleChange}
                                 />
-                                {formData.email && !showVerificationCode && (
-                                    <button
-                                        type="button"
-                                        onClick={handleSendCode}
-                                        className="absolute inset-y-1 right-1 px-4 text-xs font-semibold text-white bg-[#6B8BFF] hover:bg-[#5A75D9] rounded transition-colors"
-                                    >
-                                        SEND CODE
-                                    </button>
-                                )}
                             </div>
-
-                            {/* Verification Code (Conditional) */}
-                            {showVerificationCode && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, height: "auto", scale: 1 }}
-                                    transition={{ duration: 0.3 }}
-                                    className="relative origin-top"
-                                >
-                                    <label htmlFor="verificationCode" className="block text-xs font-medium text-gray-700 mb-1 ml-1">
-                                        Enter the 6-digit code sent to your email
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            name="verificationCode"
-                                            required
-                                            placeholder="Verification Code *"
-                                            maxLength={6}
-                                            className="block w-full rounded-md border-2 border-green-400 bg-green-50/30 py-3 pl-4 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-green-500 sm:text-lg tracking-widest sm:leading-6"
-                                            value={formData.verificationCode}
-                                            onChange={handleChange}
-                                        />
-                                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                            <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center mt-2 px-1">
-                                        <span className="text-xs text-gray-500">Didn't receive it?</span>
-                                        <button type="button" onClick={handleSendCode} className="text-xs font-bold text-[#6B8BFF] hover:underline">
-                                            RESEND CODE
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            )}
 
                             {/* Password Fields */}
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -222,7 +183,7 @@ export default function JobSeekerRegisterPage() {
                                         name="password"
                                         required
                                         placeholder="Password *"
-                                        className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 pr-10 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                        className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 pr-10 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                         value={formData.password}
                                         onChange={handleChange}
                                     />
@@ -249,7 +210,7 @@ export default function JobSeekerRegisterPage() {
                                         name="confirmPassword"
                                         required
                                         placeholder="Confirm Password *"
-                                        className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 pr-10 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                        className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 pr-10 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
                                     />
@@ -271,7 +232,6 @@ export default function JobSeekerRegisterPage() {
                                     </button>
                                 </div>
                             </div>
-
 
                             {/* Gender and Hometown */}
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-center">
@@ -306,14 +266,12 @@ export default function JobSeekerRegisterPage() {
                                         name="homeTown"
                                         required
                                         placeholder="Home Town *"
-                                        className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 text-gray-900 placeholder:text-gray-500 focus:ring-1 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                        className="block w-full rounded-md border-0 bg-gray-200 py-3 pl-4 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                         value={formData.homeTown}
                                         onChange={handleChange}
                                     />
                                 </div>
                             </div>
-
-
 
                             {/* Terms */}
                             <div className="flex items-center justify-between text-sm">
@@ -403,7 +361,7 @@ export default function JobSeekerRegisterPage() {
                                 </div>
                             </div>
 
-                            {/* Login Redirect */}
+                            {/* Already have an account */}
                             <div className="text-center pt-2">
                                 <span className="text-sm text-gray-500 font-medium">Already have an account? </span>
                                 <Link href="/auth/login" className="text-sm font-bold text-[#6B8BFF] hover:underline">
@@ -414,6 +372,6 @@ export default function JobSeekerRegisterPage() {
                     </div>
                 </div>
             </motion.div>
-        </div >
+        </div>
     );
 }
