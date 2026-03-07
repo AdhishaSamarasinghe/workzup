@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
 
 // Define the interface for the profile data
 interface JobSeekerProfileData {
@@ -234,7 +233,7 @@ function ReviewItem({ name, role, date, rating, text }: { name: string, role: st
                         <StarIcon key={i} className={`w-3 h-3 ${i < rating ? 'fill-current' : 'text-slate-200'}`} />
                     ))}
                 </div>
-                <p className="text-slate-600 text-sm italic">"{text}"</p>
+                <p className="text-slate-600 text-sm italic">&ldquo;{text}&rdquo;</p>
             </div>
         </div>
     );
@@ -252,7 +251,6 @@ function JobHistoryCard({ history }: { history: JobSeekerProfileData["jobHistory
                         name={item.name}
                         role={item.role}
                         date={item.date}
-                        isLast={index === history.length - 1}
                     />
                 ))}
             </div>
@@ -260,7 +258,7 @@ function JobHistoryCard({ history }: { history: JobSeekerProfileData["jobHistory
     );
 }
 
-function HistoryItem({ name, role, date, isLast }: { name: string, role: string, date: string, isLast: boolean }) {
+function HistoryItem({ name, role, date }: { name: string, role: string, date: string }) {
     return (
         <div className="relative">
             {/* Dot on the timeline */}

@@ -5,15 +5,13 @@ import { useRouter } from "next/navigation";
 
 export default function ApplicationsPage() {
   const router = useRouter();
-  const [isChecked, setIsChecked] = useState(false);
+  const [isChecked] = useState(true);
 
   useEffect(() => {
     const storedId = window.localStorage.getItem("workzup:lastApplicationId");
     if (storedId) {
       router.replace(`/applications/${storedId}`);
-      return;
     }
-    setIsChecked(true);
   }, [router]);
 
   return (
