@@ -1,0 +1,302 @@
+﻿
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup
+
+
+Mode            LastWriteTime
+----            -------------
+d--h--     3/7/2026   2:50 AM
+d-----     3/7/2026   2:22 AM
+d-----     3/7/2026   2:53 AM
+d-----     3/7/2026   2:22 AM
+-a----     3/7/2026   2:48 AM
+-a----     3/7/2026   2:32 AM
+-a----     3/7/2026   2:35 AM
+-a----     3/7/2026   2:44 AM
+-a----     3/7/2026   2:53 AM
+-a----     3/7/2026   2:51 AM
+-a----     3/7/2026   2:41 AM
+-a----     3/7/2026   2:22 AM
+-a----     3/7/2026   2:49 AM
+-a----     3/7/2026   2:50 AM
+-a----     3/7/2026   2:52 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:21 AM
+d-----     3/7/2026   2:21 AM
+d-----     3/7/2026   2:22 AM
+d-----     3/7/2026   2:46 AM
+d-----     3/7/2026   2:22 AM
+-a----     3/7/2026   2:46 AM
+-a----     3/7/2026   2:22 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:43 AM
+-a----     3/7/2026   2:22 AM
+-a----     3/7/2026   2:46 AM
+-a----     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\hooks
+
+
+Mode            LastWriteTime
+----            -------------
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+-a----     3/7/2026   2:21 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\info
+
+
+Mode            LastWriteTime
+----            -------------
+-a----     3/7/2026   2:21 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\logs
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:22 AM
+-a----     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\logs\refs
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:22 AM
+d-----     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\objects
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:46 AM
+d-----     3/7/2026   2:46 AM
+d-----     3/7/2026   2:46 AM
+d-----     3/7/2026   2:46 AM
+d-----     3/7/2026   2:46 AM
+d-----     3/7/2026   2:21 AM
+d-----     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\objects\18
+
+
+Mode            LastWriteTime
+----            -------------
+-ar---     3/7/2026   2:46 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\objects\7f
+
+
+Mode            LastWriteTime
+----            -------------
+-ar---     3/7/2026   2:46 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\objects\c3
+
+
+Mode            LastWriteTime
+----            -------------
+-ar---     3/7/2026   2:46 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\objects\d2
+
+
+Mode            LastWriteTime
+----            -------------
+-ar---     3/7/2026   2:46 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\objects\f5
+
+
+Mode            LastWriteTime
+----            -------------
+-ar---     3/7/2026   2:46 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\objects\pack
+
+
+Mode            LastWriteTime
+----            -------------
+-ar---     3/7/2026   2:22 AM
+-ar---     3/7/2026   2:22 AM
+-ar---     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\refs
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:22 AM
+d-----     3/7/2026   2:22 AM
+d-----     3/7/2026   2:21 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\refs\heads
+
+
+Mode            LastWriteTime
+----            -------------
+-a----     3/7/2026   2:22 AM
+-a----     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .git\refs\remotes
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:43 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .next
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .next\dev
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    .next\dev\cache
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    app
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:53 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    app\auth
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:53 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    app\auth\register
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:53 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    node_modules
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    node_modules\@babel
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:22 AM
+
+
+    Directory: C:\Users\ASUS\
+    Documents\GitHub\workzup\
+    node_modules\@babel\core
+
+
+Mode            LastWriteTime
+----            -------------
+d-----     3/7/2026   2:22 AM
+
+
