@@ -1,0 +1,19 @@
+app/api/auth/[...nextauth]/route.ts(1,22): error TS2307: Cannot find module 'next-auth' or its corresponding type declarations.
+app/api/auth/[...nextauth]/route.ts(2,28): error TS2307: Cannot find module 'next-auth/providers/google' or its corresponding type declarations.
+app/api/auth/[...nextauth]/route.ts(3,30): error TS2307: Cannot find module 'next-auth/providers/facebook' or its corresponding type declarations.
+app/api/auth/[...nextauth]/route.ts(4,30): error TS2307: Cannot find module 'next-auth/providers/linkedin' or its corresponding type declarations.
+app/api/auth/[...nextauth]/route.ts(37,25): error TS7031: Binding element 'session' implicitly has an 'any' type.
+app/api/auth/[...nextauth]/route.ts(37,34): error TS7031: Binding element 'token' implicitly has an 'any' type.
+app/api/auth/[...nextauth]/route.ts(37,41): error TS7031: Binding element 'user' implicitly has an 'any' type.
+app/auth/login/page.tsx(7,24): error TS2307: Cannot find module 'next-auth/react' or its corresponding type declarations.
+app/auth/login/page.tsx(8,24): error TS2307: Cannot find module 'framer-motion' or its corresponding type declarations.
+app/auth/login/recruiter/page.tsx(7,24): error TS2307: Cannot find module 'next-auth/react' or its corresponding type declarations.
+app/auth/register/job-seeker/page.tsx(8,24): error TS2307: Cannot find module 'next-auth/react' or its corresponding type declarations.
+app/auth/register/job-seeker/page.tsx(9,24): error TS2307: Cannot find module 'framer-motion' or its corresponding type declarations.
+app/auth/register/recruiter/page.tsx(7,24): error TS2307: Cannot find module 'next-auth/react' or its corresponding type declarations.
+app/components/AuthProvider.tsx(3,33): error TS2307: Cannot find module 'next-auth/react' or its corresponding type declarations.
+components/OnboardingTransition.tsx(3,24): error TS2307: Cannot find module 'framer-motion' or its corresponding type declarations.
+job_seeker_page.tsx(8,24): error TS2307: Cannot find module 'next-auth/react' or its corresponding type declarations.
+login_page.tsx(7,24): error TS2307: Cannot find module 'next-auth/react' or its corresponding type declarations.
+next.config.ts(48,16): error TS2528: A module cannot have multiple default exports.
+next.config.ts(50,16): error TS2528: A module cannot have multiple default exports.

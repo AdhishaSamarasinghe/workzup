@@ -22,31 +22,35 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Import routes
+// ── Chat-branch routes (messages, conversations, users, jobs) ──
 const usersRoutes = require("./routes/users");
 const jobsRoutes = require("./routes/jobs");
 const messagesRoutes = require("./routes/messages");
 const conversationsRoutes = require("./routes/conversations");
 
-// Mount routes
 app.use("/users", usersRoutes);
 app.use("/jobs", jobsRoutes);
 app.use("/messages", messagesRoutes);
 app.use("/conversations", conversationsRoutes);
 
-// Import auth/onboarding/recruiter routes if they exist
+// ── Main-branch routes (auth, onboarding, recruiter) ──
+// Loaded with try/catch so the server works on branches where these don't yet exist.
 try {
   const authRoutes = require("./routes/auth");
-  const onboardingRoutes = require("./routes/onboarding");
-  const recruiterRoutes = require("./routes/recruiter");
   app.use("/api/auth", authRoutes);
-  app.use("/api/onboarding", onboardingRoutes);
-  app.use("/api/recruiter", recruiterRoutes);
-} catch (e) {
-  // Routes not yet available in this branch — skip gracefully
-}
+} catch (_) { /* not yet in this branch */ }
 
-// Simple health check route
+try {
+  const onboardingRoutes = require("./routes/onboarding");
+  app.use("/api/onboarding", onboardingRoutes);
+} catch (_) { /* not yet in this branch */ }
+
+try {
+  const recruiterRoutes = require("./routes/recruiter");
+  app.use("/api/recruiter", recruiterRoutes);
+} catch (_) { /* not yet in this branch */ }
+
+// Health check
 app.get("/", (req, res) => {
   res.send("Workzup API is running ✅");
 });

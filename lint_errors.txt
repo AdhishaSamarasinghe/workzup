@@ -1,0 +1,115 @@
+
+> workzup@0.1.0 lint
+> eslint
+
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\api\auth\[...nextauth]\route.ts
+  37:34  warning  'token' is defined but never used  @typescript-eslint/no-unused-vars
+  37:41  warning  'user' is defined but never used   @typescript-eslint/no-unused-vars
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\applications\[id]\page.tsx
+  200:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  237:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\apply-form\page.tsx
+  254:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\auth\login\page.tsx
+   51:25  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  193:88  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\auth\login\recruiter\page.tsx
+   50:25  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  187:88  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\auth\register\job-seeker\page.tsx
+   5:8   warning  'Image' is defined but never used            @typescript-eslint/no-unused-vars
+  15:11  warning  'router' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  75:25  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\auth\register\recruiter\page.tsx
+  13:11  warning  'router' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  74:25  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\employer\create-job\my-postings\page.tsx
+  59:6  warning  React Hook useEffect has a missing dependency: 'loadJobs'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\employer\create-job\page.tsx
+  11:8  warning  'Header' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\employer\edit-job\[id]\page.tsx
+   11:21  warning  'useParams' is defined but never used     @typescript-eslint/no-unused-vars
+   12:8   warning  'Link' is defined but never used          @typescript-eslint/no-unused-vars
+  204:23  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  225:23  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\jobseeker\browse\page.tsx
+  46:6  warning  React Hook useEffect has a missing dependency: 'fetchJobs'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\jobseeker\gigs\page.tsx
+  95:8  warning  React Hook useEffect has a missing dependency: 'fetchJobs'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\jobseeker\profile\page.tsx
+  108:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  223:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  248:37  warning  'index' is defined but never used                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\app\recruiter\jobs\[id]\complete\page.tsx
+   50:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   82:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\auth_routes.js
+  1:17  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:16  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  4:16  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  5:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  6:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  7:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  8:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\components\TimePicker.tsx
+   42:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\components\gigs\GigFilters.tsx
+  3:17  warning  'useState' is defined but never used   @typescript-eslint/no-unused-vars
+  3:27  warning  'useRef' is defined but never used     @typescript-eslint/no-unused-vars
+  3:35  warning  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\components\jobs\StatsSection.tsx
+  45:47  warning  The ref value 'sectionRef.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'sectionRef.current' to a variable inside the effect, and use that variable in the cleanup function  react-hooks/exhaustive-deps
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\components\recruiter\MyJobCard.tsx
+  3:17  warning  'useState' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\job_seeker_page.tsx
+   5:8   warning  'Image' is defined but never used            @typescript-eslint/no-unused-vars
+  14:11  warning  'router' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  74:25  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\login_page.tsx
+   50:25  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  187:88  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\test-gemini.ts
+  1:10  warning  'generateText' is defined but never used  @typescript-eslint/no-unused-vars
+  2:10  warning  'google' is defined but never used        @typescript-eslint/no-unused-vars
+  9:57  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\user_model.js
+  1:18  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\User\OneDrive - University of Westminster\Documents\GitHub\workzup\workzup\.next\dev\types\routes.d.ts
+  12:11  error  An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+  18:11  error  An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+
+✖ 54 problems (28 errors, 26 warnings)
+

@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+<<<<<<< HEAD
   async rewrites() {
     return [
       {
@@ -35,6 +36,8 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+=======
+>>>>>>> origin/main
   images: {
     remotePatterns: [
       {
@@ -54,3 +57,5 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+

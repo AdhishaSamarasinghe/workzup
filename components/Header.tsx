@@ -5,12 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function Header() {
+<<<<<<< HEAD
   const pathname = usePathname();
 
   // Hide header for Message and JobChat pages (case-insensitive)
   const path = pathname ? pathname.toLowerCase() : "";
   if (path.startsWith("/message") || path.startsWith("/jobchat")) return null;
 
+=======
+>>>>>>> origin/main
   // Placeholder user — swap with useSession() or similar when auth is added
   const user = { name: "John Doe", role: "Employer", avatarUrl: "/avatar.png" };
 
