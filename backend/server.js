@@ -23,30 +23,26 @@ app.use(express.json());
 app.use(cookieParser());
 
 // ── profile-preferences routes ──
-const preferencesRoutes = require("./routes/preferences");
-const recruitersRoutes = require("./routes/recruiters");
-app.use("/preferences", preferencesRoutes);
-app.use("/recruiters", recruitersRoutes);
+try {
+  const preferencesRoutes = require("./routes/preferences");
+  const recruitersRoutes = require("./routes/recruiters");
+  app.use("/preferences", preferencesRoutes);
+  app.use("/recruiters", recruitersRoutes);
+} catch (_) { }
 
 // ── Chat-branch routes (messages, conversations, users, jobs) ──
-try {
-  const usersRoutes = require("./routes/users");
-  app.use("/users", usersRoutes);
-} catch (_) { }
-try {
-  const jobsRoutes = require("./routes/jobs");
-  app.use("/jobs", jobsRoutes);
-} catch (_) { }
-try {
-  const messagesRoutes = require("./routes/messages");
-  app.use("/messages", messagesRoutes);
-} catch (_) { }
-try {
-  const conversationsRoutes = require("./routes/conversations");
-  app.use("/conversations", conversationsRoutes);
-} catch (_) { }
+const usersRoutes = require("./routes/users");
+const jobsRoutes = require("./routes/jobs");
+const messagesRoutes = require("./routes/messages");
+const conversationsRoutes = require("./routes/conversations");
+
+app.use("/users", usersRoutes);
+app.use("/jobs", jobsRoutes);
+app.use("/messages", messagesRoutes);
+app.use("/conversations", conversationsRoutes);
 
 // ── Main-branch routes (auth, onboarding, recruiter) ──
+// Loaded with try/catch so the server works on branches where these don't yet exist.
 try {
   const authRoutes = require("./routes/auth");
   app.use("/api/auth", authRoutes);

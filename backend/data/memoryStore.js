@@ -1,9 +1,13 @@
+// Simple in-memory arrays to act like a fake database.
+// All data resets when the backend server restarts.
+
 const nowIso = new Date().toISOString();
 
+// Seed a sample chat so the Messaging page has something to show.
 const users = [
   {
     id: "current-user-123",
-    role: "JOB_SEEKER",
+    role: "Job Seeker",
     name: "Viraj",
     email: "viraj@workzup.com",
     avatar: "/avatars/default.svg",
@@ -114,6 +118,7 @@ const conversations = [
     id: "1",
     type: "direct",
     participants: [users[0], users[1]],
+    // UI convenience field used by the current Messaging page implementation
     participant: users[1],
     lastMessage: "Hello, are you available for the job?",
     lastMessageTime: "10:30 AM",

@@ -1,0 +1,27 @@
+﻿commit 0ace9356418773b2cf119086628e0578e0621036
+Author: Abhilash Yuhansith <bogahawattaabhilash@gmail.com>
+Date:   Sat Mar 7 02:11:45 2026 +0530
+
+    Add turbopack dev cache files and Babel source map
+    
+    Add generated Next.js/Turbopack development cache files (.sst and .meta) under .next/dev/cache/turbopack/23c46498 and add @babel/core's plugins.js.map source map. These are build/dev artifacts (dev cache and a Babel source map); consider adding .next/ and node_modules/*.map to .gitignore if these were committed unintentionally.
+
+A	.next/dev/cache/turbopack/23c46498/00000281.sst
+A	.next/dev/cache/turbopack/23c46498/00000282.sst
+A	.next/dev/cache/turbopack/23c46498/00000283.sst
+A	.next/dev/cache/turbopack/23c46498/00000284.meta
+A	.next/dev/cache/turbopack/23c46498/00000285.meta
+A	.next/dev/cache/turbopack/23c46498/00000286.meta
+A	.next/dev/cache/turbopack/23c46498/00000287.sst
+A	.next/dev/cache/turbopack/23c46498/00000288.sst
+A	.next/dev/cache/turbopack/23c46498/00000289.sst
+A	.next/dev/cache/turbopack/23c46498/00000290.meta
+A	.next/dev/cache/turbopack/23c46498/00000291.meta
+A	.next/dev/cache/turbopack/23c46498/00000292.meta
+A	.next/dev/cache/turbopack/23c46498/00000293.sst
+A	.next/dev/cache/turbopack/23c46498/00000294.sst
+A	.next/dev/cache/turbopack/23c46498/00000295.sst
+A	.next/dev/cache/turbopack/23c46498/00000296.meta
+A	.next/dev/cache/turbopack/23c46498/00000297.meta
+A	.next/dev/cache/turbopack/23c46498/00000298.meta
+A	node_modules/@babel/core/lib/config/files/plugins.js.map

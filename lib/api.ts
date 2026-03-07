@@ -1,3 +1,7 @@
+// ============================================
+// API SERVICE - Frontend API calls
+// ============================================
+
 import {
   ApiResponse,
   Conversation,
@@ -71,7 +75,6 @@ async function executeFetch(path: string, options: RequestInit = {}) {
   }
 }
 
-
 // ============================================
 // LOW-LEVEL FETCH HELPER (auth-aware)
 // Used by auth/onboarding/recruiter flows and preferences profiles
@@ -96,7 +99,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 }
 
 // ============================================
-// PREFERENCES & RECRUITER API (from profile-preferences)
+// PREFERENCES & RECRUITER API
 // ============================================
 
 export const fetchPreferences = (userId: string) =>
