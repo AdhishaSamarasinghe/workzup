@@ -1,0 +1,43 @@
+commit 2a2f9d03ade66d9a0a714039fb6ff3fc356c0293
+Author: Shara-Hasanjan <ishara.20232856@iit.ac.lk>
+Date:   Sat Mar 7 22:34:56 2026 +0530
+
+    Add PublicHeader and wrapper components
+    
+    Introduce HeaderWrapper and MainContentWrapper and replace direct Header usage in app/layout.tsx so the layout can render a transparent PublicHeader for the before-login browse page. Add PublicHeader (animated, scroll-sensitive transparent-to-solid header) and MainContentWrapper (removes top padding on /jobseeker/browse so the header can overlay the hero). Remove placeholder pages for register step-1 and profile setup. Also fix next-env.d.ts import path from .next/dev/types/routes.d.ts to .next/types/routes.d.ts.
+
+diff --git a/app/auth/register/step-1/page.tsx b/app/auth/register/step-1/page.tsx
+deleted file mode 100644
+index 1ef0f6a..0000000
+--- a/app/auth/register/step-1/page.tsx
++++ /dev/null
+@@ -1,7 +0,0 @@
+-export default function RegisterStep1() {
+-    return (
+-        <div className="flex min-h-screen items-center justify-center">
+-            <h1 className="text-2xl font-bold">Register Step 1 (Placeholder)</h1>
+-        </div>
+-    );
+-}
+
+commit 24296f8e219026acaeb7a5ab3fab3ea424f05b03
+Author: Deveen Rathnayake <deveen45kg@gmail.com>
+Date:   Sat Feb 21 01:35:00 2026 +0530
+
+    Add onboarding, auth and registration UI
+    
+    Introduce a new onboarding flow and registration UI: add onboarding layout and pages (welcome, profile prompt, role selection), profile setup page, and job-seeker & recruiter registration screens with social sign-in. Add reusable components (Logo, OnboardingTransition, RoleCard, SuccessModal, CenteredCard updates) and adjust app layout. Wire up NextAuth API route with Google/Facebook/LinkedIn providers and add client-side API calls for onboarding/role persistence. Backend tweaks: update DB config, rename middleware auth file, modify User model and auth routes/server to support the new flows. (Note: dependency and node_modules additions are present but not detailed here.)
+
+diff --git a/app/auth/register/step-1/page.tsx b/app/auth/register/step-1/page.tsx
+new file mode 100644
+index 0000000..1ef0f6a
+--- /dev/null
++++ b/app/auth/register/step-1/page.tsx
+@@ -0,0 +1,7 @@
++export default function RegisterStep1() {
++    return (
++        <div className="flex min-h-screen items-center justify-center">
++            <h1 className="text-2xl font-bold">Register Step 1 (Placeholder)</h1>
++        </div>
++    );
++}

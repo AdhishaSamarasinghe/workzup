@@ -59,26 +59,6 @@ export default function JobSeekerLoginPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-            {/* Header */}
-            <header className="flex items-center justify-between bg-white px-6 py-4 shadow-sm z-10 w-full relative">
-                <div className="flex items-center gap-2">
-                    <Logo textSize="text-2xl" />
-                </div>
-                <div className="flex gap-4">
-                    <Link
-                        href="/auth/login/recruiter"
-                        className="rounded-md bg-[#586CB6] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-                    >
-                        RECRUITERS LOGIN
-                    </Link>
-                    <Link
-                        href="/auth/login"
-                        className="rounded-md bg-[#6C8BFF] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-                    >
-                        JOB SEEKER LOGIN
-                    </Link>
-                </div>
-            </header>
 
             <motion.div
                 initial={{ opacity: 0, x: -20 }}
