@@ -75,23 +75,8 @@ export default function JobSeekerLoginPage() {
                     {/* The Card Form container */}
                     <div className="w-full max-w-[500px] bg-white rounded-xl shadow-lg shadow-gray-200/50 p-8 sm:p-10 mb-auto mt-4 sm:mt-8 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-                        {/* Tabs */}
-                        <div className="flex justify-center mb-6">
-                            <div className="flex w-fit">
-                                <button className="px-8 py-2 bg-[#6B8BFF] text-white font-semibold rounded-l-md border border-[#6B8BFF] hover:bg-[#5A75D9] transition-colors">
-                                    Login
-                                </button>
-                                <Link href="/auth/register/job-seeker" className="px-8 py-2 bg-white text-gray-500 font-semibold rounded-r-md border border-gray-300 border-l-0 hover:bg-gray-50 transition-colors">
-                                    Register
-                                </Link>
-                            </div>
-                        </div>
-
-                        {/* Divider Line */}
-                        <div className="w-full h-px bg-gray-400/50 mb-8 rounded-full"></div>
-
                         {/* Title */}
-                        <h2 className="text-center text-[26px] font-bold text-gray-700 mb-8">
+                        <h2 className="text-center text-[26px] font-bold text-gray-700 mb-8 mt-2">
                             Job Seeker Login
                         </h2>
 
@@ -106,7 +91,7 @@ export default function JobSeekerLoginPage() {
                                         name="email"
                                         required
                                         placeholder="Email "
-                                        className="block w-full border-0 bg-[#E0E0E0] py-3.5 px-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 font-medium transition-shadow"
+                                        className="block w-full border-0 bg-[#E0E0E0] py-3.5 px-4 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 font-medium transition-shadow"
                                         value={formData.email}
                                         onChange={handleChange}
                                     />
@@ -122,7 +107,7 @@ export default function JobSeekerLoginPage() {
                                         name="password"
                                         required
                                         placeholder="Password "
-                                        className="block w-full border-0 bg-[#E0E0E0] py-3.5 pl-4 pr-12 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 font-medium transition-shadow"
+                                        className="block w-full border-0 bg-[#E0E0E0] py-3.5 pl-4 pr-12 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 font-medium transition-shadow"
                                         value={formData.password}
                                         onChange={handleChange}
                                     />
