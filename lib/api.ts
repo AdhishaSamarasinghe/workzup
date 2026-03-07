@@ -14,9 +14,42 @@ import {
   User,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "http://localhost:5000";
 
-// Helper function for API calls
+// ============================================
+// LOW-LEVEL FETCH HELPER (auth-aware)
+// Used by auth/onboarding/recruiter flows
+// ============================================
+
+export async function apiFetch(path: string, options: RequestInit = {}) {
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const isFormData = options.body instanceof FormData;
+  const headers = {
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || "Request failed");
+  return data;
+}
+
+// ============================================
+// LOW-LEVEL FETCH HELPER (generic, typed)
+// Used by messaging/conversation/job flows
+// ============================================
+
 export async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit,
