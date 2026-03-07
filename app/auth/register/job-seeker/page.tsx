@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { signIn } from "next-auth/react";
+import { motion } from "framer-motion";
 
 import Logo from "@/components/Logo";
 import SuccessModal from "@/components/SuccessModal";
@@ -107,7 +108,12 @@ export default function JobSeekerRegisterPage() {
                 </div>
             </header>
 
-            <div className="flex min-h-[calc(100vh-80px)]">
+            <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="flex min-h-[calc(100vh-80px)]"
+            >
                 {/* Left Side - Placeholder/Image */}
                 <div className="hidden w-1/3 bg-gray-200 lg:block"></div>
 
@@ -227,7 +233,6 @@ export default function JobSeekerRegisterPage() {
                                 </div>
                             </div>
 
-
                             {/* Gender and Hometown */}
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-center">
                                 <div className="flex items-center space-x-4 rounded-md border border-gray-300 px-4 py-3">
@@ -267,8 +272,6 @@ export default function JobSeekerRegisterPage() {
                                     />
                                 </div>
                             </div>
-
-
 
                             {/* Terms */}
                             <div className="flex items-center justify-between text-sm">
@@ -357,10 +360,18 @@ export default function JobSeekerRegisterPage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Already have an account */}
+                            <div className="text-center pt-2">
+                                <span className="text-sm text-gray-500 font-medium">Already have an account? </span>
+                                <Link href="/auth/login" className="text-sm font-bold text-[#6B8BFF] hover:underline">
+                                    Login here
+                                </Link>
+                            </div>
                         </form>
                     </div>
                 </div>
-            </div>
-        </div >
+            </motion.div>
+        </div>
     );
 }
