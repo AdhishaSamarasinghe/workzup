@@ -190,7 +190,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         try {
             const res = await fetch(`${API_BASE}/api/jobs/${id}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...(typeof window !== "undefined" && localStorage.getItem("token") ? { Authorization: `Bearer ${localStorage.getItem("token")}` } : {}) },
                 // Merge form fields with the current status
                 body: JSON.stringify({ ...form, status }),
             });
@@ -217,6 +217,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         try {
             const res = await fetch(`${API_BASE}/api/jobs/${id}`, {
                 method: "DELETE",
+                headers: { ...(typeof window !== "undefined" && localStorage.getItem("token") ? { Authorization: `Bearer ${localStorage.getItem("token")}` } : {}) },
             });
 
             if (!res.ok) throw new Error("Failed to delete job");

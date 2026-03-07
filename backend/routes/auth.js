@@ -5,7 +5,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const prisma = require("../prismaClient");
-const auth = require("../middleware/auth");
+const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -45,7 +45,7 @@ const upload = multer({
 });
 
 // PATCH /api/auth/role
-router.patch("/role", auth, async (req, res) => {
+router.patch("/role", authenticateToken, async (req, res) => {
   const { role } = req.body;
 
   if (!["JOB_SEEKER", "EMPLOYER"].includes(role)) {
@@ -108,9 +108,11 @@ router.post("/register", upload.single("cv"), async (req, res) => {
       }
     });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     res.json({ token });
   } catch (error) {
@@ -132,9 +134,11 @@ router.post("/login", async (req, res) => {
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
+  const token = jwt.sign(
+    { userId: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
   res.json({ token });
 });

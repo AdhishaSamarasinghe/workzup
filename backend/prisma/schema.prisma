@@ -9,19 +9,222 @@ datasource db {
 }
 
 model User {
-  id                 String   @id @default(uuid())
-  email              String   @unique
-  passwordHash       String
-  onboardingStep     Int      @default(0)
-  isProfileComplete  Boolean  @default(false)
-  role               String?
-  firstName          String?
-  lastName           String?
-  gender             String?
-  homeTown           String?
-  cv                 String?
-  termsAccepted      Boolean  @default(false)
-  emailNotifications Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id           String @id @default(uuid())
+  email        String @unique
+  passwordHash String
+  role         String @default("JOB_SEEKER") // JOB_SEEKER, RECRUITER, ADMIN
+
+  // Basic Info
+  firstName String?
+  lastName  String?
+  gender    String?
+  homeTown  String?
+  cv        String?
+
+  // Status flags
+  onboardingStep     Int     @default(0)
+  isProfileComplete  Boolean @default(false)
+  termsAccepted      Boolean @default(false)
+  emailNotifications Boolean @default(false)
+  isVerified         Boolean @default(false) // System verified user/recruiter
+  isBanned           Boolean @default(false) // Admin control
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  seekerProfile SeekerProfile?
+  companies     Company[]      @relation("RecruiterCompanies")
+  jobsPosted    Job[]          @relation("EmployerJobs")
+  applications  Application[]  @relation("ApplicantApplications")
+  savedJobs     SavedJob[]
+  payments      Payment[]      @relation("WorkerPayments")
+
+  // Chat
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  // Reviews
+  givenReviews    Review[] @relation("Reviewer")
+  receivedReviews Review[] @relation("Reviewee")
+
+  // Notifications
+  notifications Notification[]
+}
+
+model SeekerProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bio                String?
+  skills             String[]
+  preferredJobTypes  String[] // e.g., ["Part-time", "Full-time"]
+  preferredLocations String[]
+  expectedPayMin     Float?
+  expectedPayMax     Float?
+  availability       String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Company {
+  id          String @id @default(uuid())
+  recruiterId String
+  recruiter   User   @relation("RecruiterCompanies", fields: [recruiterId], references: [id], onDelete: Cascade)
+
+  name        String
+  tagline     String?
+  about       String?
+  industry    String?
+  companySize String?
+  website     String?
+  logoUrl     String?
+
+  address String?
+  city    String?
+  zipCode String?
+
+  isVerified Boolean  @default(false) // Admin approval
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  jobs Job[] @relation("CompanyJobs")
+}
+
+model Job {
+  id         String   @id @default(uuid())
+  employerId String
+  employer   User     @relation("EmployerJobs", fields: [employerId], references: [id], onDelete: Cascade)
+  companyId  String?
+  company    Company? @relation("CompanyJobs", fields: [companyId], references: [id], onDelete: SetNull)
+
+  title        String
+  description  String
+  pay          Float
+  payType      String   @default("hour")
+  category     String   @default("Hospitality")
+  locations    String[]
+  jobDates     String[]
+  startTime    String?
+  endTime      String?
+  requirements String[]
+  status       String   @default("DRAFT") // DRAFT, PUBLIC, PRIVATE, COMPLETED, CANCELLED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  applications Application[]
+  payments     Payment[]
+  savedBy      SavedJob[]
+}
+
+model Application {
+  id          String @id @default(uuid())
+  jobId       String
+  job         Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  applicantId String
+  applicant   User   @relation("ApplicantApplications", fields: [applicantId], references: [id], onDelete: Cascade)
+
+  matchScore          Int?
+  relevantSkillsCount Int?
+  status              String @default("NEW") // NEW, CONTACTED, SHORTLISTED, HIRED, REJECTED
+
+  appliedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([jobId, applicantId])
+}
+
+model SavedJob {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId  String
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  savedAt DateTime @default(now())
+
+  @@unique([userId, jobId])
+}
+
+model Review {
+  id         String  @id @default(uuid())
+  jobId      String? // Optional context
+  reviewerId String
+  reviewer   User    @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  revieweeId String
+  reviewee   User    @relation("Reviewee", fields: [revieweeId], references: [id], onDelete: Cascade)
+
+  rating  Int // 1-5
+  comment String?
+
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    String // "APPLICATION_UPDATE", "NEW_MESSAGE", "JOB_MATCH", "SYSTEM"
+  title   String
+  message String
+  linkUrl String?
+  isRead  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+model Conversation {
+  id              String   @id @default(uuid())
+  participantIds  String[] // Array of User IDs
+  lastMessage     String?
+  lastMessageTime String?
+  unreadCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  messages Message[]
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  receiverId String?
+  receiver   User?   @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: SetNull)
+
+  content   String
+  replyToId String?
+  isRead    Boolean @default(false)
+  isEdited  Boolean @default(false)
+  isDeleted Boolean @default(false)
+  timestamp String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id       String @id @default(uuid())
+  jobId    String
+  job      Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  workerId String
+  worker   User   @relation("WorkerPayments", fields: [workerId], references: [id], onDelete: Cascade)
+
+  amount         Float
+  currency       String    @default("GBP")
+  status         String    @default("PENDING") // PENDING, COMPLETED, FAILED
+  completionDate DateTime?
+  hoursWorked    Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

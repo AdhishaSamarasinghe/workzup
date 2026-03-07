@@ -172,7 +172,7 @@ export default function MyPostingsPage() {
                             try {
                               const res = await fetch(`${API_BASE}/api/jobs/${job._id}`, {
                                 method: "PUT",
-                                headers: { "Content-Type": "application/json" },
+                                headers: { "Content-Type": "application/json", ...(typeof window !== "undefined" && localStorage.getItem("token") ? { Authorization: `Bearer ${localStorage.getItem("token")}` } : {}) },
                                 body: JSON.stringify({ ...job, status: newStatus }),
                               });
                               if (res.ok) {

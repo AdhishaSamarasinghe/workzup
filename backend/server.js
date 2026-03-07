@@ -58,6 +58,16 @@ try {
   app.use("/api/recruiter", recruiterRoutes);
 } catch (_) { /* not yet in this branch */ }
 
+try {
+  const applicationsRoutes = require("./routes/applications");
+  app.use("/api/applications", applicationsRoutes);
+} catch (_) { }
+
+try {
+  const adminRoutes = require("./routes/admin");
+  app.use("/api/admin", adminRoutes);
+} catch (_) { }
+
 let PORT = process.env.PORT || 5000;
 
 app.get("/health", (req, res) => res.json({ ok: true, port: PORT }));

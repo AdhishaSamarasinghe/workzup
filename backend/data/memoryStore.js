@@ -112,51 +112,8 @@ const recruiterReviews = {
 };
 
 const jobs = [];
-
-const conversations = [
-  {
-    id: "1",
-    type: "direct",
-    participants: [users[0], users[1]],
-    // UI convenience field used by the current Messaging page implementation
-    participant: users[1],
-    lastMessage: "Hello, are you available for the job?",
-    lastMessageTime: "10:30 AM",
-    unreadCount: 1,
-    isArchived: false,
-    isPinned: false,
-    createdAt: nowIso,
-  },
-];
-
-const messages = [
-  {
-    id: "m1",
-    conversationId: "1",
-    senderId: "recruiter-1",
-    content: "Hello, are you available for the job?",
-    text: "Hello, are you available for the job?",
-    replyToId: null,
-    isRead: false,
-    isEdited: false,
-    isDeleted: false,
-    timestamp: "10:30 AM",
-    createdAt: nowIso,
-  },
-  {
-    id: "m2",
-    conversationId: "1",
-    senderId: "current-user-123",
-    content: "Yes — I’m interested. What time should I be there?",
-    text: "Yes — I’m interested. What time should I be there?",
-    replyToId: null,
-    isRead: true,
-    isEdited: false,
-    isDeleted: false,
-    timestamp: "10:32 AM",
-    createdAt: nowIso,
-  },
-];
+const conversations = [];
+const messages = [];
 
 module.exports = {
   users,

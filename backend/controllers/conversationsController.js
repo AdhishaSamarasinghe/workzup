@@ -1,59 +1,90 @@
-const { conversations } = require('../data/memoryStore');
-const crypto = require('crypto');
+const prisma = require('../prismaClient');
 
 // GET /api/conversations
-const getAllConversations = (req, res) => {
-    res.status(200).json({ success: true, data: conversations });
+const getAllConversations = async (req, res) => {
+    try {
+        const conversations = await prisma.conversation.findMany({
+            orderBy: { updatedAt: 'desc' }
+        });
+
+        // Match the expected mock format:
+        const formatted = conversations.map(c => ({
+            id: c.id,
+            participants: c.participantIds,
+            jobId: "unknown",
+            unreadCount: c.unreadCount,
+            lastMessage: c.lastMessage || "",
+            lastMessageTime: c.lastMessageTime || "",
+            isArchived: false,
+            isPinned: false,
+            createdAt: c.createdAt
+        }));
+
+        res.status(200).json({ success: true, data: formatted });
+    } catch (error) {
+        console.error("Error fetching conversations:", error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
 };
 
 // GET /api/conversations/:id
-const getConversationById = (req, res) => {
-    const conversation = conversations.find(c => c.id === req.params.id);
-    if (!conversation) {
-        return res.status(404).json({ success: false, error: 'Conversation not found' });
+const getConversationById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const conversation = await prisma.conversation.findUnique({
+            where: { id }
+        });
+
+        if (!conversation) {
+            return res.status(404).json({ success: false, error: 'Conversation not found' });
+        }
+
+        res.status(200).json({ success: true, data: { ...conversation, participants: conversation.participantIds } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-    res.status(200).json({ success: true, data: conversation });
 };
 
 // POST /api/conversations
-const createConversation = (req, res) => {
-    const { participantIds, type, jobId, initialMessage } = req.body;
+const createConversation = async (req, res) => {
+    try {
+        const { participantIds, type, jobId, initialMessage } = req.body;
 
-    const newConversation = {
-        id: crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString() + Math.random().toString(36).substring(7)),
-        type: type || 'direct',
-        participants: participantIds || [],
-        jobId,
-        unreadCount: 0,
-        isArchived: false,
-        isPinned: false,
-        createdAt: new Date().toISOString()
-    };
+        const newConversation = await prisma.conversation.create({
+            data: {
+                participantIds: participantIds || [],
+                lastMessage: initialMessage || "",
+                lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                unreadCount: 0
+            }
+        });
 
-    conversations.push(newConversation);
-    res.status(201).json({ success: true, data: newConversation });
+        res.status(201).json({ success: true, data: { ...newConversation, participants: newConversation.participantIds } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
 };
 
 // PATCH /api/conversations/:id
-const updateConversation = (req, res) => {
-    const { id } = req.params;
-    const conversationIndex = conversations.findIndex(c => c.id === id);
+const updateConversation = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { action, isPinned } = req.body;
 
-    if (conversationIndex === -1) {
-        return res.status(404).json({ success: false, error: 'Conversation not found' });
+        let updateData = {};
+        if (action === 'markRead') {
+            updateData.unreadCount = 0;
+        }
+
+        const updated = await prisma.conversation.update({
+            where: { id },
+            data: updateData
+        });
+
+        res.status(200).json({ success: true, data: updated });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-
-    const { action, isPinned } = req.body;
-
-    if (action === 'archive') {
-        conversations[conversationIndex].isArchived = true;
-    } else if (action === 'pin') {
-        conversations[conversationIndex].isPinned = isPinned;
-    } else if (action === 'markRead') {
-        conversations[conversationIndex].unreadCount = 0;
-    }
-
-    res.status(200).json({ success: true, data: conversations[conversationIndex] });
 };
 
 // GET /api/conversations/:id/typing

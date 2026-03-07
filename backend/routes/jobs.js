@@ -1,34 +1,36 @@
 /**
  *   GET    /api/jobs          → list all jobs (newest first)
  *   POST   /api/jobs          → create a new job
- *   GET    /api/jobs/:id      → fetch a single job by _id
- *   PUT    /api/jobs/:id      → update a job by _id
- *   DELETE /api/jobs/:id      → delete a job by _id
+ *   GET    /api/jobs/:id      → fetch a single job by id
+ *   PUT    /api/jobs/:id      → update a job by id
+ *   DELETE /api/jobs/:id      → delete a job by id
  */
 
 const express = require("express");
-const crypto = require("crypto");
+const prisma = require("../prismaClient");
+const { authenticateToken, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
-
-// Resets on server restart — acceptable for the current development phase.
-let jobs = [];
 
 // Ensures a value is always an array.
 const toArray = (val) => (Array.isArray(val) ? val : []);
 
 // GET /api/jobs — returns all jobs sorted newest-first
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const sortedJobs = [...jobs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    res.json(sortedJobs);
+    const jobs = await prisma.job.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(jobs);
   } catch (err) {
+    console.error("Error fetching jobs:", err);
     res.status(500).json({ message: "Failed to fetch jobs" });
   }
 });
 
 // POST /api/jobs — creates a new job
-router.post("/", (req, res) => {
+// We use authenticateToken so req.user is available
+router.post("/", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
   try {
     const {
       title,
@@ -58,24 +60,25 @@ router.post("/", (req, res) => {
       if (!title?.trim()) return res.status(400).json({ message: "Job title is required" });
     }
 
-    const newJob = {
-      _id: crypto.randomBytes(12).toString("hex"),
-      title: title?.trim(),
-      description: description?.trim(),
-      pay: Number(pay),
-      payType: payType || "hour",
-      category: category || "Hospitality",
-      locations: toArray(locations),
-      jobDates: toArray(jobDates),
-      startTime,
-      endTime,
-      requirements: toArray(requirements),
-      status: currentStatus,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const employerId = req.user.userId;
 
-    jobs.push(newJob);
+    const newJob = await prisma.job.create({
+      data: {
+        employerId,
+        title: title?.trim(),
+        description: description?.trim() || "",
+        pay: Number(pay) || 0,
+        payType: payType || "hour",
+        category: category || "Hospitality",
+        locations: toArray(locations),
+        jobDates: toArray(jobDates),
+        startTime,
+        endTime,
+        requirements: toArray(requirements),
+        status: currentStatus,
+      }
+    });
+
     res.status(201).json(newJob);
   } catch (err) {
     console.error("Error creating job:", err);
@@ -83,10 +86,12 @@ router.post("/", (req, res) => {
   }
 });
 
-// GET /api/jobs/:id — fetch a single job by its _id string
-router.get("/:id", (req, res) => {
+// GET /api/jobs/:id — fetch a single job by ID
+router.get("/:id", async (req, res) => {
   try {
-    const job = jobs.find((j) => j._id === req.params.id);
+    const job = await prisma.job.findUnique({
+      where: { id: req.params.id },
+    });
     if (!job) return res.status(404).json({ message: "Job not found" });
     res.json(job);
   } catch (err) {
@@ -96,8 +101,9 @@ router.get("/:id", (req, res) => {
 });
 
 // PUT /api/jobs/:id — full update of a job
-router.put("/:id", (req, res) => {
+router.put("/:id", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
   try {
+    const { id } = req.params;
     const {
       title,
       description,
@@ -112,10 +118,15 @@ router.put("/:id", (req, res) => {
       status
     } = req.body;
 
-    const jobIndex = jobs.findIndex((j) => j._id === req.params.id);
-    if (jobIndex === -1) return res.status(404).json({ message: "Job not found" });
+    const existingJob = await prisma.job.findUnique({ where: { id } });
+    if (!existingJob) return res.status(404).json({ message: "Job not found" });
 
-    const currentStatus = status || jobs[jobIndex].status;
+    // Ensure the user trying to update the job is the one who created it
+    if (existingJob.employerId !== req.user.userId) {
+      return res.status(403).json({ message: "Forbidden: You are not the owner of this job" });
+    }
+
+    const currentStatus = status || existingJob.status;
 
     if (currentStatus === "PUBLIC" || currentStatus === "PRIVATE") {
       if (!title?.trim()) return res.status(400).json({ message: "Job title is required" });
@@ -129,38 +140,46 @@ router.put("/:id", (req, res) => {
       if (!title?.trim()) return res.status(400).json({ message: "Job title is required" });
     }
 
-    const updatedJob = {
-      ...jobs[jobIndex],
-      title: title?.trim(),
-      description: description?.trim(),
-      pay: Number(pay),
-      payType: payType || jobs[jobIndex].payType,
-      category: category || jobs[jobIndex].category,
-      locations: toArray(locations),
-      jobDates: toArray(jobDates),
-      startTime,
-      endTime,
-      requirements: toArray(requirements),
-      status: currentStatus,
-      updatedAt: new Date().toISOString(),
-    };
+    const updatedJob = await prisma.job.update({
+      where: { id },
+      data: {
+        title: title?.trim(),
+        description: description?.trim(),
+        pay: Number(pay),
+        payType: payType || existingJob.payType,
+        category: category || existingJob.category,
+        locations: toArray(locations),
+        jobDates: toArray(jobDates),
+        startTime,
+        endTime,
+        requirements: toArray(requirements),
+        status: currentStatus,
+      }
+    });
 
-    jobs[jobIndex] = updatedJob;
     res.json(updatedJob);
   } catch (err) {
-    console.error(err);
+    console.error("Error updating job:", err);
     res.status(500).json({ message: "Failed to update job" });
   }
 });
 
-// DELETE /api/jobs/:id — removes a job from the in-memory store
-router.delete("/:id", (req, res) => {
+// DELETE /api/jobs/:id — removes a job
+router.delete("/:id", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
   try {
-    const jobIndex = jobs.findIndex((j) => j._id === req.params.id);
-    if (jobIndex === -1) return res.status(404).json({ message: "Job not found" });
-    jobs.splice(jobIndex, 1);
+    const { id } = req.params;
+    const existingJob = await prisma.job.findUnique({ where: { id } });
+
+    if (!existingJob) return res.status(404).json({ message: "Job not found" });
+
+    if (existingJob.employerId !== req.user.userId) {
+      return res.status(403).json({ message: "Forbidden: You are not the owner of this job" });
+    }
+
+    await prisma.job.delete({ where: { id } });
     res.json({ message: "Job deleted successfully" });
-  } catch {
+  } catch (err) {
+    console.error("Error deleting job:", err);
     res.status(500).json({ message: "Failed to delete job" });
   }
 });

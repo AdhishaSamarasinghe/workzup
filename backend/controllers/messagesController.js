@@ -1,125 +1,143 @@
-const { messages, conversations } = require('../data/memoryStore');
-const crypto = require('crypto');
+const prisma = require('../prismaClient');
 
 // GET /api/messages?conversationId=...
-const getMessages = (req, res) => {
-    const { conversationId } = req.query;
+const getMessages = async (req, res) => {
+    try {
+        const { conversationId } = req.query;
 
-    if (conversationId) {
-        const filtered = messages.filter(m => m.conversationId === conversationId && !m.isDeleted);
-        return res.status(200).json({ success: true, data: filtered });
+        let whereClause = { isDeleted: false };
+        if (conversationId) whereClause.conversationId = conversationId;
+
+        const messages = await prisma.message.findMany({
+            where: whereClause,
+            orderBy: { createdAt: 'asc' }
+        });
+
+        // Add 'text' for backward compatibility
+        const formatted = messages.map(m => ({ ...m, text: m.content }));
+        res.status(200).json({ success: true, data: formatted });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-
-    res.status(200).json({ success: true, data: messages.filter(m => !m.isDeleted) });
 };
 
 // POST /api/messages
-const sendMessage = (req, res) => {
-    const { senderId, conversationId, content, replyToId, text, receiverId } = req.body;
+const sendMessage = async (req, res) => {
+    try {
+        const { senderId, conversationId, content, replyToId, text, receiverId } = req.body;
+        const msgContent = content || text;
 
-    // Accept both the original parameters (senderId, receiverId, text)
-    // and the new parameters (senderId, conversationId, content) mapped by Next.js
-    const msgContent = content || text;
+        if (!msgContent) {
+            return res.status(400).json({ success: false, error: 'Message content is required' });
+        }
 
-    if (!msgContent) {
-        return res.status(400).json({ success: false, error: 'Message content is required' });
+        const timestampString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const targetConvId = conversationId || 'default';
+
+        // Ensure conversation exists or create it
+        let conv = await prisma.conversation.findUnique({ where: { id: targetConvId } });
+        if (!conv) {
+            conv = await prisma.conversation.create({
+                data: {
+                    id: targetConvId,
+                    participantIds: receiverId ? [senderId, receiverId] : [senderId],
+                    lastMessage: msgContent,
+                    lastMessageTime: timestampString,
+                    unreadCount: 1
+                }
+            });
+        } else {
+            // Update conversation last message
+            await prisma.conversation.update({
+                where: { id: targetConvId },
+                data: {
+                    lastMessage: msgContent,
+                    lastMessageTime: timestampString,
+                    unreadCount: { increment: 1 }
+                }
+            });
+        }
+
+        const newMessage = await prisma.message.create({
+            data: {
+                conversationId: targetConvId,
+                senderId: senderId || 'user-1',
+                receiverId,
+                content: msgContent,
+                replyToId,
+                timestamp: timestampString
+            }
+        });
+
+        res.status(201).json({ success: true, data: { ...newMessage, text: newMessage.content } });
+    } catch (error) {
+        console.error("Error sending message:", error);
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-
-    const timestampString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    const newMessage = {
-        id: crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString() + Math.random().toString(36).substring(7)),
-        conversationId: conversationId || 'default',
-        senderId: senderId || 'user-1',
-        receiverId,
-        content: msgContent,
-        text: msgContent, // Add both for compatibility
-        replyToId,
-        isRead: false,
-        isEdited: false,
-        isDeleted: false,
-        timestamp: timestampString,
-        createdAt: new Date().toISOString()
-    };
-
-    messages.push(newMessage);
-
-    // Sync with the conversation object
-    let conversation = conversations.find(c => c.id === newMessage.conversationId);
-    if (conversation) {
-        conversation.lastMessage = msgContent;
-        conversation.lastMessageTime = timestampString;
-        // Increment unread count if it's not from us (assuming sender is the user for this mock)
-        conversation.unreadCount = (conversation.unreadCount || 0) + 1;
-    } else {
-        // Auto-create a stub conversation if it doesn't exist so it shows up in the UI
-        conversation = {
-            id: newMessage.conversationId,
-            participant: {
-                id: receiverId || "unknown",
-                name: "New Chat",
-                avatar: "/logo_main.png"
-            },
-            lastMessage: msgContent,
-            lastMessageTime: timestampString,
-            unreadCount: 0
-        };
-        conversations.push(conversation);
-    }
-
-    res.status(201).json({ success: true, data: newMessage });
 };
 
 // PATCH /api/messages/:id
-const updateMessage = (req, res) => {
-    const { id } = req.params;
-    const msgIndex = messages.findIndex(m => m.id === id);
+const updateMessage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { content, action } = req.body;
 
-    if (msgIndex === -1) {
-        return res.status(404).json({ success: false, error: 'Message not found' });
+        let updateData = {};
+        if (action === 'markRead') updateData.isRead = true;
+        else if (content) {
+            updateData.content = content;
+            updateData.isEdited = true;
+        }
+
+        const updated = await prisma.message.update({
+            where: { id },
+            data: updateData
+        });
+
+        res.status(200).json({ success: true, data: { ...updated, text: updated.content } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-
-    const { content, action } = req.body;
-
-    if (action === 'markRead') {
-        messages[msgIndex].isRead = true;
-    } else if (content) {
-        messages[msgIndex].content = content;
-        messages[msgIndex].text = content;
-        messages[msgIndex].isEdited = true;
-        messages[msgIndex].updatedAt = new Date().toISOString();
-    }
-
-    res.status(200).json({ success: true, data: messages[msgIndex] });
 };
 
 // DELETE /api/messages/:id
-const deleteMessage = (req, res) => {
-    const { id } = req.params;
-    const msgIndex = messages.findIndex(m => m.id === id);
+const deleteMessage = async (req, res) => {
+    try {
+        const { id } = req.params;
 
-    if (msgIndex === -1) {
-        return res.status(404).json({ success: false, error: 'Message not found' });
+        await prisma.message.update({
+            where: { id },
+            data: {
+                isDeleted: true,
+                content: "This message was deleted"
+            }
+        });
+
+        res.status(200).json({ success: true, data: null });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-
-    messages[msgIndex].isDeleted = true;
-    messages[msgIndex].content = "This message was deleted";
-    messages[msgIndex].text = "This message was deleted";
-
-    res.status(200).json({ success: true, data: null });
 };
 
 // GET /api/messages/search?q=...
-const searchMessages = (req, res) => {
-    const { q, conversationId } = req.query;
+const searchMessages = async (req, res) => {
+    try {
+        const { q, conversationId } = req.query;
 
-    let results = messages.filter(m => !m.isDeleted && (m.content || m.text || "").toLowerCase().includes((q || "").toLowerCase()));
+        let whereClause = {
+            isDeleted: false,
+            content: { contains: q || "", mode: 'insensitive' }
+        };
 
-    if (conversationId) {
-        results = results.filter(m => m.conversationId === conversationId);
+        if (conversationId) whereClause.conversationId = conversationId;
+
+        const results = await prisma.message.findMany({ where: whereClause });
+        const formatted = results.map(m => ({ ...m, text: m.content }));
+
+        res.status(200).json({ success: true, data: formatted });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
     }
-
-    res.status(200).json({ success: true, data: results });
 };
 
 module.exports = {

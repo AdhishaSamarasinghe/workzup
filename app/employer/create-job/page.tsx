@@ -158,7 +158,7 @@ export default function CreateJobPage() {
     try {
       const res = await fetch(`${API_BASE}/api/jobs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(typeof window !== "undefined" && localStorage.getItem("token") ? { Authorization: `Bearer ${localStorage.getItem("token")}` } : {}) },
         // Status is injected here so the same form can create DRAFT or PUBLIC jobs
         body: JSON.stringify({ ...form, status }),
       });
