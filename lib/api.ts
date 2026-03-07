@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // ============================================
 // API SERVICE - Frontend API calls
 // ============================================
@@ -24,10 +23,6 @@ export const API_BASE =
 // LOW-LEVEL FETCH HELPER (auth-aware)
 // Used by auth/onboarding/recruiter flows
 // ============================================
-=======
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5001";
->>>>>>> origin/main
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token =
@@ -49,7 +44,6 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   if (!res.ok) throw new Error(data.message || "Request failed");
   return data;
 }
-<<<<<<< HEAD
 
 // ============================================
 // LOW-LEVEL FETCH HELPER (generic, typed)
@@ -253,5 +247,3 @@ export async function searchMessages(
   }
   return fetchApi<Message[]>(`/messages/search?${params.toString()}`);
 }
-=======
->>>>>>> origin/main
