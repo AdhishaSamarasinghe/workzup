@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Header from "../../components/Header";
 
 type RecruiterProfileLayoutProps = {
   children: ReactNode;
@@ -10,7 +9,6 @@ export default function RecruiterProfileLayout({
 }: RecruiterProfileLayoutProps) {
   return (
     <>
-      <Header />
       {children}
     </>
   );
