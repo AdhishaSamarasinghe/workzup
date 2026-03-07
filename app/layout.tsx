@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import "./globals.css";
-import Header from "../components/Header";
+import HeaderWrapper from "../components/HeaderWrapper";
 import Footer from "../components/Footer";
+import MainContentWrapper from "../components/MainContentWrapper";
 import AuthProvider from "./components/AuthProvider";
 
 export const metadata = {
@@ -15,8 +16,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-screen bg-bg text-[#111827] antialiased">
         <AuthProvider>
           <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1 pt-16">{children}</main>
+            <HeaderWrapper />
+            <MainContentWrapper>{children}</MainContentWrapper>
             <Footer />
           </div>
         </AuthProvider>
