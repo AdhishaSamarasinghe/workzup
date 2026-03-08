@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import { apiFetch } from "@/lib/api";
 
 // [DATA] Types based on API responses
 interface ApplicantItem {
@@ -34,7 +35,6 @@ export default function JobApplicantsPage() {
     const params = useParams();
     const router = useRouter();
     const jobId = params.id as string;
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
     // [STATE] Left Column State
     const [applicants, setApplicants] = useState<ApplicantItem[]>([]);
@@ -65,29 +65,7 @@ export default function JobApplicantsPage() {
                     limit: "8"
                 }).toString();
 
-                const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-                const url = `${API_BASE}/api/recruiter/jobs/${jobId}/applicants?${queryParams}`;
-                const res = await fetch(url, {
-                    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-                });
-
-                if (!res.ok) {
-                    // Try to extract meaningful error from JSON body, fallback to status text
-                    let errMsg = `Request failed: ${res.status} ${res.statusText}`;
-                    try {
-                        const body = await res.json();
-                        if (body && body.message) errMsg = body.message;
-                    } catch (e) {
-                        try {
-                            const text = await res.text();
-                            if (text) errMsg = text;
-                        } catch (_e) { }
-                    }
-                    console.error("Applicants fetch error response:", res.status, res.statusText, url);
-                    throw new Error(errMsg);
-                }
-
-                const data = await res.json();
+                const data = await apiFetch(`/api/recruiter/jobs/${jobId}/applicants?${queryParams}`);
 
                 setApplicants(data.items);
                 setTotalItems(data.totalItems);
@@ -116,7 +94,7 @@ export default function JobApplicantsPage() {
         }, 300);
 
         return () => clearTimeout(timeoutId);
-    }, [jobId, API_BASE, searchQuery, statusFilter, sortMethod]);
+    }, [jobId, searchQuery, statusFilter, sortMethod]);
 
     // [API] Fetch Full Profile
     useEffect(() => {
@@ -128,12 +106,7 @@ export default function JobApplicantsPage() {
         const fetchProfile = async () => {
             setProfileLoading(true);
             try {
-                const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-                const res = await fetch(`${API_BASE}/api/recruiter/applicants/${selectedApplicantId}`, {
-                    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-                });
-                if (!res.ok) throw new Error("Failed to fetch profile");
-                const data = await res.json();
+                const data = await apiFetch(`/api/recruiter/applicants/${selectedApplicantId}`);
                 setApplicantProfile(data);
             } catch (error) {
                 console.error("Error:", error);
@@ -143,7 +116,7 @@ export default function JobApplicantsPage() {
         };
 
         fetchProfile();
-    }, [selectedApplicantId, API_BASE]);
+    }, [selectedApplicantId]);
 
     // [ACTIONS] Update Application Status
     const updateStatus = async (status: string) => {
@@ -153,14 +126,10 @@ export default function JobApplicantsPage() {
         if (!applicantItem) return;
 
         try {
-            const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-            const res = await fetch(`${API_BASE}/api/recruiter/applications/${applicantItem.applicationId}/status`, {
+            await apiFetch(`/api/recruiter/applications/${applicantItem.applicationId}/status`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 body: JSON.stringify({ status })
             });
-
-            if (!res.ok) throw new Error("Failed to update status");
 
             // Update local state to reflect change without refetching entire list
             setApplicants(prev => prev.map(app =>
