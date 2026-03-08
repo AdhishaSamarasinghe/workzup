@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 // Define the interface for the profile data
 interface JobSeekerProfileData {
@@ -43,14 +44,7 @@ export default function JobSeekerProfile() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Fetch profile data from the backend
-        fetch("http://localhost:5000/user/profile")
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error("Failed to fetch profile");
-                }
-                return res.json();
-            })
+        apiFetch("/api/auth/profile")
             .then((data) => {
                 setProfile(data);
                 setLoading(false);

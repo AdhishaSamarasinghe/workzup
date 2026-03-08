@@ -7,6 +7,7 @@ import JobCard from "@/components/jobs/JobCard";
 import Pagination from "@/components/jobs/Pagination";
 import StatsSection from "@/components/jobs/StatsSection";
 import ReviewSection from "@/components/jobs/ReviewSection";
+import { apiFetch, API_BASE } from "@/lib/api";
 
 type Job = {
   id: number;
@@ -26,40 +27,40 @@ export default function BrowseJobsPage() {
   const [date, setDate] = useState("");
   const [page, setPage] = useState(1);
 
-  const fetchJobs = () => {
+  const fetchJobs = async () => {
     const params = new URLSearchParams();
     if (keyword) params.append("keyword", keyword);
     if (district) params.append("district", district);
     if (pay) params.append("pay", pay);
     if (date) params.append("date", date);
 
-    fetch(`http://localhost:5000/jobs?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setJobs(data);
-        setPage(1); // Reset to first page on new search results
-      })
-      .catch(console.error);
+    try {
+      const data = await apiFetch(`/api/jobs?${params.toString()}`);
+      // Handle the nested { items: [] } format or flat array
+      setJobs(Array.isArray(data) ? data : data.items || []);
+      setPage(1);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {
     fetchJobs();
   }, []);
 
-  const handleClear = () => {
+  const handleClear = async () => {
     setKeyword("");
     setDistrict("");
     setPay("");
     setDate("");
 
-    // Fetch all jobs immediately (empty params)
-    fetch("http://localhost:5000/jobs")
-      .then((res) => res.json())
-      .then((data) => {
-        setJobs(data);
-        setPage(1);
-      })
-      .catch(console.error);
+    try {
+      const data = await apiFetch("/api/jobs");
+      setJobs(Array.isArray(data) ? data : data.items || []);
+      setPage(1);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   /* 🔑 AUTO-GENERATED KEYWORDS */

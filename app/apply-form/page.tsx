@@ -150,8 +150,13 @@ export default function ApplyFormPage() {
     try {
       const formData = new FormData(form);
 
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
       const response = await fetch("/api/apply-form", {
         method: "POST",
+        headers: {
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
         body: formData,
       });
 
@@ -274,9 +279,8 @@ export default function ApplyFormPage() {
               <div className="space-y-2">
                 <label
                   htmlFor="fullName"
-                  className={`text-sm font-medium ${
-                    isFieldMissing("fullName") ? "text-red-600" : "text-[#111827]"
-                  }`}
+                  className={`text-sm font-medium ${isFieldMissing("fullName") ? "text-red-600" : "text-[#111827]"
+                    }`}
                 >
                   Full Name
                 </label>
@@ -289,11 +293,10 @@ export default function ApplyFormPage() {
                   onInput={(event) =>
                     clearMissingTextFieldIfFilled("fullName", event.currentTarget.value)
                   }
-                  className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${
-                    isFieldMissing("fullName")
+                  className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${isFieldMissing("fullName")
                       ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200"
                       : "border-[#E5E7EB] bg-white focus:border-[#6D83F2] focus:ring-[#6D83F2]/30"
-                  }`}
+                    }`}
                 />
                 {isFieldMissing("fullName") && (
                   <p className="text-xs font-medium text-red-600">Please fill this field.</p>
@@ -316,11 +319,10 @@ export default function ApplyFormPage() {
                   onInput={(event) =>
                     clearMissingTextFieldIfFilled("email", event.currentTarget.value)
                   }
-                  className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${
-                    isFieldMissing("email")
+                  className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${isFieldMissing("email")
                       ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200"
                       : "border-[#E5E7EB] bg-white focus:border-[#6D83F2] focus:ring-[#6D83F2]/30"
-                  }`}
+                    }`}
                 />
                 {isFieldMissing("email") && (
                   <p className="text-xs font-medium text-red-600">Please fill this field.</p>
@@ -343,11 +345,10 @@ export default function ApplyFormPage() {
                   onInput={(event) =>
                     clearMissingTextFieldIfFilled("phone", event.currentTarget.value)
                   }
-                  className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${
-                    isFieldMissing("phone")
+                  className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${isFieldMissing("phone")
                       ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200"
                       : "border-[#E5E7EB] bg-white focus:border-[#6D83F2] focus:ring-[#6D83F2]/30"
-                  }`}
+                    }`}
                 />
                 {isFieldMissing("phone") && (
                   <p className="text-xs font-medium text-red-600">Please fill this field.</p>
@@ -363,11 +364,10 @@ export default function ApplyFormPage() {
                 </label>
                 <label
                   htmlFor="cv"
-                  className={`flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-4 py-3 text-sm ${
-                    isFieldMissing("cv")
+                  className={`flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-4 py-3 text-sm ${isFieldMissing("cv")
                       ? "border-red-500 bg-red-50 text-red-700"
                       : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
-                  }`}
+                    }`}
                 >
                   <span>
                     {cvFileName ? cvFileName : "Drag and drop or click to upload"}
@@ -405,11 +405,10 @@ export default function ApplyFormPage() {
                 </label>
                 <label
                   htmlFor="nic"
-                  className={`flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed px-4 py-4 text-sm ${
-                    isFieldMissing("nic")
+                  className={`flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed px-4 py-4 text-sm ${isFieldMissing("nic")
                       ? "border-red-500 bg-red-50 text-red-700"
                       : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
-                  }`}
+                    }`}
                 >
                   <img
                     src="/nic-guide.jpg"
@@ -454,9 +453,8 @@ export default function ApplyFormPage() {
               <div className="space-y-2">
                 <label
                   htmlFor="coverLetter"
-                  className={`text-sm font-medium ${
-                    isFieldMissing("coverLetter") ? "text-red-600" : "text-[#111827]"
-                  }`}
+                  className={`text-sm font-medium ${isFieldMissing("coverLetter") ? "text-red-600" : "text-[#111827]"
+                    }`}
                 >
                   Cover Letter
                 </label>
@@ -469,11 +467,10 @@ export default function ApplyFormPage() {
                   onInput={(event) =>
                     clearMissingTextFieldIfFilled("coverLetter", event.currentTarget.value)
                   }
-                  className={`w-full resize-none rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${
-                    isFieldMissing("coverLetter")
+                  className={`w-full resize-none rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${isFieldMissing("coverLetter")
                       ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200"
                       : "border-[#E5E7EB] bg-white focus:border-[#6D83F2] focus:ring-[#6D83F2]/30"
-                  }`}
+                    }`}
                 />
                 {isFieldMissing("coverLetter") && (
                   <p className="text-xs font-medium text-red-600">Please fill this field.</p>

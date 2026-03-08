@@ -6,6 +6,7 @@ import GigFilters from "@/components/gigs/GigFilters";
 import GigHeader from "@/components/gigs/GigHeader";
 import GigCard from "@/components/gigs/GigCard";
 import Pagination from "@/components/jobs/Pagination";
+import { apiFetch, API_BASE } from "@/lib/api";
 
 // Reusing Job type but ensuring it matches backend
 type Job = {
@@ -40,7 +41,7 @@ export default function FindGigPage() {
     const jobsPerPage = 5;
 
     // Fetch Jobs on Filter Change or Load
-    const fetchJobs = () => {
+    const fetchJobs = async () => {
         const params = new URLSearchParams();
         if (location) params.append("district", location); // Using district param as location matches backend
         if (date) params.append("date", date);
@@ -52,42 +53,28 @@ export default function FindGigPage() {
         params.append("minPay", payRange[0].toString());
         params.append("maxPay", payRange[1].toString());
 
-        fetch(`http://localhost:5000/jobs?${params.toString()}`)
-            .then(async (res) => {
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(`Failed to fetch jobs: ${res.status} ${text}`);
-                }
-                return res.json();
-            })
-            .then((data) => {
-                setJobs(data);
-                setPage(1); // Reset to p1
-            })
-            .catch(err => console.error("Job Fetch Error:", err));
+        try {
+            const data = await apiFetch(`/api/jobs?${params.toString()}`);
+            setJobs(Array.isArray(data) ? data : data.items || []);
+            setPage(1);
+        } catch (err) {
+            console.error("Job Fetch Error:", err);
+        }
     };
 
     // Initial load
     useEffect(() => {
         // Fetch Categories
-        fetch("http://localhost:5000/categories")
-            .then(async res => {
-                if (!res.ok) throw new Error("Failed to fetch categories");
-                return res.json();
-            })
+        apiFetch("/api/categories")
             .then(data => setAvailableCategories(data))
             .catch(err => console.error("Category Fetch Error:", err));
 
         // Fetch Max Pay
-        fetch("http://localhost:5000/max-pay")
-            .then(async res => {
-                if (!res.ok) throw new Error("Failed to fetch max pay");
-                return res.json();
-            })
+        apiFetch("/api/max-pay")
             .then(data => {
                 if (data.max) {
                     setMaxPayBound(data.max);
-                    setPayRange([0, data.max]); // Optional: Reset range to full on load
+                    setPayRange([0, data.max]);
                 }
             })
             .catch(err => console.error("Max Pay Fetch Error:", err));
@@ -131,10 +118,10 @@ export default function FindGigPage() {
         setDate("");
         setCategory("All Jobs");
         // Fetch all (empty params except maybe default range if we wanted)
-        fetch("http://localhost:5000/jobs")
-            .then(res => res.json())
+        // Fetch all 
+        apiFetch("/api/jobs")
             .then(data => {
-                setJobs(data);
+                setJobs(Array.isArray(data) ? data : data.items || []);
                 setPage(1);
             });
     };
@@ -160,10 +147,9 @@ export default function FindGigPage() {
         params.append("minPay", payRange[0].toString());
         params.append("maxPay", payRange[1].toString());
 
-        fetch(`http://localhost:5000/jobs?${params.toString()}`)
-            .then((res) => res.json())
+        apiFetch(`/api/jobs?${params.toString()}`)
             .then((data) => {
-                setJobs(data);
+                setJobs(Array.isArray(data) ? data : data.items || []);
                 setPage(1);
             })
             .catch(console.error);

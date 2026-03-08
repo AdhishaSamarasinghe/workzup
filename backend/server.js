@@ -75,6 +75,46 @@ app.get("/", (req, res) => {
   res.send(`Workzup API is running on port ${PORT} ✅`);
 });
 
+// --- Legacy Backwards-Compatible Public Endpoints ---
+app.get("/jobs", async (req, res) => {
+  try {
+    const prisma = require("./prismaClient");
+    const jobs = await prisma.job.findMany({
+      orderBy: { createdAt: "desc" },
+      where: { status: "ACTIVE" } // Only show active publicly!
+    });
+    res.json(jobs);
+  } catch (err) {
+    res.status(500).json({ message: "Failed", error: err.message });
+  }
+});
+
+app.get("/categories", async (req, res) => {
+  try {
+    const prisma = require("./prismaClient");
+    const categories = await prisma.job.findMany({
+      select: { category: true },
+      distinct: ['category'],
+    });
+    const formatted = categories.map(c => c.category).filter(Boolean);
+    res.json(["All Jobs", "All Categories", ...formatted]);
+  } catch (err) {
+    res.json(["All Jobs", "All Categories", "Hospitality", "Retail"]);
+  }
+});
+
+app.get("/max-pay", async (req, res) => {
+  try {
+    const prisma = require("./prismaClient");
+    const aggregation = await prisma.job.aggregate({
+      _max: { pay: true }
+    });
+    res.json({ max: aggregation._max.pay || 5000 });
+  } catch (err) {
+    res.json({ max: 5000 });
+  }
+});
+
 function startServer(portToTry) {
   const server = app.listen(portToTry, () => {
     PORT = portToTry;

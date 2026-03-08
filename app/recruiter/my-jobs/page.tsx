@@ -47,8 +47,8 @@ export default function MyJobsPage() {
     useEffect(() => {
         apiFetch("/api/recruiter/jobs")
             .then(data => {
-                // Ensure data has the new fields (defaults) since legacy data might not
-                const apiJobs: RawJob[] = (data && Array.isArray(data.items)) ? data.items : [];
+                // Parse correctly: data can be flat flat array [] or { items: [] } depending on API proxy layer
+                const apiJobs: RawJob[] = Array.isArray(data) ? data : (data?.items || []);
                 const enhancedData: Job[] = apiJobs.map((job, index) => ({
                     id: typeof job.id === "number" ? job.id : (typeof job.id === "string" ? parseInt(job.id, 10) || index + 1 : index + 1),
                     title: job.title || "Untitled Job",
