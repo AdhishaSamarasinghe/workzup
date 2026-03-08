@@ -42,6 +42,42 @@ router.patch("/users/:id/ban", authenticateToken, requireRole(["ADMIN"]), async 
     }
 });
 
+// GET /api/admin/companies - List all companies
+router.get("/companies", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const companies = await prisma.company.findMany({
+            include: {
+                recruiter: {
+                    select: { firstName: true, lastName: true, email: true }
+                }
+            }
+        });
+
+        res.json({ companies });
+    } catch (error) {
+        console.error("Admin Companies Error:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// PATCH /api/admin/companies/:id/verify - Toggle Verification Status
+router.patch("/companies/:id/verify", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isVerified } = req.body;
+
+        const updated = await prisma.company.update({
+            where: { id },
+            data: { isVerified }
+        });
+
+        res.json({ message: "Company verification status updated", company: updated });
+    } catch (error) {
+        console.error("Admin Verify Error:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
 // GET /api/admin/metrics - Global Platform Metrics
 router.get("/metrics", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
     try {
