@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "kill-port 3000 && next dev -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "dev:frontend": "next dev",
+    "dev:frontend": "kill-port 3000 && next dev -p 3000",
     "dev:backend": "npm --prefix backend run dev",
     "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\""
   },
@@ -34,6 +34,7 @@
     "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "kill-port": "^2.0.1",
     "nodemon": "^3.1.14",
     "tailwindcss": "^4",
     "typescript": "^5"
