@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import { apiFetch } from "@/lib/api";
 
 // Types based on the backend response
 interface ApplicationDetails {
@@ -42,38 +43,32 @@ export default function ViewApplication() {
     const [error, setError] = useState<string | null>(null);
     const [hiringStatus, setHiringStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-
     useEffect(() => {
         if (!applicationId) return;
 
-        fetch(`${API_BASE}/api/recruiter/applications/${applicationId}`)
-            .then(async (res) => {
-                if (!res.ok) {
-                    throw new Error("Failed to fetch application details.");
-                }
-                return res.json();
-            })
-            .then((json: ApplicationDetails) => {
-                setData(json);
+        const fetchApplicationDetails = async () => {
+            setLoading(true);
+            try {
+                const resData = await apiFetch(`/api/recruiter/applications/${applicationId}`);
+                setData(resData);
+            } catch (err) {
+                console.error("Error fetching application:", err);
+                setError(err instanceof Error ? err.message : "Failed to fetch application details.");
+            } finally {
                 setLoading(false);
-            })
-            .catch((err) => {
-                console.error(err);
-                setError(err.message);
-                setLoading(false);
-            });
-    }, [applicationId, API_BASE]);
+            }
+        };
+
+        fetchApplicationDetails();
+    }, [applicationId]);
 
     const handleHire = async () => {
         setHiringStatus("loading");
         try {
-            const res = await fetch(`${API_BASE}/api/recruiter/applications/${applicationId}/status`, {
+            await apiFetch(`/api/recruiter/applications/${applicationId}/status`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: "HIRED" }),
             });
-            if (!res.ok) throw new Error("Failed to hire.");
 
             // Update local state if needed
             if (data) {
@@ -84,7 +79,7 @@ export default function ViewApplication() {
             }
             setHiringStatus("success");
         } catch (err) {
-            console.error(err);
+            console.error("Error updating status:", err);
             setHiringStatus("error");
         }
     };
@@ -201,8 +196,8 @@ export default function ViewApplication() {
                             <button
                                 onClick={handleHire}
                                 className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${application.status === "HIRED" || hiringStatus === "success"
-                                        ? "bg-green-500 text-white"
-                                        : "bg-[#647DF5] hover:bg-blue-600 text-white"
+                                    ? "bg-green-500 text-white"
+                                    : "bg-[#647DF5] hover:bg-blue-600 text-white"
                                     }`}
                             >
                                 {application.status === "HIRED" || hiringStatus === "success" ? "Hired ✓" : hiringStatus === "loading" ? "..." : "Hire for job"}
