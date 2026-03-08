@@ -24,6 +24,67 @@ export default function ApplyFormPage() {
   const [nicFileName, setNicFileName] = useState<string | null>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+
+  const getFieldLabel = (
+    form: HTMLFormElement,
+    field: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  ) => {
+    if (field.id) {
+      const fieldLabel = form.querySelector(`label[for="${field.id}"]`);
+      if (fieldLabel?.textContent) {
+        return fieldLabel.textContent.trim();
+      }
+    }
+
+    return field.name || "This field";
+  };
+
+  const validateRequiredFields = (form: HTMLFormElement) => {
+    const requiredFields = Array.from(
+      form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("[required]")
+    );
+
+    const missingFieldLabels: string[] = [];
+
+    for (const field of requiredFields) {
+      const isFileInput = field instanceof HTMLInputElement && field.type === "file";
+      const isMissing = isFileInput
+        ? !field.files || field.files.length === 0
+        : !field.value.trim();
+
+      if (isMissing) {
+        const fieldLabel = getFieldLabel(form, field);
+        missingFieldLabels.push(fieldLabel);
+      }
+    }
+
+    if (missingFieldLabels.length > 0) {
+      const firstMissingField = requiredFields.find((field) => {
+        const isFileInput = field instanceof HTMLInputElement && field.type === "file";
+        return isFileInput ? !field.files || field.files.length === 0 : !field.value.trim();
+      });
+
+      if (firstMissingField) {
+        const isFileInput =
+          firstMissingField instanceof HTMLInputElement && firstMissingField.type === "file";
+        if (isFileInput && firstMissingField.id) {
+          const clickableLabel = form.querySelector(
+            `label[for="${firstMissingField.id}"]`
+          ) as HTMLElement | null;
+          clickableLabel?.scrollIntoView({ behavior: "smooth", block: "center" });
+          clickableLabel?.focus();
+        } else {
+          firstMissingField.focus();
+        }
+      }
+
+      setMissingFields(missingFieldLabels);
+      return false;
+    }
+
+    return true;
+  };
 
   const openSuccessPopup = () => {
     setShowSuccessPopup(true);
@@ -45,12 +106,19 @@ export default function ApplyFormPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const form = event.currentTarget;
+    const isValid = validateRequiredFields(form);
+    if (!isValid) {
+      return;
+    }
+
     setIsSubmitting(true);
     setStatusMessage(null);
     setIsSuccess(null);
+    setMissingFields([]);
 
     try {
-      const form = event.currentTarget;
       const formData = new FormData(form);
 
       const response = await fetch("/api/apply-form", {
@@ -172,6 +240,7 @@ export default function ApplyFormPage() {
               className="mt-6 space-y-5"
               onSubmit={handleSubmit}
               encType="multipart/form-data"
+              noValidate
             >
               <div className="space-y-2">
                 <label htmlFor="fullName" className="text-sm font-medium text-[#111827]">
@@ -321,6 +390,36 @@ export default function ApplyFormPage() {
         onViewApplications={handleViewApplications}
         onBrowseJobs={handleBrowseJobs}
       />
+
+      {missingFields.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-7"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="validation-popup-title"
+          >
+            <h3 id="validation-popup-title" className="text-lg font-semibold text-[#111827] sm:text-xl">
+              Please complete required fields
+            </h3>
+            <p className="mt-3 text-sm text-[#4B5563] sm:text-base">
+              Your application could not be submitted because some required details are missing.
+            </p>
+            <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm text-[#111827] sm:text-base">
+              {missingFields.map((field) => (
+                <li key={field}>{field}</li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setMissingFields([])}
+              className="mt-5 w-full rounded-xl bg-[#6D83F2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5B73F1] sm:text-base"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
