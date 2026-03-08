@@ -65,7 +65,10 @@ export default function JobApplicantsPage() {
                     limit: "8"
                 }).toString();
 
-                const res = await fetch(`${API_BASE}/api/recruiter/jobs/${jobId}/applicants?${queryParams}`);
+                const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+                const res = await fetch(`${API_BASE}/api/recruiter/jobs/${jobId}/applicants?${queryParams}`, {
+                    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+                });
                 if (!res.ok) throw new Error("Failed to fetch applicants");
                 const data = await res.json();
 
@@ -108,7 +111,10 @@ export default function JobApplicantsPage() {
         const fetchProfile = async () => {
             setProfileLoading(true);
             try {
-                const res = await fetch(`${API_BASE}/api/recruiter/applicants/${selectedApplicantId}`);
+                const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+                const res = await fetch(`${API_BASE}/api/recruiter/applicants/${selectedApplicantId}`, {
+                    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+                });
                 if (!res.ok) throw new Error("Failed to fetch profile");
                 const data = await res.json();
                 setApplicantProfile(data);
@@ -130,9 +136,10 @@ export default function JobApplicantsPage() {
         if (!applicantItem) return;
 
         try {
+            const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
             const res = await fetch(`${API_BASE}/api/recruiter/applications/${applicantItem.applicationId}/status`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 body: JSON.stringify({ status })
             });
 
