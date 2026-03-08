@@ -3,9 +3,9 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 
-// [API] Base URL
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+
 
 interface CompletionSummary {
     jobId: string;
@@ -44,9 +44,7 @@ function CompleteJobContent() {
 
         const fetchSummary = async () => {
             try {
-                const res = await fetch(`${API_BASE}/api/recruiter/jobs/${jobId}/completion-summary?workerId=${workerId}`);
-                if (!res.ok) throw new Error("Failed to fetch summary");
-                const data = await res.json();
+                const data = await apiFetch(`/api/recruiter/jobs/${jobId}/completion-summary?workerId=${workerId}`);
                 setSummary(data);
             } catch (err: any) {
                 setError(err.message || "Something went wrong");
@@ -63,9 +61,8 @@ function CompleteJobContent() {
         if (!summary) return;
         setSubmitting(true);
         try {
-            const res = await fetch(`${API_BASE}/api/recruiter/jobs/${jobId}/complete`, {
+            await apiFetch(`/api/recruiter/jobs/${jobId}/complete`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     workerId: summary.workerId,
                     completionDate: summary.completionDate,
@@ -73,8 +70,6 @@ function CompleteJobContent() {
                     finalPayment: summary.finalPayment,
                 }),
             });
-
-            if (!res.ok) throw new Error("Failed to complete job");
 
             setSuccess(true);
             setTimeout(() => {
@@ -95,16 +90,13 @@ function CompleteJobContent() {
 
         setSubmitting(true);
         try {
-            const res = await fetch(`${API_BASE}/api/recruiter/jobs/${jobId}/report-issue`, {
+            await apiFetch(`/api/recruiter/jobs/${jobId}/report-issue`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     workerId: summary.workerId,
                     note,
                 }),
             });
-
-            if (!res.ok) throw new Error("Failed to report issue");
 
             alert("Issue reported successfully");
             router.back();

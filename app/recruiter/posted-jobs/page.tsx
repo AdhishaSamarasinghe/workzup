@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 
 // Types
 interface Job {
@@ -22,7 +23,7 @@ interface ApiResponse {
 
 export default function MyPostedJobs() {
   const router = useRouter();
-  
+
   // State
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +32,6 @@ export default function MyPostedJobs() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Constants
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
   // Fetch Jobs
   const fetchJobs = useCallback(async () => {
@@ -45,12 +44,7 @@ export default function MyPostedJobs() {
         limit: "3",
       });
 
-      const response = await fetch(`${API_BASE}/api/recruiter/jobs?${queryParams}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch jobs");
-      }
-      
-      const data: ApiResponse = await response.json();
+      const data: ApiResponse = await apiFetch(`/api/recruiter/jobs?${queryParams}`);
       setJobs(data.items);
       setTotalPages(data.totalPages);
     } catch (error) {
@@ -58,7 +52,7 @@ export default function MyPostedJobs() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, statusFilter, currentPage, API_BASE]);
+  }, [searchQuery, statusFilter, currentPage]);
 
   // Effects
   useEffect(() => {
@@ -82,7 +76,7 @@ export default function MyPostedJobs() {
   // Pagination Logic
   const renderPagination = () => {
     const pages = [];
-    
+
     // Previous Button
     pages.push(
       <button
@@ -97,56 +91,55 @@ export default function MyPostedJobs() {
 
     // Page Numbers with Ellipsis
     const renderPageButton = (page: number) => (
-        <button
-            key={page}
-            onClick={() => setCurrentPage(page)}
-            className={`px-3 py-1 mx-1 rounded-full text-sm font-medium transition-colors ${
-                currentPage === page
-                    ? "bg-blue-500 text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-            }`}
-        >
-            {page}
-        </button>
+      <button
+        key={page}
+        onClick={() => setCurrentPage(page)}
+        className={`px-3 py-1 mx-1 rounded-full text-sm font-medium transition-colors ${currentPage === page
+          ? "bg-blue-500 text-white"
+          : "text-gray-600 hover:bg-gray-100"
+          }`}
+      >
+        {page}
+      </button>
     );
 
     if (totalPages <= 7) {
-        for (let i = 1; i <= totalPages; i++) {
-            pages.push(renderPageButton(i));
-        }
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(renderPageButton(i));
+      }
     } else {
-         // Always show first page
-         pages.push(renderPageButton(1));
+      // Always show first page
+      pages.push(renderPageButton(1));
 
-         if (currentPage > 3) {
-             pages.push(<span key="dots1" className="mx-1 text-gray-400">...</span>);
-         }
+      if (currentPage > 3) {
+        pages.push(<span key="dots1" className="mx-1 text-gray-400">...</span>);
+      }
 
-         // Neighbors
-         let start = Math.max(2, currentPage - 1);
-         let end = Math.min(totalPages - 1, currentPage + 1);
-         
-         if (currentPage <= 3) {
-             end = 4; // Show more at start
-         }
-         if (currentPage >= totalPages - 2) {
-             start = totalPages - 3; // Show more at end
-         }
+      // Neighbors
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
 
-         // Clamp logic just in case
-         start = Math.max(2, start);
-         end = Math.min(totalPages - 1, end);
+      if (currentPage <= 3) {
+        end = 4; // Show more at start
+      }
+      if (currentPage >= totalPages - 2) {
+        start = totalPages - 3; // Show more at end
+      }
 
-         for (let i = start; i <= end; i++) {
-            pages.push(renderPageButton(i));
-         }
+      // Clamp logic just in case
+      start = Math.max(2, start);
+      end = Math.min(totalPages - 1, end);
 
-         if (currentPage < totalPages - 2) {
-             pages.push(<span key="dots2" className="mx-1 text-gray-400">...</span>);
-         }
+      for (let i = start; i <= end; i++) {
+        pages.push(renderPageButton(i));
+      }
 
-         // Always show last page
-         pages.push(renderPageButton(totalPages));
+      if (currentPage < totalPages - 2) {
+        pages.push(<span key="dots2" className="mx-1 text-gray-400">...</span>);
+      }
+
+      // Always show last page
+      pages.push(renderPageButton(totalPages));
     }
 
     // Next Button
@@ -217,8 +210,8 @@ export default function MyPostedJobs() {
                 className="appearance-none bg-transparent pl-2 pr-8 py-1 focus:outline-none text-gray-800 font-semibold cursor-pointer"
                 value={statusFilter}
                 onChange={(e) => {
-                    setStatusFilter(e.target.value);
-                    setCurrentPage(1); // Reset to page 1 on filter
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1); // Reset to page 1 on filter
                 }}
               >
                 <option value="All">All</option>
@@ -241,20 +234,20 @@ export default function MyPostedJobs() {
         {/* Jobs List */}
         <div className="space-y-4">
           {loading ? (
-             <div className="text-center py-20">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                <p className="mt-2 text-gray-500">Loading jobs...</p>
-             </div>
+            <div className="text-center py-20">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              <p className="mt-2 text-gray-500">Loading jobs...</p>
+            </div>
           ) : jobs.length === 0 ? (
-             <div className="text-center py-20 bg-white rounded-xl shadow-sm border border-gray-100">
-                <p className="text-gray-500 text-lg">No jobs found matching your criteria.</p>
-                <button 
-                    onClick={() => { setSearchQuery(""); setStatusFilter("All"); }}
-                    className="mt-4 text-blue-500 hover:text-blue-600 font-medium"
-                >
-                    Clear Filters
-                </button>
-             </div>
+            <div className="text-center py-20 bg-white rounded-xl shadow-sm border border-gray-100">
+              <p className="text-gray-500 text-lg">No jobs found matching your criteria.</p>
+              <button
+                onClick={() => { setSearchQuery(""); setStatusFilter("All"); }}
+                className="mt-4 text-blue-500 hover:text-blue-600 font-medium"
+              >
+                Clear Filters
+              </button>
+            </div>
           ) : (
             jobs.map((job) => (
               <div
@@ -310,7 +303,7 @@ export default function MyPostedJobs() {
                       title="Edit Job"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
                     </button>
 
@@ -320,9 +313,9 @@ export default function MyPostedJobs() {
                       className="p-2 rounded-full hover:bg-gray-100 text-gray-900 transition-colors"
                       title="More Options"
                     >
-                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                       </svg>
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
                     </button>
                   </div>
                 </div>
