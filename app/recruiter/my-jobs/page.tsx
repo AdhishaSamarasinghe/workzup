@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import MyJobsHeader from "@/components/recruiter/MyJobsHeader";
 import MyJobCard from "@/components/recruiter/MyJobCard";
+import { apiFetch } from "@/lib/api";
 
 // Helper type matching backend + recruiter extensions
 type Job = {
@@ -19,8 +20,8 @@ type Job = {
     postedDate: string; // Date posted
 };
 
-type RawJob = Partial<Job> & {
-    id?: number;
+type RawJob = Partial<Omit<Job, "id">> & {
+    id?: number | string;
     title?: string;
     company?: string;
     description?: string;
@@ -28,6 +29,8 @@ type RawJob = Partial<Job> & {
     pay?: string;
     date?: string;
     category?: string;
+    applicantsCount?: number;
+    postedAt?: string;
 };
 
 const getMockNewApplicants = (id: number) => (id % 5) + 1;
@@ -42,13 +45,12 @@ export default function MyJobsPage() {
 
     // Fetch Jobs
     useEffect(() => {
-        fetch("http://localhost:5000/jobs")
-            .then(res => res.json())
+        apiFetch("/api/recruiter/jobs")
             .then(data => {
                 // Ensure data has the new fields (defaults) since legacy data might not
-                const apiJobs: RawJob[] = Array.isArray(data) ? data : [];
+                const apiJobs: RawJob[] = (data && Array.isArray(data.items)) ? data.items : [];
                 const enhancedData: Job[] = apiJobs.map((job, index) => ({
-                    id: typeof job.id === "number" ? job.id : index + 1,
+                    id: typeof job.id === "number" ? job.id : (typeof job.id === "string" ? parseInt(job.id, 10) || index + 1 : index + 1),
                     title: job.title || "Untitled Job",
                     company: job.company || "Unknown Company",
                     description: job.description || "",
@@ -57,11 +59,9 @@ export default function MyJobsPage() {
                     date: job.date || "Not specified",
                     category: job.category || "General",
                     status: job.status || "Active",
-                    applicants: job.applicants || 0,
-                    postedDate: job.postedDate || "2026-02-01" // Fallback for legacy
+                    applicants: job.applicants || job.applicantsCount || 0,
+                    postedDate: job.postedDate || job.postedAt || "2026-02-01" // Fallback for legacy
                 }));
-                // In a real app, we would verify the user ID here. 
-                // For now, show ALL jobs as "My Jobs"
                 setJobs(enhancedData);
                 setLoading(false);
             })
