@@ -66,10 +66,27 @@ export default function JobApplicantsPage() {
                 }).toString();
 
                 const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-                const res = await fetch(`${API_BASE}/api/recruiter/jobs/${jobId}/applicants?${queryParams}`, {
+                const url = `${API_BASE}/api/recruiter/jobs/${jobId}/applicants?${queryParams}`;
+                const res = await fetch(url, {
                     headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
                 });
-                if (!res.ok) throw new Error("Failed to fetch applicants");
+
+                if (!res.ok) {
+                    // Try to extract meaningful error from JSON body, fallback to status text
+                    let errMsg = `Request failed: ${res.status} ${res.statusText}`;
+                    try {
+                        const body = await res.json();
+                        if (body && body.message) errMsg = body.message;
+                    } catch (e) {
+                        try {
+                            const text = await res.text();
+                            if (text) errMsg = text;
+                        } catch (_e) { }
+                    }
+                    console.error("Applicants fetch error response:", res.status, res.statusText, url);
+                    throw new Error(errMsg);
+                }
+
                 const data = await res.json();
 
                 setApplicants(data.items);
