@@ -37,7 +37,7 @@ const messagesRoutes = require("./routes/messages");
 const conversationsRoutes = require("./routes/conversations");
 
 app.use("/users", usersRoutes);
-app.use("/jobs", jobsRoutes);
+app.use("/api/jobs", jobsRoutes);
 app.use("/messages", messagesRoutes);
 app.use("/conversations", conversationsRoutes);
 
