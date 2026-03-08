@@ -21,7 +21,7 @@ export default function Footer() {
           <Link href="#" className="transition-colors hover:text-accent">
             Terms
           </Link>
-          <Link href="#" className="transition-colors hover:text-accent">
+          <Link href="/about" className="transition-colors hover:text-accent">
             About
           </Link>
         </div>
