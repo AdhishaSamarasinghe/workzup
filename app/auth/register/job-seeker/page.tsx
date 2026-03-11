@@ -32,6 +32,7 @@ export default function JobSeekerRegisterPage() {
         confirmPassword: "",
         gender: "",
         homeTown: "",
+        cv: null as File | null,
         termsAccepted: false,
         emailNotifications: false,
     });
@@ -126,6 +127,9 @@ export default function JobSeekerRegisterPage() {
             data.append("gender", formData.gender);
             data.append("homeTown", formData.homeTown);
             data.append("role", "JOB_SEEKER");
+            if (formData.cv) {
+                data.append("cv", formData.cv);
+            }
             data.append("termsAccepted", String(formData.termsAccepted));
             data.append("emailNotifications", String(formData.emailNotifications));
 
@@ -224,17 +228,31 @@ export default function JobSeekerRegisterPage() {
                             </div>
 
                             {/* Email */}
-                            <div>
+                            <div className="relative">
                                 <input
                                     type="email"
                                     name="email"
                                     required
                                     placeholder="Email *"
-                                    className="block w-full rounded-md border-0 bg-[#E0E0E0] py-3.5 pl-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 disabled:opacity-60"
+                                    className="block w-full rounded-md border-0 bg-[#E0E0E0] py-3.5 pl-4 pr-20 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 disabled:opacity-60"
                                     value={formData.email}
                                     onChange={handleChange}
                                     disabled={isOtpVerified}
                                 />
+                                {isOtpVerified && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsOtpVerified(false);
+                                            setIsOtpSent(false);
+                                            setOtp("");
+                                            setError("");
+                                        }}
+                                        className="absolute inset-y-0 right-3 flex items-center text-sm font-bold text-[#6B8BFF] hover:text-[#5A75D9]"
+                                    >
+                                        Change
+                                    </button>
+                                )}
                             </div>
 
                             {/* OTP Section */}
@@ -368,6 +386,22 @@ export default function JobSeekerRegisterPage() {
                                         onChange={handleChange}
                                     />
                                 </div>
+                            </div>
+
+                            {/* CV Upload */}
+                            <div className="flex flex-col gap-2 rounded-md border border-gray-300 px-4 py-3.5 mt-2 bg-white">
+                                <label className="text-sm font-medium text-gray-900">Upload CV (Optional)</label>
+                                <input
+                                    type="file"
+                                    name="cv"
+                                    accept=".pdf,.doc,.docx"
+                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#6B8BFF]/10 file:text-[#6B8BFF] hover:file:bg-[#6B8BFF]/20"
+                                    onChange={(e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            setFormData(prev => ({ ...prev, cv: e.target.files![0] }));
+                                        }
+                                    }}
+                                />
                             </div>
 
                             {/* Terms */}

@@ -11,7 +11,7 @@ export default function PublicHeader() {
     useEffect(() => {
         const handleScroll = () => {
             // Threshold for when the header becomes a solid/blurred background (e.g., crossing the hero area)
-            setIsScrolled(window.scrollY > 80);
+            setIsScrolled(window.scrollY > 20);
         };
 
         window.addEventListener("scroll", handleScroll);
@@ -24,7 +24,7 @@ export default function PublicHeader() {
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
             className={`fixed top-0 z-50 w-full transition-all duration-300 ease-in-out ${isScrolled
-                ? "bg-white/40 backdrop-blur-lg border-b border-white/40 py-3 shadow-md"
+                ? "bg-white/70 backdrop-blur-xl border-b border-white/20 py-3 shadow-lg"
                 : "bg-transparent py-5"
                 }`}
         >

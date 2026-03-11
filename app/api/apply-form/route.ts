@@ -17,12 +17,16 @@ export async function POST(request: Request) {
     // We expect the frontend to start submitting the jobId in the form
     const jobId = String(formData.get("jobId") || "default-job");
 
-    if (!fullName || !email || !phone || !coverLetter || !(cv instanceof File) || !(nic instanceof File)) {
-      return NextResponse.json({ message: "All fields are required." }, { status: 400 });
+    // Make file uploads optional at this layer since users might have them on their profile
+    if (!fullName || !email || !phone || !coverLetter) {
+      return NextResponse.json({ message: "Please fill all required text fields." }, { status: 400 });
     }
 
-    if (cv.size > MAX_FILE_SIZE || nic.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ message: "Files must be under 5MB." }, { status: 400 });
+    if (cv && cv instanceof File && cv.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ message: "CV must be under 5MB." }, { status: 400 });
+    }
+    if (nic && nic instanceof File && nic.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ message: "NIC must be under 5MB." }, { status: 400 });
     }
 
     // Capture the user JWT from the incoming request headers to prove JobSeeker identity

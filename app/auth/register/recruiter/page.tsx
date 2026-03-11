@@ -226,17 +226,31 @@ export default function RecruiterRegisterPage() {
                             </div>
 
                             {/* Email */}
-                            <div>
+                            <div className="relative">
                                 <input
                                     type="email"
                                     name="email"
                                     required
                                     placeholder="Email *"
-                                    className="block w-full rounded-md border-0 bg-[#E0E0E0] py-3.5 pl-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 transition-all disabled:opacity-60"
+                                    className="block w-full rounded-md border-0 bg-[#E0E0E0] py-3.5 pl-4 pr-20 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 transition-all disabled:opacity-60"
                                     value={formData.email}
                                     onChange={handleChange}
                                     disabled={isOtpVerified}
                                 />
+                                {isOtpVerified && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsOtpVerified(false);
+                                            setIsOtpSent(false);
+                                            setOtp("");
+                                            setError("");
+                                        }}
+                                        className="absolute inset-y-0 right-3 flex items-center text-sm font-bold text-[#6B8BFF] hover:text-[#5A75D9]"
+                                    >
+                                        Change
+                                    </button>
+                                )}
                             </div>
 
                             {/* OTP Section */}

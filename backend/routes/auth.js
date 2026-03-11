@@ -33,14 +33,14 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
-    // Basic file filter for docs/pdf
-    const filetypes = /pdf|doc|docx/;
+    // Basic file filter for docs/pdf/images
+    const filetypes = /pdf|doc|docx|jpg|jpeg|png/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = filetypes.test(file.mimetype);
     if (mimetype && extname) {
       return cb(null, true);
     }
-    cb(new Error("Error: CV upload only supports PDF, DOC, DOCX"));
+    cb(new Error("Error: Upload only supports PDF, DOC, DOCX, JPG, PNG"));
   }
 });
 
@@ -141,6 +141,204 @@ router.post("/login", async (req, res) => {
   );
 
   res.json({ token });
+});
+
+// GET /api/auth/profile
+router.get("/profile", authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      include: {
+        seekerProfile: true,
+        receivedReviews: {
+          include: { reviewer: true }
+        },
+        applications: {
+          include: { job: { include: { company: true } } }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const jobsCompleted = user.applications.filter(a => a.status === "COMPLETED" || a.status === "HIRED").length;
+    const reliability = 98; 
+
+    const reviews = user.receivedReviews.map(r => ({
+      id: r.id,
+      name: r.reviewer?.firstName ? `${r.reviewer.firstName} ${r.reviewer.lastName || ''}`.trim() : "Anonymous",
+      role: r.reviewer?.role === "EMPLOYER" ? "Employer" : "User",
+      date: new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+      rating: r.rating,
+      text: r.comment || "No comment provided."
+    }));
+
+    const totalReviews = reviews.length;
+    const sumRatings = reviews.reduce((acc, r) => acc + r.rating, 0);
+    const averageRating = totalReviews > 0 ? Number((sumRatings / totalReviews).toFixed(1)) : 0;
+
+    const jobHistory = user.applications
+      .filter(app => app.status === "HIRED" || app.status === "COMPLETED")
+      .map(app => ({
+        id: app.id,
+        name: app.job?.title || "Unknown Job",
+        role: app.job?.category || "Worker",
+        date: new Date(app.updatedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+      }));
+
+    const profileData = {
+      id: user.id,
+      name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : "Job Seeker",
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      title: user.seekerProfile?.bio ? user.seekerProfile.bio.split(".")[0] : "Professional",
+      location: user.homeTown || "Sri Lanka",
+      avatar: `https://ui-avatars.com/api/?name=${user.firstName || 'Job'}+${user.lastName || 'Seeker'}&background=random`,
+      isAvailable: true,
+      stats: {
+        jobsCompleted,
+        reliability
+      },
+      skills: user.seekerProfile?.skills?.length ? user.seekerProfile.skills : ["Teamwork", "Communication", "Time Management", "Problem Solving"],
+      aboutMe: user.seekerProfile?.bio || "I am an enthusiastic and dedicated professional looking for my next opportunity to grow and contribute to a successful team. I take pride in my work and strive to deliver excellent results.",
+      reviewsSummary: {
+        averageRating,
+        totalReviews
+      },
+      reviews,
+      jobHistory,
+      education: user.seekerProfile?.education || [],
+      experience: user.seekerProfile?.experience || [],
+      socialLinks: user.seekerProfile?.socialLinks || { linkedin: "", github: "", portfolio: "" },
+      languages: user.seekerProfile?.languages || [],
+      cv: user.cv || null,
+      idDocument: user.idDocument || null,
+      idFront: user.idFront || null,
+      idBack: user.idBack || null
+    };
+
+    res.json(profileData);
+  } catch (error) {
+    console.error("Profile Fetch Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// POST /api/auth/upload-docs
+router.post("/upload-docs", authenticateToken, upload.fields([
+  { name: 'cv', maxCount: 1 }, 
+  { name: 'idDocument', maxCount: 1 },
+  { name: 'idFront', maxCount: 1 },
+  { name: 'idBack', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    const updateData = {};
+    if (req.files && req.files['cv'] && req.files['cv'][0]) {
+      updateData.cv = req.files['cv'][0].path;
+    }
+    if (req.files && req.files['idDocument'] && req.files['idDocument'][0]) {
+      updateData.idDocument = req.files['idDocument'][0].path;
+    }
+    if (req.files && req.files['idFront'] && req.files['idFront'][0]) {
+      updateData.idFront = req.files['idFront'][0].path;
+    }
+    if (req.files && req.files['idBack'] && req.files['idBack'][0]) {
+      updateData.idBack = req.files['idBack'][0].path;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data: updateData
+    });
+
+    res.json({ message: "Documents uploaded successfully", data: updateData });
+  } catch (error) {
+    console.error("Upload Docs Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// PUT /api/auth/profile
+router.put("/profile", authenticateToken, async (req, res) => {
+  try {
+    const { 
+      firstName, lastName, location, aboutMe, title, skills, 
+      education, experience, socialLinks, languages 
+    } = req.body;
+
+    // First update the core User
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data: {
+        firstName: firstName,
+        lastName: lastName,
+        homeTown: location
+      }
+    });
+
+    // Then upsert the SeekerProfile
+    await prisma.seekerProfile.upsert({
+      where: { userId: req.user.userId },
+      update: {
+        bio: aboutMe,
+        skills: skills || [],
+        education: education || [],
+        experience: experience || [],
+        socialLinks: socialLinks || null,
+        languages: languages || []
+      },
+      create: {
+        userId: req.user.userId,
+        bio: aboutMe,
+        skills: skills || [],
+        education: education || [],
+        experience: experience || [],
+        socialLinks: socialLinks || null,
+        languages: languages || []
+      }
+    });
+
+    res.json({ message: "Profile updated successfully" });
+  } catch (error) {
+    console.error("Profile Update Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// PUT /api/auth/password
+router.put("/password", authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "currentPassword and newPassword required" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!ok) {
+      return res.status(401).json({ message: "Incorrect current password" });
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data: { passwordHash: newPasswordHash }
+    });
+
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Password Update Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 });
 
 module.exports = router;

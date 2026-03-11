@@ -9,6 +9,7 @@
 const express = require("express");
 const prisma = require("../prismaClient");
 const { authenticateToken, requireRole } = require("../middleware/auth");
+const { getBrowseHomeData } = require("../utils/publicBrowseData");
 
 const router = express.Router();
 
@@ -25,6 +26,16 @@ router.get("/", async (req, res) => {
   } catch (err) {
     console.error("Error fetching jobs:", err);
     res.status(500).json({ message: "Failed to fetch jobs" });
+  }
+});
+
+router.get("/browse/home", async (req, res) => {
+  try {
+    const data = await getBrowseHomeData(prisma);
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching browse home data:", err);
+    res.status(500).json({ message: "Failed to fetch browse home data" });
   }
 });
 

@@ -8,10 +8,12 @@ export default function MainContentWrapper({ children }: { children: ReactNode }
 
     // If we are on the browse page (before login), we don't want the top padding
     // so the transparent PublicHeader can overlay the hero video.
-    const isPublicRoute = pathname === "/jobseeker/browse";
+    const isBrowseHero = pathname === "/jobseeker/browse";
+    const isAuthRoute = pathname.includes("/auth/");
+    const isFixedHeaderRoute = isAuthRoute || (pathname.startsWith("/jobseeker") && !isBrowseHero) || pathname.startsWith("/apply-form") || pathname.startsWith("/applications") || pathname.startsWith("/messages");
 
     return (
-        <main className="flex-1">
+        <main className={`flex-1 ${isFixedHeaderRoute ? "pt-20" : ""}`}>
             {children}
         </main>
     );

@@ -62,10 +62,10 @@ export default function SearchBar({
 
 
   return (
-    <section className="bg-white rounded-2xl px-3 py-3 shadow-sm flex gap-4 items-center">
+    <section className="flex flex-col gap-3 rounded-2xl bg-white px-3 py-3 shadow-sm md:flex-row md:flex-wrap md:items-center">
 
       {/* Keyword */}
-      <div className="w-[240px]">
+      <div className="w-full md:w-[240px] md:flex-1">
         <KeywordDropdown
           keywords={keywords}
           value={keyword}
@@ -74,7 +74,7 @@ export default function SearchBar({
       </div>
 
       {/* Location */}
-      <div className="w-[200px]">
+      <div className="w-full md:w-[200px]">
         <Dropdown
           label="Select District"
           options={districts}
@@ -84,7 +84,7 @@ export default function SearchBar({
       </div>
 
       {/* Pay */}
-      <div className="w-[150px]">
+      <div className="w-full md:w-[150px]">
         <Dropdown
           label="Pay Range"
           options={payRanges}
@@ -94,25 +94,25 @@ export default function SearchBar({
       </div>
 
       {/* Date */}
-      <div className="w-[160px]">
+      <div className="w-full md:w-[160px]">
         <DatePicker value={date} onChange={setDate} />
       </div>
 
-      {/* Search button */}
-      <button
-        onClick={onSearch}
-        className="bg-[#6b8bff] text-white rounded-xl px-6 py-2.5 text-sm hover:scale-[1.03] transition"
-      >
-        Search
-      </button>
+      <div className="flex w-full gap-3 md:w-auto">
+        <button
+          onClick={onSearch}
+          className="flex-1 rounded-xl bg-[#6b8bff] px-6 py-2.5 text-sm text-white transition hover:scale-[1.03] md:flex-none"
+        >
+          Search
+        </button>
 
-      {/* Clear */}
-      <button
-        onClick={clearFilters}
-        className="text-sm text-gray-500 hover:text-gray-700"
-      >
-        Clear
-      </button>
+        <button
+          onClick={clearFilters}
+          className="rounded-xl px-4 py-2.5 text-sm text-gray-500 transition hover:bg-slate-50 hover:text-gray-700"
+        >
+          Clear
+        </button>
+      </div>
     </section>
   );
 }

@@ -5,6 +5,7 @@ type JobCardProps = {
   location: string;
   pay: string;
   date: string;
+  onViewDetails?: () => void;
 };
 
 export default function JobCard({
@@ -14,6 +15,7 @@ export default function JobCard({
   location,
   pay,
   date,
+  onViewDetails,
 }: JobCardProps) {
   return (
     <div className="bg-white rounded-2xl p-7 flex flex-col justify-between h-[400px] transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-default">
@@ -53,7 +55,10 @@ export default function JobCard({
 
       {/* Button */}
       <div className="flex justify-center mt-6">
-        <button className="bg-[#6b8bff] text-white px-10 py-2 rounded-full text-sm hover:opacity-90 transition">
+        <button 
+          onClick={onViewDetails}
+          className="bg-[#6b8bff] text-white px-10 py-2 rounded-full text-sm hover:opacity-90 transition"
+        >
 
           View Details
         </button>

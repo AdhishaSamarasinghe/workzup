@@ -4,28 +4,44 @@
 import { useEffect, useRef, useState } from "react";
 
 
-const stats = [
-    {
-        label: "Jobs posted",
-        value: "12,450",
-        percentage: 75,
-        color: "from-blue-500 to-purple-500",
-    },
-    {
-        label: "Active seekers",
-        value: "6,230",
-        percentage: 60,
-        color: "from-blue-400 to-purple-400",
-    },
-    {
-        label: "Avg rating (x10)",
-        value: "48",
-        percentage: 85,
-        color: "from-blue-600 to-purple-600",
-    },
-];
+type StatsProps = {
+    stats?: {
+        totalJobs: number;
+        totalSeekers: number;
+        totalApplications: number;
+        totalCompanies: number;
+    };
+};
 
-export default function StatsSection() {
+export default function StatsSection({ stats }: StatsProps) {
+    const data = stats || { totalJobs: 0, totalSeekers: 0, totalApplications: 0, totalCompanies: 0 };
+
+    const displayStats = [
+        {
+            label: "Jobs posted",
+            value: data.totalJobs.toLocaleString(),
+            percentage: data.totalJobs > 0 ? 100 : 0,
+            color: "from-blue-500 to-purple-500",
+        },
+        {
+            label: "Active seekers",
+            value: data.totalSeekers.toLocaleString(),
+            percentage: data.totalSeekers > 0 ? 100 : 0,
+            color: "from-blue-400 to-purple-400",
+        },
+        {
+            label: "Applications",
+            value: data.totalApplications.toLocaleString(),
+            percentage: data.totalApplications > 0 ? 100 : 0,
+            color: "from-blue-600 to-purple-600",
+        },
+        {
+            label: "Companies",
+            value: data.totalCompanies.toLocaleString(),
+            percentage: data.totalCompanies > 0 ? 100 : 0,
+            color: "from-blue-500 to-indigo-500",
+        },
+    ];
     const [isVisible, setIsVisible] = useState(false);
     const sectionRef = useRef<HTMLElement>(null);
 
@@ -49,9 +65,9 @@ export default function StatsSection() {
     }, []);
 
     return (
-        <section ref={sectionRef} className="max-w-6xl mx-auto px-6 py-10">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {stats.map((stat, index) => (
+        <section ref={sectionRef} className="max-w-7xl mx-auto px-6 py-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {displayStats.map((stat, index) => (
                     <div
                         key={index}
                         className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300"

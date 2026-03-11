@@ -1,31 +1,73 @@
 /* eslint-disable */
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import ApplicationSuccessPopup from "@/components/ApplicationSuccessPopup";
+import { apiFetch } from "@/lib/api";
+import { BrowseJob, formatPay, formatDateLabel } from "@/lib/browse";
+import { CheckCircle2 } from "lucide-react";
 
-const jobData = {
-  title: "Event Staff for Tech Conference",
-  company: "Innovate Events Inc.",
-  location: "Downtown Convention Center",
-  jobType: "Full-time · On-site",
-  posted: "2 days ago",
-  pay: "Rs 25/hour",
-  tags: ["Event Support", "Customer Service", "Teamwork", "Communication", "Organization"],
-};
-
-export default function ApplyFormPage() {
+function ApplicationFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get("jobId");
+
+  const [job, setJob] = useState<BrowseJob | null>(null);
+  const [jobLoading, setJobLoading] = useState(true);
+  const [jobError, setJobError] = useState("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
   const [cvFileName, setCvFileName] = useState<string | null>(null);
   const [nicFileName, setNicFileName] = useState<string | null>(null);
+  const [profileDocs, setProfileDocs] = useState({ cv: false, nicFront: false, nicBack: false });
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [missingFieldMap, setMissingFieldMap] = useState<Record<string, string>>({});
   const [showValidationPopup, setShowValidationPopup] = useState(false);
+
+  useEffect(() => {
+    if (!jobId) {
+      setJobLoading(false);
+      setJobError("No job specified. Please go back and select a job to apply to.");
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        setJobLoading(true);
+        const data = await apiFetch(`/api/jobs/${jobId}`);
+        setJob(data.job || data);
+
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        if (token) {
+          try {
+            const profileRes = await fetch("/api/auth/profile", { headers: { Authorization: `Bearer ${token}` } });
+            if (profileRes.ok) {
+              const profile = await profileRes.json();
+              setProfileDocs({ 
+                cv: !!profile.cv, 
+                nicFront: !!profile.idFront, 
+                nicBack: !!profile.idBack 
+              });
+            }
+          } catch (e) {
+             console.error("Could not fetch profile", e);
+          }
+        }
+
+      } catch (err: any) {
+        console.error("Failed to load job details:", err);
+        setJobError("Failed to load job details. The job may have been removed.");
+      } finally {
+        setJobLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [jobId]);
 
   const getFieldLabel = (
     form: HTMLFormElement,
@@ -124,12 +166,12 @@ export default function ApplyFormPage() {
       (typeof window !== "undefined"
         ? window.localStorage.getItem("workzup:lastApplicationId")
         : null);
-    router.push(targetId ? `/applications/${targetId}` : "/applications");
+    router.push(targetId ? `/applications/${targetId}` : "/jobseeker/applications");
   };
 
   const handleBrowseJobs = () => {
     setShowSuccessPopup(false);
-    router.push("/jobs");
+    router.push("/jobseeker/browse");
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -185,9 +227,34 @@ export default function ApplyFormPage() {
     }
   };
 
+  if (jobLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-slate-500 font-medium text-lg">Loading application form...</div>
+      </div>
+    );
+  }
+
+  if (jobError || !job) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-800 mb-2">Job Not Found</h2>
+          <p className="text-slate-500 mb-6">{jobError}</p>
+          <button 
+            onClick={() => router.push("/jobseeker/browse")}
+            className="inline-flex items-center justify-center rounded-xl bg-[#6D83F2] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5B73F1]"
+          >
+            Back to Browse
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-[#F8FAFC]">
-      <section className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+    <div className="bg-[#F8FAFC] min-h-screen">
+      <section className="mx-auto w-full max-w-6xl px-4 pb-16 pt-24 sm:pt-28 md:px-6 lg:px-8">
         <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -195,23 +262,23 @@ export default function ApplyFormPage() {
                 Job Apply
               </p>
               <h1 className="mt-2 text-3xl font-semibold text-[#111827] sm:text-4xl">
-                {jobData.title}
+                {job.title}
               </h1>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[#6B7280]">
-                <span className="font-medium text-[#111827]">{jobData.company}</span>
+                <span className="font-medium text-[#111827]">{job.companyName}</span>
                 <span className="h-1 w-1 rounded-full bg-[#CBD5F5]" />
-                <span>{jobData.location}</span>
+                <span>{job.location}</span>
                 <span className="h-1 w-1 rounded-full bg-[#CBD5F5]" />
-                <span>{jobData.jobType}</span>
+                <span>{job.derivedCategory}</span>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-3 text-sm text-[#6B7280]">
               <div className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2">
-                Pay Rate: <span className="font-semibold text-[#111827]">{jobData.pay}</span>
+                Pay Rate: <span className="font-semibold text-[#111827]">{formatPay(job.pay, job.payType)}</span>
               </div>
               <div className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2">
-                Posted: <span className="font-semibold text-[#111827]">{jobData.posted}</span>
+                Posted: <span className="font-semibold text-[#111827]">{formatDateLabel(job.date)}</span>
               </div>
             </div>
           </div>
@@ -221,44 +288,8 @@ export default function ApplyFormPage() {
           <div className="space-y-6">
             <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
               <h2 className="text-xl font-semibold text-[#111827]">Job Description</h2>
-              <p className="mt-3 text-sm leading-6 text-[#4B5563]">
-                Join our team as an Event Staff member for the annual Tech Innovate Conference. You will
-                assist attendees, manage registration desks, and provide general support to event
-                organizers. We are looking for energetic and reliable individuals who thrive in fast-paced
-                environments.
-              </p>
-              <h3 className="mt-6 text-base font-semibold text-[#111827]">Responsibilities</h3>
-              <ul className="mt-3 space-y-2 text-sm text-[#4B5563]">
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#6D83F2]" />
-                  Check-in attendees and provide badges and event materials.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#6D83F2]" />
-                  Direct attendees to sessions, workshops, and facilities.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#6D83F2]" />
-                  Assist with setup and breakdown of event spaces.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#6D83F2]" />
-                  Answer questions and ensure a welcoming experience.
-                </li>
-              </ul>
-            </section>
-
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-xl font-semibold text-[#111827]">Required Skills</h2>
-              <div className="mt-4 flex flex-wrap gap-3">
-                {jobData.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-2 text-sm font-medium text-[#1F2937]"
-                  >
-                    {tag}
-                  </span>
-                ))}
+              <div className="mt-3 text-sm leading-6 text-[#4B5563] whitespace-pre-line">
+                {job.description}
               </div>
             </section>
           </div>
@@ -276,6 +307,8 @@ export default function ApplyFormPage() {
               encType="multipart/form-data"
               noValidate
             >
+              <input type="hidden" name="jobId" value={jobId || ""} />
+              
               <div className="space-y-2">
                 <label
                   htmlFor="fullName"
@@ -362,6 +395,13 @@ export default function ApplyFormPage() {
                 >
                   Upload CV
                 </label>
+                {/* Profile CV Badge */}
+                {profileDocs.cv && !cvFileName && (
+                    <div className="flex items-center gap-2 mb-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        <span className="text-sm font-medium text-emerald-800">CV attached from your profile.</span>
+                    </div>
+                )}
                 <label
                   htmlFor="cv"
                   className={`flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-4 py-3 text-sm ${isFieldMissing("cv")
@@ -369,10 +409,10 @@ export default function ApplyFormPage() {
                       : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
                     }`}
                 >
-                  <span>
-                    {cvFileName ? cvFileName : "Drag and drop or click to upload"}
+                  <span className="truncate mr-4 flex-1">
+                    {cvFileName ? cvFileName : (profileDocs.cv ? "Select a new file to override profile CV" : "Drag and drop or click to upload")}
                   </span>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2] whitespace-nowrap">
                     Browse
                   </span>
                 </label>
@@ -382,7 +422,7 @@ export default function ApplyFormPage() {
                   type="file"
                   accept=".pdf,.doc,.docx"
                   className="hidden"
-                  required
+                  required={!profileDocs.cv}
                   onChange={(event) => {
                     const file = event.currentTarget.files?.[0];
                     setCvFileName(file ? file.name : null);
@@ -396,13 +436,26 @@ export default function ApplyFormPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 mt-4">
                 <label
                   htmlFor="nic"
                   className={`text-sm font-medium ${isFieldMissing("nic") ? "text-red-600" : "text-[#111827]"}`}
                 >
                   Upload NIC
                 </label>
+                {/* Profile ID Badge - Show only if both front and back are present */}
+                {profileDocs.nicFront && profileDocs.nicBack && !nicFileName && (
+                    <div className="flex items-center gap-2 mb-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        <span className="text-sm font-medium text-emerald-800">NIC (Front & Back) attached from your profile.</span>
+                    </div>
+                )}
+                {/* Partial ID Badge */}
+                {((profileDocs.nicFront && !profileDocs.nicBack) || (!profileDocs.nicFront && profileDocs.nicBack)) && !nicFileName && (
+                    <div className="flex items-center gap-2 mb-2 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                        <span className="text-sm font-medium text-amber-800">Partial NIC on profile. Please upload a full scan or visit profile to update.</span>
+                    </div>
+                )}
                 <label
                   htmlFor="nic"
                   className={`flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed px-4 py-4 text-sm ${isFieldMissing("nic")
@@ -413,16 +466,20 @@ export default function ApplyFormPage() {
                   <img
                     src="/nic-guide.jpg"
                     alt="NIC upload guide"
-                    className="w-full rounded-lg border border-[#E5E7EB] object-cover"
+                    className="w-full rounded-lg border border-[#E5E7EB] object-cover bg-white"
                   />
                   <span>
                     {nicFileName ? (
-                      nicFileName
+                      <span className="font-semibold">{nicFileName}</span>
                     ) : (
                       <>
-                        Please upload high-quality images of both the <strong>front</strong> and
-                        <strong> back</strong> of your National Identity Card (NIC). Ensure all text
-                        is clearly legible.
+                        {profileDocs.nicFront && profileDocs.nicBack ? "Select a new file to override profile ID" : (
+                            <>
+                                Please upload high-quality images of both the <strong>front</strong> and
+                                <strong> back</strong> of your National Identity Card (NIC). Ensure all text
+                                is clearly legible.
+                            </>
+                        )}
                       </>
                     )}
                   </span>
@@ -436,7 +493,7 @@ export default function ApplyFormPage() {
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
                   className="hidden"
-                  required
+                  required={!(profileDocs.nicFront && profileDocs.nicBack)}
                   onChange={(event) => {
                     const file = event.currentTarget.files?.[0];
                     setNicFileName(file ? file.name : null);
@@ -529,5 +586,17 @@ export default function ApplyFormPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ApplyFormPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-slate-500 font-medium text-lg">Loading...</div>
+      </div>
+    }>
+      <ApplicationFormContent />
+    </Suspense>
   );
 }
