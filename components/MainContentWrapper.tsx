@@ -11,7 +11,7 @@ export default function MainContentWrapper({ children }: { children: ReactNode }
     const isPublicRoute = pathname === "/jobseeker/browse";
 
     return (
-        <main className={`flex-1 ${isPublicRoute ? "" : "pt-16"}`}>
+        <main className="flex-1">
             {children}
         </main>
     );
