@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { BrowseJob, formatPay, formatDateLabel } from "@/lib/browse";
@@ -9,11 +9,15 @@ import { MapPin, Calendar, DollarSign, Building2, BriefcaseBusiness } from "luci
 
 export default function JobApplyPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id as string;
 
   const [job, setJob] = useState<BrowseJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -25,7 +29,7 @@ export default function JobApplyPage() {
         const data = await apiFetch(`/api/jobs/${id}`);
         // Support either nesting in { job: ... } or returning the job straight away
         setJob(data.job || data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to load job details:", err);
         setError("Failed to load job details. The job may have been removed.");
       } finally {
@@ -35,6 +39,52 @@ export default function JobApplyPage() {
 
     fetchJob();
   }, [id]);
+
+  useEffect(() => {
+    if (!id || typeof window === "undefined" || !localStorage.getItem("token")) return;
+
+    const fetchSavedStatus = async () => {
+      try {
+        const data = await apiFetch(`/api/saved-jobs/${id}/status`);
+        setIsSaved(Boolean(data.saved));
+      } catch (err) {
+        console.error("Failed to load saved job status:", err);
+      }
+    };
+
+    fetchSavedStatus();
+  }, [id]);
+
+  const handleSaveToggle = async () => {
+    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
+    if (!hasToken) {
+      router.push(`/auth/login?redirectTo=/jobseeker/jobs/${id}`);
+      return;
+    }
+
+    try {
+      setSaveLoading(true);
+      setSaveMessage("");
+
+      if (isSaved) {
+        await apiFetch(`/api/saved-jobs/${id}`, { method: "DELETE" });
+        setIsSaved(false);
+        setSaveMessage("Job removed from saved jobs.");
+      } else {
+        await apiFetch("/api/saved-jobs", {
+          method: "POST",
+          body: JSON.stringify({ jobId: id }),
+        });
+        setIsSaved(true);
+        setSaveMessage("Job saved successfully.");
+      }
+    } catch (err: unknown) {
+      console.error("Failed to update saved job:", err);
+      setSaveMessage(err instanceof Error ? err.message : "Failed to update saved job.");
+    } finally {
+      setSaveLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -141,10 +191,18 @@ export default function JobApplyPage() {
                 </Link>
                 <button
                   type="button"
-                  className="w-full rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-6 py-3.5 text-sm font-semibold text-[#111827] transition hover:bg-[#E5E7EB]"
+                  onClick={handleSaveToggle}
+                  disabled={saveLoading}
+                  className={`w-full rounded-xl border px-6 py-3.5 text-sm font-semibold transition ${isSaved
+                    ? "border-[#c7d2fe] bg-[#eef2ff] text-[#4f46e5] hover:bg-[#e0e7ff]"
+                    : "border-[#E5E7EB] bg-[#F3F4F6] text-[#111827] hover:bg-[#E5E7EB]"
+                    } disabled:cursor-not-allowed disabled:opacity-70`}
                 >
-                  Save Job
+                  {saveLoading ? "Updating..." : isSaved ? "Saved Job" : "Save Job"}
                 </button>
+                {saveMessage ? (
+                  <p className="text-center text-xs text-[#6B7280]">{saveMessage}</p>
+                ) : null}
                 <p className="text-center text-xs text-[#6B7280] pt-2">
                   Posted {formatDateLabel(job.date)}
                 </p>

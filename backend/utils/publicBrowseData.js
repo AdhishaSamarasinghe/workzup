@@ -279,5 +279,7 @@ async function getBrowseHomeData(prisma) {
 }
 
 module.exports = {
+  buildCategorySummary,
+  buildBrowseJob,
   getBrowseHomeData,
 };

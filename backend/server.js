@@ -64,6 +64,11 @@ try {
 } catch (_) { }
 
 try {
+  const savedJobsRoutes = require("./routes/savedJobs");
+  app.use("/api/saved-jobs", savedJobsRoutes);
+} catch (_) { }
+
+try {
   const adminRoutes = require("./routes/admin");
   app.use("/api/admin", adminRoutes);
 } catch (_) { }

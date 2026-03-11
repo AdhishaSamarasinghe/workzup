@@ -1,17 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
 import { BriefcaseBusiness, Building2, ChevronRight, Layers3, MapPin } from "lucide-react";
 import JobCard from "@/components/jobs/JobCard";
-import Pagination from "@/components/jobs/Pagination";
 import type { BrowseCategory, BrowseCompany, BrowseJob } from "@/lib/browse";
 import { formatDateLabel, formatPay } from "@/lib/browse";
 
 type FeaturedJobsSectionProps = {
   jobs: BrowseJob[];
+  jobsPerPage: number;
   page: number;
   totalPages: number;
-  isPaused: boolean;
   onPageChange: (page: number) => void;
   onPauseChange: (paused: boolean) => void;
   hasActiveFilters: boolean;
@@ -22,6 +22,10 @@ type FeaturedJobsSectionProps = {
 type JobCategoriesSectionProps = {
   categories: BrowseCategory[];
   activeCategory: string;
+  page: number;
+  totalPages: number;
+  categoriesPerPage: number;
+  onPageChange: (page: number) => void;
   onCategoryClick: (category: string) => void;
 };
 
@@ -35,36 +39,43 @@ function SectionHeader({
   eyebrow,
   title,
   description,
+  action,
 }: {
   eyebrow: string;
   title: string;
   description: string;
+  action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-col items-center text-center gap-3">
-      <div className="max-w-2xl">
+    <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="max-w-2xl text-center md:text-left">
         {eyebrow && <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#6b8bff]">{eyebrow}</p>}
         <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{title}</h2>
+        {description && <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">{description}</p>}
       </div>
-      {description && <p className="max-w-xl text-sm leading-6 text-slate-500">{description}</p>}
+      {action ? <div className="flex justify-center md:justify-end">{action}</div> : null}
     </div>
   );
 }
 
 export function FeaturedJobsSection({
   jobs,
+  jobsPerPage,
   page,
   totalPages,
-  isPaused,
   onPageChange,
   onPauseChange,
   hasActiveFilters,
   onClearFilters,
   onJobClick,
 }: FeaturedJobsSectionProps) {
+  const pages = Array.from({ length: totalPages }, (_, pageIndex) =>
+    jobs.slice(pageIndex * jobsPerPage, pageIndex * jobsPerPage + jobsPerPage),
+  );
+
   if (jobs.length === 0) {
     return (
-      <section className="max-w-6xl mx-auto px-6 py-16 ">
+      <section className="mx-auto w-full max-w-[1600px] px-3 py-16 sm:px-4 lg:px-6">
         <SectionHeader
           eyebrow=""
           title="Featured Jobs"
@@ -96,44 +107,76 @@ export function FeaturedJobsSection({
   }
 
   return (
-    <section className="max-w-6xl mx-auto px-6 py-16">
+    <section className="mx-auto w-full max-w-[1600px] px-3 py-16 sm:px-4 lg:px-6">
       <SectionHeader
         eyebrow=""
         title="Featured Jobs"
         description=""
+        action={
+          <Link
+            href="/jobseeker/gigs"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#6b8bff] hover:bg-[#f5f8ff] hover:text-[#6b8bff] hover:shadow-md"
+          >
+            Explore All Jobs
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        }
       />
 
       <div
-        key={page}
         onMouseEnter={() => onPauseChange(true)}
         onMouseLeave={() => onPauseChange(false)}
-        className="grid gap-8 md:grid-cols-2 xl:grid-cols-3"
+        className="overflow-hidden"
       >
-        {jobs.map((job, index) => (
-          <div
-            key={job.id}
-            className="animate-pop-in"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <JobCard
-              title={job.title}
-              company={job.companyName}
-              description={job.description}
-              location={job.location}
-              pay={formatPay(job.pay, job.payType)}
-              date={formatDateLabel(job.date)}
-              onViewDetails={() => onJobClick?.(job.id)}
-            />
-          </div>
-        ))}
+        <div
+          className="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ transform: `translateX(-${(page - 1) * 100}%)` }}
+        >
+          {pages.map((pageJobs, pageIndex) => (
+            <div key={pageIndex} className="min-w-full">
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                {pageJobs.map((job, index) => (
+                  <div
+                    key={job.id}
+                    className="animate-pop-in h-full"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <JobCard
+                      title={job.title}
+                      company={job.companyName}
+                      description={job.description}
+                      location={job.location}
+                      pay={formatPay(job.pay, job.payType)}
+                      date={formatDateLabel(job.date)}
+                      onViewDetails={() => onJobClick?.(job.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {totalPages > 1 && (
         <div className="mt-10">
-          <Pagination page={page} totalPages={totalPages} setPage={onPageChange} />
-          <p className="mt-4 text-center text-xs text-slate-400">
-            Auto-rotating pages {isPaused ? "paused while you hover" : "every 5 seconds"}
-          </p>
+          <div className="flex items-center justify-center gap-3">
+            {pages.map((_, dotIndex) => {
+              const isActive = page === dotIndex + 1;
+              return (
+                <button
+                  key={dotIndex}
+                  type="button"
+                  aria-label={`Go to featured jobs slide ${dotIndex + 1}`}
+                  onClick={() => onPageChange(dotIndex + 1)}
+                  className={`h-3 rounded-full transition-all duration-300 ${isActive
+                    ? "w-10 bg-[#6b8bff]"
+                    : "w-3 bg-slate-300 hover:bg-slate-400"
+                    }`}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
     </section>
@@ -143,10 +186,18 @@ export function FeaturedJobsSection({
 export function JobCategoriesSection({
   categories,
   activeCategory,
+  page,
+  totalPages,
+  categoriesPerPage,
+  onPageChange,
   onCategoryClick,
 }: JobCategoriesSectionProps) {
+  const pages = Array.from({ length: totalPages }, (_, pageIndex) =>
+    categories.slice(pageIndex * categoriesPerPage, pageIndex * categoriesPerPage + categoriesPerPage),
+  );
+
   return (
-    <section className="max-w-6xl mx-auto px-6 py-8">
+    <section className="mx-auto w-full max-w-[1600px] px-3 py-8 sm:px-4 lg:px-6">
       <SectionHeader
         eyebrow=""
         title="Job Categories"
@@ -164,35 +215,70 @@ export function JobCategoriesSection({
           </p>
         </div>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {categories.map((category) => {
-            const isActive = activeCategory === category.slug;
-            return (
-              <button
-                key={category.slug}
-                onClick={() => onCategoryClick(category.slug)}
-                className={`group rounded-[28px] border p-6 text-left transition duration-300 ${isActive
-                  ? "border-[#6b8bff] bg-[#edf2ff] shadow-md"
-                  : "border-slate-200 bg-white hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg"
-                  }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${isActive ? "bg-[#6b8bff] text-white" : "bg-slate-100 text-slate-600"}`}>
-                    <Layers3 className="h-6 w-6" />
+        <>
+          <div className="overflow-hidden">
+            <div
+              className="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{ transform: `translateX(-${(page - 1) * 100}%)` }}
+            >
+              {pages.map((pageCategories, pageIndex) => (
+                <div key={pageIndex} className="min-w-full">
+                  <div className="grid gap-5 px-1 py-2 md:grid-cols-2 xl:grid-cols-5">
+                    {pageCategories.map((category) => {
+                      const isActive = activeCategory === category.slug;
+                      return (
+                        <button
+                          key={category.slug}
+                          onClick={() => onCategoryClick(category.label)}
+                          className={`group rounded-[28px] border p-6 text-left transition duration-300 ${isActive
+                            ? "border-[#6b8bff] bg-[#edf2ff] shadow-md"
+                            : "border-slate-200 bg-white hover:-translate-y-1 hover:border-[#6b8bff] hover:shadow-lg"
+                            }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${isActive ? "bg-[#6b8bff] text-white" : "bg-slate-100 text-slate-600"}`}>
+                              <Layers3 className="h-6 w-6" />
+                            </div>
+                            <ChevronRight className={`h-5 w-5 transition ${isActive ? "text-[#6b8bff]" : "text-slate-300 group-hover:text-slate-500"}`} />
+                          </div>
+                          <h3 className="mt-8 text-xl font-semibold text-slate-900">{category.label}</h3>
+                          <p className="mt-2 text-sm text-slate-500">
+                            {category.count} {category.count === 1 ? "open role" : "open roles"}
+                          </p>
+                          <p className="mt-6 text-sm font-medium text-slate-700">
+                            {isActive ? "Active filter" : "Click to explore this category"}
+                          </p>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <ChevronRight className={`h-5 w-5 transition ${isActive ? "text-[#6b8bff]" : "text-slate-300 group-hover:text-slate-500"}`} />
                 </div>
-                <h3 className="mt-8 text-xl font-semibold text-slate-900">{category.label}</h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  {category.count} {category.count === 1 ? "open role" : "open roles"}
-                </p>
-                <p className="mt-6 text-sm font-medium text-slate-700">
-                  {isActive ? "Active filter" : "Click to explore this category"}
-                </p>
-              </button>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-10">
+              <div className="flex items-center justify-center gap-3">
+                {pages.map((_, dotIndex) => {
+                  const isActive = page === dotIndex + 1;
+                  return (
+                    <button
+                      key={dotIndex}
+                      type="button"
+                      aria-label={`Go to job categories slide ${dotIndex + 1}`}
+                      onClick={() => onPageChange(dotIndex + 1)}
+                      className={`h-3 rounded-full transition-all duration-300 ${isActive
+                        ? "w-10 bg-[#6b8bff]"
+                        : "w-3 bg-slate-300 hover:bg-slate-400"
+                        }`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
@@ -204,7 +290,7 @@ export function TopHiringCompaniesSection({
   onCompanyClick,
 }: TopHiringCompaniesSectionProps) {
   return (
-    <section className="max-w-6xl mx-auto px-6 py-16">
+    <section className="mx-auto w-full max-w-[1600px] px-3 py-16 sm:px-4 lg:px-6">
       <SectionHeader
         eyebrow=""
         title="Top Hiring Companies"

@@ -5,9 +5,11 @@ import React, { useEffect, useState } from "react";
 import { apiFetch, API_BASE } from "@/lib/api";
 import { 
     User, Briefcase, FileText, Shield, Award, MapPin, Star, 
-    Plus, Trash2, Edit2, Link as LinkIcon, Github, Linkedin, Target, CheckCircle2 
+    Plus, Trash2, Edit2, Link as LinkIcon, Github, Linkedin, Target, CheckCircle2, Camera, LoaderCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ProfileAvatar from "@/components/ProfileAvatar";
+import { resolveProfileAvatar } from "@/lib/profile";
 
 // --- Types ---
 interface JobSeekerProfileData {
@@ -32,6 +34,12 @@ interface JobSeekerProfileData {
     idFront?: string;
     idBack?: string;
     languages: string[];
+    socialLinks?: {
+        linkedin?: string;
+        github?: string;
+        portfolio?: string;
+        avatarUrl?: string;
+    };
 }
 
 export default function JobSeekerProfile() {
@@ -39,6 +47,7 @@ export default function JobSeekerProfile() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("overview");
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
     useEffect(() => {
         fetchProfile();
@@ -47,7 +56,11 @@ export default function JobSeekerProfile() {
     const fetchProfile = async () => {
         try {
             const data = await apiFetch("/api/auth/profile");
-            setProfile(data);
+            const resolvedAvatar = resolveProfileAvatar(data.socialLinks?.avatarUrl || data.avatar);
+            setProfile({
+                ...data,
+                avatar: resolvedAvatar,
+            });
             setLoading(false);
         } catch (err: any) {
             console.error("Error fetching profile:", err);
@@ -58,13 +71,32 @@ export default function JobSeekerProfile() {
 
     const handleSaveProfile = async (updates: Partial<JobSeekerProfileData>) => {
         if (!profile) return false;
-        const newProfileData = { ...profile, ...updates };
+        const nextFirstName = updates.firstName ?? profile.firstName;
+        const nextLastName = updates.lastName ?? profile.lastName;
+        const newProfileData = {
+            ...profile,
+            ...updates,
+            firstName: nextFirstName,
+            lastName: nextLastName,
+            name: `${nextFirstName || ""} ${nextLastName || ""}`.trim() || profile.name,
+            title: updates.title ?? profile.title,
+            location: updates.location ?? profile.location,
+            aboutMe: updates.aboutMe ?? profile.aboutMe,
+        };
         try {
             await apiFetch("/api/auth/profile", {
                 method: "PUT",
                 body: JSON.stringify(newProfileData)
             });
             setProfile(newProfileData);
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("profile-updated", {
+                    detail: {
+                        name: newProfileData.name || `${newProfileData.firstName || ""} ${newProfileData.lastName || ""}`.trim(),
+                        avatar: resolveProfileAvatar(newProfileData.avatar),
+                    }
+                }));
+            }
             return true;
         } catch (err) {
             console.error("Save error", err);
@@ -73,10 +105,86 @@ export default function JobSeekerProfile() {
         }
     };
 
+    const handleAvatarUpload = async (file: File | null) => {
+        if (!file || !profile) return;
+
+        const isValidType = ["image/jpeg", "image/png", "image/webp"].includes(file.type);
+        if (!isValidType) {
+            alert("Please upload a JPG, PNG, or WEBP image.");
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            alert("Please use an image smaller than 2MB.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("avatar", file);
+
+        try {
+            setUploadingAvatar(true);
+            const uploadResponse = await fetch("/api/profile-avatar", {
+                method: "POST",
+                body: formData,
+            });
+            const response = await uploadResponse.json().catch(() => ({}));
+            if (!uploadResponse.ok) {
+                throw new Error(response.message || "Failed to upload avatar.");
+            }
+
+            const avatarPath = response?.data?.avatarPath || "";
+            const nextAvatar = resolveProfileAvatar(response?.data?.avatarUrl || avatarPath || profile.avatar);
+            const nextProfile = {
+                ...profile,
+                avatar: nextAvatar,
+                socialLinks: {
+                    ...(profile.socialLinks || {}),
+                    avatarUrl: response?.data?.avatarUrl || avatarPath || profile.socialLinks?.avatarUrl || "",
+                },
+            };
+
+            try {
+                await apiFetch("/api/auth/profile", {
+                    method: "PUT",
+                    body: JSON.stringify({
+                        firstName: nextProfile.firstName,
+                        lastName: nextProfile.lastName,
+                        location: nextProfile.location,
+                        aboutMe: nextProfile.aboutMe,
+                        title: nextProfile.title,
+                        skills: nextProfile.skills,
+                        education: nextProfile.education,
+                        experience: nextProfile.experience,
+                        languages: nextProfile.languages,
+                        socialLinks: nextProfile.socialLinks,
+                    }),
+                });
+            } catch (saveError) {
+                console.error("Avatar persistence via backend profile update failed", saveError);
+            }
+
+            setProfile(nextProfile);
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("profile-updated", {
+                    detail: {
+                        name: nextProfile.name,
+                        avatar: resolveProfileAvatar(nextProfile.socialLinks?.avatarUrl || nextAvatar),
+                    }
+                }));
+            }
+        } catch (err) {
+            console.error("Avatar upload error", err);
+            alert("Failed to upload profile picture.");
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center pt-24 pb-10">
-                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-12 h-12 border-4 border-[#6b8bff] border-t-transparent rounded-full animate-spin"></div>
                 <div className="text-slate-500 font-medium mt-4">Loading your professional profile...</div>
             </div>
         );
@@ -91,7 +199,7 @@ export default function JobSeekerProfile() {
                     </div>
                     <div className="text-xl font-bold text-slate-800 mb-2">Oops!</div>
                     <div className="text-slate-500">{error || "Profile not found"}</div>
-                    <button onClick={fetchProfile} className="mt-6 w-full py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">
+                    <button onClick={fetchProfile} className="mt-6 w-full py-2.5 bg-[#6b8bff] text-white rounded-xl font-medium hover:bg-[#5a7af0] transition-transform hover:scale-[1.03]">
                         Try Again
                     </button>
                 </div>
@@ -116,8 +224,28 @@ export default function JobSeekerProfile() {
                     <div className="lg:col-span-3 space-y-6">
                         {/* Mini Profile Card */}
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center">
-                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-50 mb-4 bg-slate-100">
-                                <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+                            <div className="relative w-24 h-24 mb-4">
+                                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-indigo-50 bg-slate-100">
+                                    <ProfileAvatar
+                                        src={resolveProfileAvatar(profile.avatar)}
+                                        name={profile.name}
+                                        size={96}
+                                        textClassName="text-2xl"
+                                    />
+                                </div>
+                                <label className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white bg-[#6b8bff] text-white shadow-md transition hover:bg-[#5a7af0]">
+                                    {uploadingAvatar ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                                    <input
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp"
+                                        className="hidden"
+                                        disabled={uploadingAvatar}
+                                        onChange={(e) => {
+                                            handleAvatarUpload(e.target.files?.[0] || null);
+                                            e.target.value = "";
+                                        }}
+                                    />
+                                </label>
                             </div>
                             <h2 className="text-lg font-bold text-slate-900">{profile.name}</h2>
                             <p className="text-slate-500 text-sm font-medium mb-1">{profile.title}</p>
@@ -125,6 +253,7 @@ export default function JobSeekerProfile() {
                                 <MapPin className="w-3.5 h-3.5 mr-1" />
                                 {profile.location}
                             </div>
+                            <p className="mt-4 text-xs text-slate-400">Upload a square image up to 2MB.</p>
                         </div>
 
                         {/* Navigation Menu */}
@@ -139,11 +268,11 @@ export default function JobSeekerProfile() {
                                             onClick={() => setActiveTab(tab.id)}
                                             className={`flex items-center px-6 py-4 text-sm font-medium transition-all border-l-4 ${
                                                 isActive 
-                                                ? "border-blue-600 bg-blue-50/50 text-blue-700" 
+                                                ? "border-[#6b8bff] bg-indigo-50/50 text-indigo-700" 
                                                 : "border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                                             }`}
                                         >
-                                            <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                                            <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-[#6b8bff]' : 'text-slate-400'}`} />
                                             {tab.label}
                                         </button>
                                     );
@@ -208,7 +337,7 @@ function TabOverview({ profile }: { profile: JobSeekerProfileData }) {
                         <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wider">Performance Stats</h3>
                         <div className="flex items-center justify-around">
                             <div className="text-center">
-                                <div className="text-3xl font-black text-blue-600">{profile.stats.jobsCompleted}</div>
+                                <div className="text-3xl font-black text-[#6b8bff]">{profile.stats.jobsCompleted}</div>
                                 <div className="text-xs font-semibold text-slate-500 mt-1">COMPLETED</div>
                             </div>
                             <div className="w-px h-12 bg-slate-200"></div>
@@ -244,11 +373,11 @@ function TabOverview({ profile }: { profile: JobSeekerProfileData }) {
                     {profile.jobHistory.length > 0 ? (
                         profile.jobHistory.map((item, idx) => (
                             <div key={item.id} className="relative pl-6 pb-8 border-l-2 border-slate-100 last:border-transparent last:pb-0">
-                                <div className="absolute -left-[9px] top-0 w-4 h-4 bg-white rounded-full border-4 border-blue-500"></div>
+                                <div className="absolute -left-[9px] top-0 w-4 h-4 bg-white rounded-full border-4 border-[#6b8bff]"></div>
                                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 -mt-2">
                                     <h4 className="font-bold text-slate-900">{item.name}</h4>
                                     <div className="flex items-center justify-between mt-1">
-                                        <div className="text-sm text-blue-600 font-medium">{item.role}</div>
+                                        <div className="text-sm text-[#6b8bff] font-medium">{item.role}</div>
                                         <div className="text-xs text-slate-400 font-medium bg-white px-2 py-1 rounded-md border border-slate-200">{item.date}</div>
                                     </div>
                                 </div>
@@ -304,37 +433,37 @@ function TabPersonalInfo({ profile, onSave }: { profile: JobSeekerProfileData, o
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">First Name</label>
-                        <input required type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-900" />
+                        <input required type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Last Name</label>
-                        <input required type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-900" />
+                        <input required type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
                     </div>
                 </div>
 
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Professional Headline</label>
-                    <input required type="text" name="title" value={formData.title} onChange={handleChange} placeholder="e.g. Senior Software Engineer" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-900" />
+                    <input required type="text" name="title" value={formData.title} onChange={handleChange} placeholder="e.g. Senior Software Engineer" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
                 </div>
 
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Location / Hometown</label>
-                    <input required type="text" name="location" value={formData.location} onChange={handleChange} placeholder="City, Country" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-900" />
+                    <input required type="text" name="location" value={formData.location} onChange={handleChange} placeholder="City, Country" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
                 </div>
 
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Languages (Comma separated)</label>
-                    <input type="text" name="languages" value={formData.languages} onChange={handleChange} placeholder="English, French, Spanish" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-900" />
+                    <input type="text" name="languages" value={formData.languages} onChange={handleChange} placeholder="English, French, Spanish" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
                 </div>
 
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Professional Summary</label>
-                    <textarea required rows={5} name="aboutMe" value={formData.aboutMe} onChange={handleChange} placeholder="Tell employers about your background and what you are looking for..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-900 resize-none"></textarea>
+                    <textarea required rows={5} name="aboutMe" value={formData.aboutMe} onChange={handleChange} placeholder="Tell employers about your background and what you are looking for..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900 resize-none"></textarea>
                 </div>
 
                 <div className="flex items-center justify-end pt-4 border-t border-slate-100">
                     {saved && <span className="text-emerald-600 font-medium flex items-center mr-4"><CheckCircle2 className="w-5 h-5 mr-1" /> Saved successfully</span>}
-                    <button type="submit" disabled={saving} className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-70 flex items-center">
+                    <button type="submit" disabled={saving} className="px-8 py-3 bg-[#6b8bff] text-white font-bold rounded-xl hover:bg-[#5a7af0] transition-transform hover:scale-[1.03] transition-colors disabled:opacity-70 flex items-center">
                         {saving ? "Saving..." : "Save Changes"}
                     </button>
                 </div>
@@ -371,7 +500,7 @@ function TabExperience({ profile, onSave }: { profile: JobSeekerProfileData, onS
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-bold text-slate-900">Work Experience</h2>
-                    <button onClick={addExp} className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center bg-blue-50 px-3 py-1.5 rounded-lg">
+                    <button onClick={addExp} className="text-[#6b8bff] hover:text-indigo-700 font-medium text-sm flex items-center bg-blue-50 px-3 py-1.5 rounded-lg">
                         <Plus className="w-4 h-4 mr-1" /> Add Experience
                     </button>
                 </div>
@@ -385,19 +514,19 @@ function TabExperience({ profile, onSave }: { profile: JobSeekerProfileData, onS
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pr-8">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Job Title</label>
-                                    <input type="text" value={exp.role} onChange={(e) => { const n = [...experience]; n[idx].role = e.target.value; setExperience(n); }} placeholder="Software Engineer" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-blue-500" />
+                                    <input type="text" value={exp.role} onChange={(e) => { const n = [...experience]; n[idx].role = e.target.value; setExperience(n); }} placeholder="Software Engineer" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-[#6b8bff]" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Company</label>
-                                    <input type="text" value={exp.company} onChange={(e) => { const n = [...experience]; n[idx].company = e.target.value; setExperience(n); }} placeholder="Tech Inc." className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-blue-500" />
+                                    <input type="text" value={exp.company} onChange={(e) => { const n = [...experience]; n[idx].company = e.target.value; setExperience(n); }} placeholder="Tech Inc." className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-[#6b8bff]" />
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Duration (e.g. 2020 - Present)</label>
-                                    <input type="text" value={exp.duration} onChange={(e) => { const n = [...experience]; n[idx].duration = e.target.value; setExperience(n); }} placeholder="Jan 2020 - Dec 2022" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-blue-500" />
+                                    <input type="text" value={exp.duration} onChange={(e) => { const n = [...experience]; n[idx].duration = e.target.value; setExperience(n); }} placeholder="Jan 2020 - Dec 2022" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-[#6b8bff]" />
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Description</label>
-                                    <textarea rows={2} value={exp.description} onChange={(e) => { const n = [...experience]; n[idx].description = e.target.value; setExperience(n); }} placeholder="Describe your responsibilities..." className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-blue-500 resize-none"></textarea>
+                                    <textarea rows={2} value={exp.description} onChange={(e) => { const n = [...experience]; n[idx].description = e.target.value; setExperience(n); }} placeholder="Describe your responsibilities..." className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-[#6b8bff] resize-none"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -559,7 +688,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
                             {profile.cv && (
-                                <a href={`${API_BASE}/${profile.cv.replace(/\\/g, '/')}`} target="_blank" className="text-blue-600 hover:underline text-sm font-bold flex items-center">
+                                <a href={`${API_BASE}/${profile.cv.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-sm font-bold flex items-center">
                                     <FileText className="w-4 h-4 mr-1" /> View Current
                                 </a>
                             )}
@@ -587,7 +716,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Front Side</span>
                                     {profile.idFront && (
-                                        <a href={`${API_BASE}/${profile.idFront.replace(/\\/g, '/')}`} target="_blank" className="text-blue-600 hover:underline text-xs font-bold flex items-center">
+                                        <a href={`${API_BASE}/${profile.idFront.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-xs font-bold flex items-center">
                                             <FileText className="w-3.5 h-3.5 mr-1" /> View Current
                                         </a>
                                     )}
@@ -603,7 +732,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Back Side</span>
                                     {profile.idBack && (
-                                        <a href={`${API_BASE}/${profile.idBack.replace(/\\/g, '/')}`} target="_blank" className="text-blue-600 hover:underline text-xs font-bold flex items-center">
+                                        <a href={`${API_BASE}/${profile.idBack.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-xs font-bold flex items-center">
                                             <FileText className="w-3.5 h-3.5 mr-1" /> View Current
                                         </a>
                                     )}
@@ -618,7 +747,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
 
                     {(cvFile || idFrontFile || idBackFile) && (
                         <div className="flex justify-end pt-2">
-                            <button onClick={handleUploadDocs} disabled={uploadingDocs} className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-70 flex items-center shadow-lg">
+                            <button onClick={handleUploadDocs} disabled={uploadingDocs} className="px-6 py-2.5 bg-[#6b8bff] text-white font-bold rounded-xl hover:bg-[#5a7af0] transition-transform hover:scale-[1.03] transition-colors disabled:opacity-70 flex items-center shadow-lg">
                                 {uploadingDocs ? "Uploading..." : "Upload Selected Files"}
                             </button>
                         </div>
@@ -646,7 +775,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                                 onFocus={() => setShowSuggestions(true)}
                                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // delay to allow click
                                 placeholder="Type a skill and hit Enter (e.g. Cleaning, Customer Service, Bartending)" 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3.5 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-900" 
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3.5 outline-none focus:ring-2 focus:ring-[#6b8bff] font-medium text-slate-900" 
                             />
                             
                             {/* Auto-suggestions Dropdown */}
@@ -657,7 +786,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                                             key={skill}
                                             type="button"
                                             onClick={() => addSkill(undefined, skill)}
-                                            className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors border-b border-slate-100 last:border-0"
+                                            className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-[#6b8bff] transition-colors border-b border-slate-100 last:border-0"
                                         >
                                             {skill}
                                         </button>
@@ -665,7 +794,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                                 </div>
                             )}
                         </div>
-                        <button type="submit" className="px-6 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">Add</button>
+                        <button type="submit" className="px-6 bg-[#6b8bff] text-white font-bold rounded-xl hover:bg-[#5a7af0] transition-transform hover:scale-[1.03] transition">Add</button>
                     </form>
                 </div>
 
@@ -736,15 +865,15 @@ function TabSecurity() {
                 <h3 className="font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2">Change Password</h3>
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Current Password</label>
-                    <input required type="password" value={passwords.current} onChange={e => setPasswords({...passwords, current: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-900" />
+                    <input required type="password" value={passwords.current} onChange={e => setPasswords({...passwords, current: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
                 </div>
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">New Password</label>
-                    <input required type="password" value={passwords.new} onChange={e => setPasswords({...passwords, new: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-900" />
+                    <input required type="password" value={passwords.new} onChange={e => setPasswords({...passwords, new: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
                 </div>
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Confirm New Password</label>
-                    <input required type="password" value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-900" />
+                    <input required type="password" value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
                 </div>
 
                 <div className="pt-4 flex justify-end">

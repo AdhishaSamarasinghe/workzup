@@ -3,17 +3,17 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { LogOut } from "lucide-react";
+import ProfileAvatar from "./ProfileAvatar";
+import { useProfileIdentity } from "@/lib/useProfileIdentity";
 
 export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?: boolean }) {
     const [scrolledDelta, setScrolledDelta] = useState(false);
     const isScrolled = alwaysSolid || scrolledDelta;
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const { data: session } = useSession();
-    const router = useRouter();
 
     useEffect(() => {
         if (alwaysSolid) return;
@@ -24,7 +24,7 @@ export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?:
 
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
+    }, [alwaysSolid]);
 
     const handleLogout = async () => {
         if (typeof window !== "undefined") {
@@ -34,9 +34,9 @@ export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?:
         window.location.href = "/jobseeker/browse";
     };
 
-    // Use session image if available, otherwise default
-    const avatarUrl = session?.user?.image || "/avatars/default.svg";
-    const userName = session?.user?.name || "Job Seeker";
+    const sessionName = session?.user?.name || "Job Seeker";
+    const { avatarUrl, name } = useProfileIdentity(sessionName);
+    const userName = name || sessionName;
 
     return (
         <motion.header
@@ -73,7 +73,12 @@ export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?:
                             className="flex items-center gap-2 rounded-full p-1 transition-all duration-300 hover:bg-white/10"
                         >
                             <div className="h-9 w-9 md:h-10 md:w-10 overflow-hidden rounded-full border-2 border-white/50 bg-slate-50 flex items-center justify-center shadow-sm">
-                                <Image src={avatarUrl} alt={userName} width={40} height={40} className="object-cover" />
+                                <ProfileAvatar
+                                    src={avatarUrl}
+                                    name={userName}
+                                    size={40}
+                                    textClassName="text-sm"
+                                />
                             </div>
                         </button>
 
@@ -90,6 +95,13 @@ export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?:
                                     onClick={() => setDropdownOpen(false)}
                                 >
                                     My Profile
+                                </Link>
+                                <Link
+                                    href="/applications"
+                                    className="block w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                                    onClick={() => setDropdownOpen(false)}
+                                >
+                                    My Applications
                                 </Link>
                                 <button
                                     onClick={handleLogout}

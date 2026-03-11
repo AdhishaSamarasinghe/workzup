@@ -1,4 +1,3 @@
-/* eslint-disable */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -46,6 +45,7 @@ export default function StatsSection({ stats }: StatsProps) {
     const sectionRef = useRef<HTMLElement>(null);
 
     useEffect(() => {
+        const currentSection = sectionRef.current;
         const observer = new IntersectionObserver(
             ([entry]) => {
                 setIsVisible(entry.isIntersecting);
@@ -53,19 +53,19 @@ export default function StatsSection({ stats }: StatsProps) {
             { threshold: 0.2 }
         );
 
-        if (sectionRef.current) {
-            observer.observe(sectionRef.current);
+        if (currentSection) {
+            observer.observe(currentSection);
         }
 
         return () => {
-            if (sectionRef.current) {
-                observer.unobserve(sectionRef.current);
+            if (currentSection) {
+                observer.unobserve(currentSection);
             }
         };
     }, []);
 
     return (
-        <section ref={sectionRef} className="max-w-7xl mx-auto px-6 py-10">
+        <section ref={sectionRef} className="mx-auto w-full max-w-[1600px] px-3 py-10 sm:px-4 lg:px-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {displayStats.map((stat, index) => (
                     <div

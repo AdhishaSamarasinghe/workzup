@@ -22,7 +22,8 @@ import {
   slugify,
 } from "@/lib/browse";
 
-const JOBS_PER_PAGE = 6;
+const JOBS_PER_PAGE = 4;
+const CATEGORIES_PER_PAGE = 10;
 
 function pickTextFilters(searchParams: URLSearchParams | ReturnType<typeof useSearchParams>): BrowseFilters {
   return {
@@ -92,6 +93,7 @@ export default function BrowseJobsPage() {
   const [filters, setFilters] = useState<BrowseFilters>(DEFAULT_BROWSE_FILTERS);
   const [draftFilters, setDraftFilters] = useState<BrowseFilters>(DEFAULT_BROWSE_FILTERS);
   const [page, setPage] = useState(1);
+  const [categoryPage, setCategoryPage] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -152,13 +154,13 @@ export default function BrowseJobsPage() {
     .filter((company) => company.jobCount > 0);
 
   const totalPages = Math.max(1, Math.ceil(featuredJobs.length / JOBS_PER_PAGE));
-  const start = (page - 1) * JOBS_PER_PAGE;
-  const visibleJobs = featuredJobs.slice(start, start + JOBS_PER_PAGE);
+  const totalCategoryPages = Math.max(1, Math.ceil(dynamicCategories.length / CATEGORIES_PER_PAGE));
   const hasActiveFilters = Object.values(filters).some(Boolean);
   const keywords = Array.from(new Set(browseData.jobs.map((job) => job.title))).sort();
 
   useEffect(() => {
     setPage(1);
+    setCategoryPage(1);
   }, [filters]);
 
   useEffect(() => {
@@ -166,11 +168,15 @@ export default function BrowseJobsPage() {
   }, [page, totalPages]);
 
   useEffect(() => {
+    if (categoryPage > totalCategoryPages) setCategoryPage(totalCategoryPages);
+  }, [categoryPage, totalCategoryPages]);
+
+  useEffect(() => {
     if (totalPages <= 1 || isPaused) return;
 
     const interval = setInterval(() => {
       setPage((prev) => (prev >= totalPages ? 1 : prev + 1));
-    }, 5000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [isPaused, totalPages]);
@@ -204,18 +210,8 @@ export default function BrowseJobsPage() {
     window.open(`/jobseeker/jobs/${jobId}`, "_blank");
   };
 
-  const toggleCategory = (category: string) => {
-    if (!checkAuth()) {
-      router.push(`/auth/login?redirectTo=/jobseeker/browse`);
-      return;
-    }
-    const nextFilters = {
-      ...filters,
-      category: filters.category === category ? "" : category,
-    };
-    setFilters(nextFilters);
-    setDraftFilters(nextFilters);
-    applyFilterToUrl(nextFilters, pathname, router);
+  const openCategoryJobs = (categoryLabel: string) => {
+    router.push(`/jobseeker/gigs?category=${encodeURIComponent(categoryLabel)}`);
   };
 
   const toggleCompany = (company: string) => {
@@ -317,10 +313,10 @@ export default function BrowseJobsPage() {
       ) : (
         <>
           <FeaturedJobsSection
-            jobs={visibleJobs}
+            jobs={featuredJobs}
+            jobsPerPage={JOBS_PER_PAGE}
             page={page}
             totalPages={totalPages}
-            isPaused={isPaused}
             onPageChange={setPage}
             onPauseChange={setIsPaused}
             hasActiveFilters={hasActiveFilters}
@@ -331,7 +327,11 @@ export default function BrowseJobsPage() {
           <JobCategoriesSection
             categories={dynamicCategories}
             activeCategory={filters.category}
-            onCategoryClick={toggleCategory}
+            page={categoryPage}
+            totalPages={totalCategoryPages}
+            categoriesPerPage={CATEGORIES_PER_PAGE}
+            onPageChange={setCategoryPage}
+            onCategoryClick={openCategoryJobs}
           />
 
           <TopHiringCompaniesSection

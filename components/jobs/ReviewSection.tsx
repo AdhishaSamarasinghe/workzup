@@ -31,7 +31,7 @@ export default function ReviewSection() {
     }, []);
 
     return (
-        <section className="max-w-6xl mx-auto px-6 py-10">
+        <section className="mx-auto w-full max-w-[1600px] px-3 py-10 sm:px-4 lg:px-6">
             <h2 className="text-4xl font-bold text-center mb-12 text-black">Reviews</h2>
             {reviewsData.length === 0 ? (
                 <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/80 px-8 py-12 text-center shadow-sm">

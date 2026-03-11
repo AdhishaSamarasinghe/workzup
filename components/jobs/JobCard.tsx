@@ -18,52 +18,39 @@ export default function JobCard({
   onViewDetails,
 }: JobCardProps) {
   return (
-    <div className="bg-white rounded-2xl p-7 flex flex-col justify-between h-[400px] transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-default">
-
-      {/* Header */}
-      <div>
-        <div className="flex justify-between items-start">
-          <h2 className="text-xl font-semibold leading-snug max-w-[75%]">
+    <div className="flex min-h-[460px] cursor-default flex-col rounded-[26px] bg-white p-8 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
+      <div className="flex-1">
+        <div className="flex items-start justify-between">
+          <h2 className="max-w-[72%] text-[1.45rem] font-semibold leading-snug text-slate-900">
             {title}
           </h2>
 
-          <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full">
+          <span className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-700">
             Urgent
           </span>
         </div>
 
-        <p className="text-gray-500 mt-2">
-          {company}
-        </p>
+        <p className="mt-2 text-[1.02rem] text-gray-500">{company}</p>
 
-        <p className="text-gray-600 mt-4 leading-relaxed text-sm">
-          {description}
-        </p>
+        <p className="mt-5 text-base leading-8 text-gray-600">{description}</p>
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-gray-200 my-6"></div>
+      <div className="my-7 border-t border-gray-200"></div>
 
-      {/* Job Info */}
-      <div className="space-y-3 text-gray-600 text-sm">
-
-        <p>📍 {location}</p>
-        <p>💵 {pay}</p>
-        <p>📅 {date}</p>
-
+      <div className="space-y-3.5 text-[1.02rem] text-gray-600">
+        <p>{location}</p>
+        <p>{pay}</p>
+        <p>{date}</p>
       </div>
 
-      {/* Button */}
-      <div className="flex justify-center mt-6">
-        <button 
+      <div className="mt-8 flex justify-center pb-1">
+        <button
           onClick={onViewDetails}
-          className="bg-[#6b8bff] text-white px-10 py-2 rounded-full text-sm hover:opacity-90 transition"
+          className="rounded-full bg-[#6b8bff] px-10 py-3 text-base text-white transition hover:opacity-90"
         >
-
           View Details
         </button>
       </div>
-
     </div>
   );
 }

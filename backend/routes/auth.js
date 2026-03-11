@@ -9,14 +9,17 @@ const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
 
+const ensureUploadDir = (dirPath) => {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+};
+
 // Configure Multer Storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadDir = "uploads/";
-    // Ensure directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    ensureUploadDir(uploadDir);
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
@@ -26,6 +29,18 @@ const storage = multer.diskStorage({
       null,
       file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
     );
+  },
+});
+
+const avatarStorage = multer.diskStorage({
+  destination: function (_req, _file, cb) {
+    const uploadDir = path.join("uploads", "avatars");
+    ensureUploadDir(uploadDir);
+    cb(null, uploadDir);
+  },
+  filename: function (_req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, "avatar-" + uniqueSuffix + path.extname(file.originalname));
   },
 });
 
@@ -43,6 +58,29 @@ const upload = multer({
     cb(new Error("Error: Upload only supports PDF, DOC, DOCX, JPG, PNG"));
   }
 });
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const filetypes = /jpg|jpeg|png|webp/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = /^image\/(jpeg|png|webp)$/.test(file.mimetype);
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error("Error: Upload only supports JPG, PNG, or WEBP"));
+  }
+});
+
+const buildAvatarUrl = (req, storedPath, firstName, lastName) => {
+  if (storedPath) {
+    const normalizedPath = String(storedPath).replace(/\\/g, "/").replace(/^\/+/, "");
+    return `${req.protocol}://${req.get("host")}/${normalizedPath}`;
+  }
+
+  return `https://ui-avatars.com/api/?name=${firstName || 'Job'}+${lastName || 'Seeker'}&background=random`;
+};
 
 // PATCH /api/auth/role
 router.patch("/role", authenticateToken, async (req, res) => {
@@ -195,7 +233,7 @@ router.get("/profile", authenticateToken, async (req, res) => {
       lastName: user.lastName || "",
       title: user.seekerProfile?.bio ? user.seekerProfile.bio.split(".")[0] : "Professional",
       location: user.homeTown || "Sri Lanka",
-      avatar: `https://ui-avatars.com/api/?name=${user.firstName || 'Job'}+${user.lastName || 'Seeker'}&background=random`,
+      avatar: buildAvatarUrl(req, user.seekerProfile?.socialLinks?.avatarUrl, user.firstName, user.lastName),
       isAvailable: true,
       stats: {
         jobsCompleted,
@@ -211,7 +249,7 @@ router.get("/profile", authenticateToken, async (req, res) => {
       jobHistory,
       education: user.seekerProfile?.education || [],
       experience: user.seekerProfile?.experience || [],
-      socialLinks: user.seekerProfile?.socialLinks || { linkedin: "", github: "", portfolio: "" },
+      socialLinks: user.seekerProfile?.socialLinks || { linkedin: "", github: "", portfolio: "", avatarUrl: "" },
       languages: user.seekerProfile?.languages || [],
       cv: user.cv || null,
       idDocument: user.idDocument || null,
@@ -222,6 +260,55 @@ router.get("/profile", authenticateToken, async (req, res) => {
     res.json(profileData);
   } catch (error) {
     console.error("Profile Fetch Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// POST /api/auth/upload-avatar
+router.post("/upload-avatar", authenticateToken, avatarUpload.single("avatar"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No avatar uploaded" });
+    }
+
+    const existingProfile = await prisma.seekerProfile.findUnique({
+      where: { userId: req.user.userId },
+    });
+
+    const existingSocialLinks = existingProfile?.socialLinks && typeof existingProfile.socialLinks === "object"
+      ? existingProfile.socialLinks
+      : {};
+
+    const avatarPath = req.file.path.replace(/\\/g, "/");
+
+    await prisma.seekerProfile.upsert({
+      where: { userId: req.user.userId },
+      update: {
+        socialLinks: {
+          ...existingSocialLinks,
+          avatarUrl: avatarPath,
+        },
+      },
+      create: {
+        userId: req.user.userId,
+        socialLinks: {
+          ...existingSocialLinks,
+          avatarUrl: avatarPath,
+        },
+      },
+    });
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+
+    res.json({
+      message: "Avatar uploaded successfully",
+      data: {
+        avatarPath,
+        avatarUrl: buildAvatarUrl(req, avatarPath, user?.firstName, user?.lastName),
+      },
+    });
+  } catch (error) {
+    console.error("Upload Avatar Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
@@ -272,6 +359,16 @@ router.put("/profile", authenticateToken, async (req, res) => {
       education, experience, socialLinks, languages 
     } = req.body;
 
+    const existingProfile = await prisma.seekerProfile.findUnique({
+      where: { userId: req.user.userId },
+    });
+    const existingSocialLinks = existingProfile?.socialLinks && typeof existingProfile.socialLinks === "object"
+      ? existingProfile.socialLinks
+      : {};
+    const mergedSocialLinks = socialLinks
+      ? { ...existingSocialLinks, ...socialLinks }
+      : existingSocialLinks;
+
     // First update the core User
     await prisma.user.update({
       where: { id: req.user.userId },
@@ -290,7 +387,7 @@ router.put("/profile", authenticateToken, async (req, res) => {
         skills: skills || [],
         education: education || [],
         experience: experience || [],
-        socialLinks: socialLinks || null,
+        socialLinks: mergedSocialLinks,
         languages: languages || []
       },
       create: {
@@ -299,7 +396,7 @@ router.put("/profile", authenticateToken, async (req, res) => {
         skills: skills || [],
         education: education || [],
         experience: experience || [],
-        socialLinks: socialLinks || null,
+        socialLinks: mergedSocialLinks,
         languages: languages || []
       }
     });

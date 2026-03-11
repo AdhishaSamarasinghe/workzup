@@ -22,7 +22,12 @@ function ApplicationFormContent() {
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
   const [cvFileName, setCvFileName] = useState<string | null>(null);
   const [nicFileName, setNicFileName] = useState<string | null>(null);
-  const [profileDocs, setProfileDocs] = useState({ cv: false, nicFront: false, nicBack: false });
+  const [profileDocs, setProfileDocs] = useState({
+    cv: false,
+    idDocument: false,
+    nicFront: false,
+    nicBack: false,
+  });
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [missingFieldMap, setMissingFieldMap] = useState<Record<string, string>>({});
@@ -44,17 +49,15 @@ function ApplicationFormContent() {
         const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
         if (token) {
           try {
-            const profileRes = await fetch("/api/auth/profile", { headers: { Authorization: `Bearer ${token}` } });
-            if (profileRes.ok) {
-              const profile = await profileRes.json();
-              setProfileDocs({ 
-                cv: !!profile.cv, 
-                nicFront: !!profile.idFront, 
-                nicBack: !!profile.idBack 
-              });
-            }
+            const profile = await apiFetch("/api/auth/profile");
+            setProfileDocs({
+              cv: !!profile.cv,
+              idDocument: !!profile.idDocument,
+              nicFront: !!profile.idFront,
+              nicBack: !!profile.idBack,
+            });
           } catch (e) {
-             console.error("Could not fetch profile", e);
+            console.error("Could not fetch profile", e);
           }
         }
 
@@ -156,6 +159,8 @@ function ApplicationFormContent() {
     }
   };
 
+  const hasProfileNic = profileDocs.idDocument || (profileDocs.nicFront && profileDocs.nicBack);
+
   const openSuccessPopup = () => {
     setShowSuccessPopup(true);
   };
@@ -166,7 +171,7 @@ function ApplicationFormContent() {
       (typeof window !== "undefined"
         ? window.localStorage.getItem("workzup:lastApplicationId")
         : null);
-    router.push(targetId ? `/applications/${targetId}` : "/jobseeker/applications");
+    router.push(targetId ? `/applications/${targetId}` : "/applications");
   };
 
   const handleBrowseJobs = () => {
@@ -393,28 +398,69 @@ function ApplicationFormContent() {
                   htmlFor="cv"
                   className={`text-sm font-medium ${isFieldMissing("cv") ? "text-red-600" : "text-[#111827]"}`}
                 >
-                  Upload CV
+                  CV
                 </label>
-                {/* Profile CV Badge */}
-                {profileDocs.cv && !cvFileName && (
-                    <div className="flex items-center gap-2 mb-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                        <span className="text-sm font-medium text-emerald-800">CV attached from your profile.</span>
+                {profileDocs.cv ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      <span className="text-sm font-medium text-emerald-800">
+                        CV already available from your profile.
+                      </span>
                     </div>
+                    <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-[#111827]">Optional: upload a job-specific CV</p>
+                          <p className="mt-1 text-xs text-[#6B7280]">
+                            Only upload another CV if you want to tailor it specifically for this application.
+                          </p>
+                        </div>
+                        {cvFileName && (
+                          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
+                            New file selected
+                          </span>
+                        )}
+                      </div>
+                      <label
+                        htmlFor="cv"
+                        className="mt-4 flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-[#CBD5F5] bg-white px-4 py-3 text-sm text-[#6B7280]"
+                      >
+                        <span className="truncate mr-4 flex-1">
+                          {cvFileName ? cvFileName : "Upload a separate CV for this job (optional)"}
+                        </span>
+                        <span className="rounded-full bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#6D83F2] whitespace-nowrap">
+                          Browse
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <label
+                      htmlFor="cv"
+                      className={`flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-4 py-3 text-sm ${isFieldMissing("cv")
+                          ? "border-red-500 bg-red-50 text-red-700"
+                          : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
+                        }`}
+                    >
+                      <span className="truncate mr-4 flex-1">
+                        {cvFileName ? cvFileName : "Drag and drop or click to upload"}
+                      </span>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2] whitespace-nowrap">
+                        Browse
+                      </span>
+                    </label>
+                    {isFieldMissing("cv") && (
+                      <p className="text-xs font-medium text-red-600">Please upload your CV.</p>
+                    )}
+                  </>
                 )}
                 <label
                   htmlFor="cv"
-                  className={`flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-4 py-3 text-sm ${isFieldMissing("cv")
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
-                    }`}
+                  className="sr-only"
                 >
-                  <span className="truncate mr-4 flex-1">
-                    {cvFileName ? cvFileName : (profileDocs.cv ? "Select a new file to override profile CV" : "Drag and drop or click to upload")}
-                  </span>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2] whitespace-nowrap">
-                    Browse
-                  </span>
+                  Upload CV
                 </label>
                 <input
                   id="cv"
@@ -431,9 +477,6 @@ function ApplicationFormContent() {
                     }
                   }}
                 />
-                {isFieldMissing("cv") && (
-                  <p className="text-xs font-medium text-red-600">Please upload your CV.</p>
-                )}
               </div>
 
               <div className="space-y-2 mt-4">
@@ -441,59 +484,65 @@ function ApplicationFormContent() {
                   htmlFor="nic"
                   className={`text-sm font-medium ${isFieldMissing("nic") ? "text-red-600" : "text-[#111827]"}`}
                 >
-                  Upload NIC
+                  ID / NIC
                 </label>
-                {/* Profile ID Badge - Show only if both front and back are present */}
-                {profileDocs.nicFront && profileDocs.nicBack && !nicFileName && (
-                    <div className="flex items-center gap-2 mb-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                        <span className="text-sm font-medium text-emerald-800">NIC (Front & Back) attached from your profile.</span>
+                {hasProfileNic ? (
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      <span className="text-sm font-medium text-emerald-800">
+                        ID / NIC already verified from your profile.
+                      </span>
                     </div>
-                )}
-                {/* Partial ID Badge */}
-                {((profileDocs.nicFront && !profileDocs.nicBack) || (!profileDocs.nicFront && profileDocs.nicBack)) && !nicFileName && (
-                    <div className="flex items-center gap-2 mb-2 p-3 bg-amber-50 rounded-xl border border-amber-100">
-                        <span className="text-sm font-medium text-amber-800">Partial NIC on profile. Please upload a full scan or visit profile to update.</span>
-                    </div>
-                )}
-                <label
-                  htmlFor="nic"
-                  className={`flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed px-4 py-4 text-sm ${isFieldMissing("nic")
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
-                    }`}
-                >
-                  <img
-                    src="/nic-guide.jpg"
-                    alt="NIC upload guide"
-                    className="w-full rounded-lg border border-[#E5E7EB] object-cover bg-white"
-                  />
-                  <span>
-                    {nicFileName ? (
-                      <span className="font-semibold">{nicFileName}</span>
-                    ) : (
-                      <>
-                        {profileDocs.nicFront && profileDocs.nicBack ? "Select a new file to override profile ID" : (
-                            <>
-                                Please upload high-quality images of both the <strong>front</strong> and
-                                <strong> back</strong> of your National Identity Card (NIC). Ensure all text
-                                is clearly legible.
-                            </>
-                        )}
-                      </>
+                  </div>
+                ) : (
+                  <>
+                    {((profileDocs.nicFront && !profileDocs.nicBack) || (!profileDocs.nicFront && profileDocs.nicBack)) && !profileDocs.idDocument && !nicFileName && (
+                      <div className="flex items-center gap-2 mb-2 rounded-xl border border-amber-100 bg-amber-50 p-3">
+                        <span className="text-sm font-medium text-amber-800">
+                          Partial NIC found on your profile. Please complete it from your profile page before applying.
+                        </span>
+                      </div>
                     )}
-                  </span>
-                  <span className="self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
-                    Browse
-                  </span>
-                </label>
+                    <label
+                      htmlFor="nic"
+                      className={`flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed px-4 py-4 text-sm ${isFieldMissing("nic")
+                          ? "border-red-500 bg-red-50 text-red-700"
+                          : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
+                        }`}
+                    >
+                      <img
+                        src="/nic-guide.jpg"
+                        alt="NIC upload guide"
+                        className="w-full rounded-lg border border-[#E5E7EB] object-cover bg-white"
+                      />
+                      <span>
+                        {nicFileName ? (
+                          <span className="font-semibold">{nicFileName}</span>
+                        ) : (
+                          <>
+                            Please upload high-quality images of both the <strong>front</strong> and
+                            <strong> back</strong> of your National Identity Card (NIC). Ensure all text
+                            is clearly legible.
+                          </>
+                        )}
+                      </span>
+                      <span className="self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
+                        Browse
+                      </span>
+                    </label>
+                    {isFieldMissing("nic") && (
+                      <p className="text-xs font-medium text-red-600">Please upload your NIC.</p>
+                    )}
+                  </>
+                )}
                 <input
                   id="nic"
                   name="nic"
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
                   className="hidden"
-                  required={!(profileDocs.nicFront && profileDocs.nicBack)}
+                  required={!hasProfileNic}
                   onChange={(event) => {
                     const file = event.currentTarget.files?.[0];
                     setNicFileName(file ? file.name : null);
@@ -502,9 +551,6 @@ function ApplicationFormContent() {
                     }
                   }}
                 />
-                {isFieldMissing("nic") && (
-                  <p className="text-xs font-medium text-red-600">Please upload your NIC.</p>
-                )}
               </div>
 
               <div className="space-y-2">
