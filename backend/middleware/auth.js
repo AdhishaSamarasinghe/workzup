@@ -1,5 +1,19 @@
 const jwt = require("jsonwebtoken");
 
+function normalizeRole(role) {
+  const key = String(role || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_");
+
+  if (key === "JOBSEEKER" || key === "JOB_SEEKER") return "JOB_SEEKER";
+  if (key === "RECRUITER") return "RECRUITER";
+  if (key === "EMPLOYER") return "EMPLOYER";
+  if (key === "ADMIN") return "ADMIN";
+
+  return key;
+}
+
 function authenticateToken(req, res, next) {
   const header = req.headers.authorization;
 
@@ -23,7 +37,10 @@ function requireRole(allowedRoles) {
       return res.status(403).json({ message: "Forbidden: No role assigned" });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const currentRole = normalizeRole(req.user.role);
+    const normalizedAllowedRoles = allowedRoles.map(normalizeRole);
+
+    if (!normalizedAllowedRoles.includes(currentRole)) {
       return res.status(403).json({ message: `Forbidden: Requires one of [${allowedRoles.join(', ')}]` });
     }
 

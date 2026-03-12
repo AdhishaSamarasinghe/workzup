@@ -239,30 +239,53 @@ function buildTopCompanies(jobs) {
 }
 
 async function getBrowseHomeData(prisma) {
-  const jobs = await prisma.job.findMany({
-    where: { status: { in: PUBLIC_JOB_STATUSES } },
-    include: {
-      company: {
-        select: {
-          id: true,
-          name: true,
-          logoUrl: true,
-          industry: true,
-          city: true,
-          address: true,
+  let jobs = [];
+  try {
+    jobs = await prisma.job.findMany({
+      where: { status: { in: PUBLIC_JOB_STATUSES } },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true,
+            industry: true,
+            city: true,
+            address: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (error) {
+    console.warn("[browse/home] Falling back to jobs query without company relation:", error?.message || error);
+    jobs = await prisma.job.findMany({
+      where: { status: { in: PUBLIC_JOB_STATUSES } },
+      orderBy: { createdAt: "desc" },
+    });
+  }
 
   const browseJobs = jobs.map(buildBrowseJob);
   const categories = buildCategorySummary(browseJobs);
   const topCompanies = buildTopCompanies(browseJobs);
 
-  const totalSeekers = await prisma.user.count({ where: { role: "JOB_SEEKER" } });
-  const totalApplications = await prisma.application.count();
-  const totalCompanies = await prisma.company.count();
+  const [totalSeekersResult, totalApplicationsResult, totalCompaniesResult] =
+    await Promise.allSettled([
+      prisma.user.count({ where: { role: "JOB_SEEKER" } }),
+      prisma.application.count(),
+      prisma.company.count(),
+    ]);
+
+  const totalSeekers =
+    totalSeekersResult.status === "fulfilled" ? totalSeekersResult.value : 0;
+  const totalApplications =
+    totalApplicationsResult.status === "fulfilled"
+      ? totalApplicationsResult.value
+      : 0;
+  const totalCompanies =
+    totalCompaniesResult.status === "fulfilled"
+      ? totalCompaniesResult.value
+      : topCompanies.length;
 
   return {
     jobs: browseJobs,
