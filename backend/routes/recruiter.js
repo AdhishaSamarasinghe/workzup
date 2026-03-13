@@ -267,7 +267,35 @@ router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER",
             }
         });
 
-        res.json({ message: "Job marked as completed and payment recorded" });
+        // Add to Worker's Experience Profile
+        const workerProfile = await prisma.seekerProfile.findUnique({
+            where: { userId: workerId }
+        });
+        
+        if (workerProfile) {
+            const currentExp = workerProfile.experience || [];
+            
+            // Format dates
+            const dateObj = new Date(completionDate);
+            const formattedDate = dateObj.toLocaleString('default', { month: 'short', year: 'numeric' });
+            
+            const newExperience = {
+                id: Date.now().toString(),
+                title: job.title,
+                company: "Workzup Platform", // Alternatively we can fetch the company name connected to the Job
+                duration: `${formattedDate}`,
+                description: `Successfully completed hourly job via Workzup.`
+            };
+            
+            await prisma.seekerProfile.update({
+                where: { userId: workerId },
+                data: {
+                    experience: [...currentExp, newExperience]
+                }
+            });
+        }
+
+        res.json({ message: "Job marked as completed and payment recorded. Experience automatically added." });
     } catch (error) {
         console.error("Error completing job:", error);
         res.status(500).json({ message: "Server Error" });

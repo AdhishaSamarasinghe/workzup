@@ -600,60 +600,48 @@ function TabPersonalInfo({ profile, onSave }: { profile: JobSeekerProfileData, o
     );
 }
 
-function TabExperience({ profile, onSave }: { profile: JobSeekerProfileData, onSave: (p: any) => Promise<boolean> }) {
-    // Basic dynamic list forms
-    const [education, setEducation] = useState(profile.education || []);
-    const [experience, setExperience] = useState(profile.experience || []);
+function TabExperience({ profile, onSave, onRefresh }: { profile: JobSeekerProfileData, onSave: (p: any) => Promise<boolean>, onRefresh: () => Promise<void> }) {
+    const [education, setEducation] = useState<any[]>(profile.education || []);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
     const handleSave = async () => {
         setSaving(true);
-        const success = await onSave({ education, experience });
+        const success = await onSave({ education });
         setSaving(false);
         if (success) {
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
+            onRefresh();
         }
     };
 
-    const addExp = () => setExperience([...experience, { id: Date.now().toString(), title: "", company: "", duration: "", description: "" }]);
-    const delExp = (id: string) => setExperience(experience.filter(e => e.id !== id));
+    const experience = profile.experience || [];
 
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-bold text-slate-900">Work Experience</h2>
-                    <button onClick={addExp} className="text-[#6b8bff] hover:text-indigo-700 font-medium text-sm flex items-center bg-blue-50 px-3 py-1.5 rounded-lg">
-                        <Plus className="w-4 h-4 mr-1" /> Add Experience
-                    </button>
                 </div>
                 
-                {experience.length === 0 && <p className="text-slate-500 italic text-sm">No external work experience added yet.</p>}
+                {experience.length === 0 && <p className="text-slate-500 italic text-sm">No confirmed work experience added yet. Jobs completed on Workzup will automatically appear here.</p>}
                 
                 <div className="space-y-4">
-                    {experience.map((exp, idx) => (
-                        <div key={exp.id} className="relative bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                            <button onClick={() => delExp(exp.id)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 bg-white p-1.5 rounded-md shadow-sm border border-slate-200"><Trash2 className="w-4 h-4" /></button>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pr-8">
+                    {experience.map((exp: any, idx: number) => (
+                        <div key={exp.id || idx} className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                            <div className="flex justify-between items-start mb-2">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Job Title</label>
-                                    <input type="text" value={exp.role} onChange={(e) => { const n = [...experience]; n[idx].role = e.target.value; setExperience(n); }} placeholder="Software Engineer" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-[#6b8bff]" />
+                                    <h3 className="font-bold text-slate-900 text-lg">{exp.title}</h3>
+                                    <p className="font-semibold text-[#6b8bff] text-sm">{exp.company}</p>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Company</label>
-                                    <input type="text" value={exp.company} onChange={(e) => { const n = [...experience]; n[idx].company = e.target.value; setExperience(n); }} placeholder="Tech Inc." className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-[#6b8bff]" />
-                                </div>
-                                <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Duration (e.g. 2020 - Present)</label>
-                                    <input type="text" value={exp.duration} onChange={(e) => { const n = [...experience]; n[idx].duration = e.target.value; setExperience(n); }} placeholder="Jan 2020 - Dec 2022" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-[#6b8bff]" />
-                                </div>
-                                <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Description</label>
-                                    <textarea rows={2} value={exp.description} onChange={(e) => { const n = [...experience]; n[idx].description = e.target.value; setExperience(n); }} placeholder="Describe your responsibilities..." className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-[#6b8bff] resize-none"></textarea>
-                                </div>
+                                <span className="bg-white px-3 py-1 rounded-full text-xs font-bold text-slate-500 border border-slate-200">
+                                    {exp.duration}
+                                </span>
                             </div>
+                            {exp.description && (
+                                <p className="text-slate-600 text-sm mt-3">{exp.description}</p>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -696,7 +684,7 @@ function TabExperience({ profile, onSave }: { profile: JobSeekerProfileData, onS
             <div className="flex items-center justify-end">
                 {saved && <span className="text-emerald-600 font-medium flex items-center mr-4 bg-white px-4 py-2 rounded-xl shadow-sm border border-emerald-100"><CheckCircle2 className="w-5 h-5 mr-1" /> Saved!</span>}
                 <button onClick={handleSave} disabled={saving} className="px-8 py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-70 flex items-center shadow-lg">
-                    {saving ? "Saving..." : "Save Experience & Education"}
+                    {saving ? "Saving..." : "Save Education"}
                 </button>
             </div>
         </div>
