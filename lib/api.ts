@@ -21,6 +21,11 @@ export const API_BASE =
 
 let detectedBaseUrl: string | null = null;
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
 // ============================================
 // CORE FETCH ENGINE (with 5001 fallback)
 // ============================================
@@ -33,8 +38,9 @@ async function executeFetch(path: string, options: RequestInit = {}) {
     try {
       const res = await fetch(url, options);
       return res;
-    } catch (error: any) {
-      if (error.name === "TypeError" && error.message === "Failed to fetch") {
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      if (error instanceof TypeError && message === "Failed to fetch") {
         throw new Error("REACHABILITY_ERROR");
       }
       throw error;
@@ -44,8 +50,9 @@ async function executeFetch(path: string, options: RequestInit = {}) {
   if (detectedBaseUrl) {
     try {
       return await performFetch(detectedBaseUrl);
-    } catch (e: any) {
-      if (e.message !== "REACHABILITY_ERROR") throw e;
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      if (message !== "REACHABILITY_ERROR") throw error;
       detectedBaseUrl = null;
     }
   }
@@ -54,23 +61,37 @@ async function executeFetch(path: string, options: RequestInit = {}) {
     const res = await performFetch(API_BASE);
     detectedBaseUrl = API_BASE;
     return res;
-  } catch (error: any) {
-    if (error.message === "REACHABILITY_ERROR") {
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+
+    if (message === "REACHABILITY_ERROR") {
       const isDev = process.env.NODE_ENV === "development";
+
       if (isDev && API_BASE.includes("localhost:5000")) {
         const fallbackUrl = API_BASE.replace("5000", "5001");
-        console.warn(`[API] Localhost:5000 unreachable. Detecting if backend is on 5001...`);
+        console.warn(
+          "[API] Localhost:5000 unreachable. Detecting if backend is on 5001..."
+        );
+
         try {
           const healthRes = await fetch(`${fallbackUrl}/health`);
           if (healthRes.ok) {
-            console.log(`[API] Backend detected on ${fallbackUrl}. Caching for future calls.`);
+            console.log(
+              `[API] Backend detected on ${fallbackUrl}. Caching for future calls.`
+            );
             detectedBaseUrl = fallbackUrl;
             return await performFetch(fallbackUrl);
           }
-        } catch (healthError) { }
+        } catch {
+          // ignore fallback health check failure
+        }
       }
-      throw new Error("Backend not reachable. Check if server is running on port 5000 or 5001.");
+
+      throw new Error(
+        "Backend not reachable. Check if server is running on port 5000 or 5001."
+      );
     }
+
     throw error;
   }
 }
@@ -83,31 +104,33 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const isFormData = !!(options.body && typeof FormData !== 'undefined' && options.body instanceof FormData);
+  const isFormData =
+    !!options.body &&
+    typeof FormData !== "undefined" &&
+    options.body instanceof FormData;
 
-  const headers = {
+  const headers: HeadersInit = {
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
-  } as HeadersInit;
+  };
 
   const res = await executeFetch(path, { ...options, headers });
 
-  // Handle errors
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    const errorMsg = errorData.message || `Request failed with status: ${res.status}`;
+    const errorData: { message?: string } = await res.json().catch(() => ({}));
+    const errorMsg =
+      errorData.message || `Request failed with status: ${res.status}`;
     console.error(`[API Error] ${res.status}: ${errorMsg}`);
     throw new Error(errorMsg);
   }
 
-  // Handle success
   const contentType = res.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
     return await res.json();
   }
-  return await res.text();
 
+  return await res.text();
 }
 
 /**
@@ -115,13 +138,16 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
  */
 export async function fetchApi<T>(
   endpoint: string,
-  options?: RequestInit,
+  options?: RequestInit
 ): Promise<ApiResponse<T>> {
   try {
     const data = await apiFetch(endpoint, options);
     return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Network error" };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: getErrorMessage(error) || "Network error",
+    };
   }
 }
 
@@ -134,13 +160,13 @@ export async function getConversations(): Promise<ApiResponse<Conversation[]>> {
 }
 
 export async function getConversation(
-  conversationId: string,
+  conversationId: string
 ): Promise<ApiResponse<Conversation>> {
   return fetchApi<Conversation>(`/conversations/${conversationId}`);
 }
 
 export async function createConversation(
-  data: CreateConversationRequest,
+  data: CreateConversationRequest
 ): Promise<ApiResponse<Conversation>> {
   return fetchApi<Conversation>("/conversations", {
     method: "POST",
@@ -149,7 +175,7 @@ export async function createConversation(
 }
 
 export async function archiveConversation(
-  conversationId: string,
+  conversationId: string
 ): Promise<ApiResponse<Conversation>> {
   return fetchApi<Conversation>(`/conversations/${conversationId}`, {
     method: "PATCH",
@@ -159,7 +185,7 @@ export async function archiveConversation(
 
 export async function pinConversation(
   conversationId: string,
-  isPinned: boolean,
+  isPinned: boolean
 ): Promise<ApiResponse<Conversation>> {
   return fetchApi<Conversation>(`/conversations/${conversationId}`, {
     method: "PATCH",
@@ -168,7 +194,7 @@ export async function pinConversation(
 }
 
 export async function markConversationAsRead(
-  conversationId: string,
+  conversationId: string
 ): Promise<ApiResponse<Conversation>> {
   return fetchApi<Conversation>(`/conversations/${conversationId}`, {
     method: "PATCH",
@@ -181,14 +207,14 @@ export async function markConversationAsRead(
 // ============================================
 
 export async function getMessages(
-  conversationId: string,
+  conversationId: string
 ): Promise<ApiResponse<Message[]>> {
   return fetchApi<Message[]>(`/messages?conversationId=${conversationId}`);
 }
 
 export async function sendMessage(
   conversationId: string,
-  data: SendMessageRequest,
+  data: SendMessageRequest
 ): Promise<ApiResponse<Message>> {
   return fetchApi<Message>(`/messages`, {
     method: "POST",
@@ -199,41 +225,32 @@ export async function sendMessage(
 export async function editMessage(
   conversationId: string,
   messageId: string,
-  data: UpdateMessageRequest,
+  data: UpdateMessageRequest
 ): Promise<ApiResponse<Message>> {
-  return fetchApi<Message>(
-    `/messages/${messageId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ ...data, conversationId }),
-    },
-  );
+  return fetchApi<Message>(`/messages/${messageId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ ...data, conversationId }),
+  });
 }
 
 export async function deleteMessage(
   conversationId: string,
-  messageId: string,
+  messageId: string
 ): Promise<ApiResponse<null>> {
-  return fetchApi<null>(
-    `/messages/${messageId}`,
-    {
-      method: "DELETE",
-      body: JSON.stringify({ conversationId })
-    },
-  );
+  return fetchApi<null>(`/messages/${messageId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ conversationId }),
+  });
 }
 
 export async function markMessageAsRead(
   conversationId: string,
-  messageId: string,
+  messageId: string
 ): Promise<ApiResponse<Message>> {
-  return fetchApi<Message>(
-    `/messages/${messageId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ action: "markRead", conversationId }),
-    },
-  );
+  return fetchApi<Message>(`/messages/${messageId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ action: "markRead", conversationId }),
+  });
 }
 
 // ============================================
@@ -242,7 +259,7 @@ export async function markMessageAsRead(
 
 export async function updateTypingStatus(
   conversationId: string,
-  isTyping: boolean,
+  isTyping: boolean
 ): Promise<ApiResponse<User[]>> {
   return fetchApi<User[]>(`/conversations/${conversationId}/typing`, {
     method: "POST",
@@ -251,7 +268,7 @@ export async function updateTypingStatus(
 }
 
 export async function getTypingUsers(
-  conversationId: string,
+  conversationId: string
 ): Promise<ApiResponse<User[]>> {
   return fetchApi<User[]>(`/conversations/${conversationId}/typing`);
 }
@@ -261,14 +278,14 @@ export async function getTypingUsers(
 // ============================================
 
 export async function getJobDetails(
-  jobId: string,
+  jobId: string
 ): Promise<ApiResponse<JobDetails>> {
   return fetchApi<JobDetails>(`/jobs/${jobId}`);
 }
 
 export async function updateJobDetails(
   jobId: string,
-  data: UpdateJobDetailsRequest,
+  data: UpdateJobDetailsRequest
 ): Promise<ApiResponse<JobDetails>> {
   return fetchApi<JobDetails>(`/jobs/${jobId}`, {
     method: "PATCH",
@@ -282,7 +299,7 @@ export async function updateJobDetails(
 
 export async function searchMessages(
   query: string,
-  conversationId?: string,
+  conversationId?: string
 ): Promise<ApiResponse<Message[]>> {
   const params = new URLSearchParams({ q: query });
   if (conversationId) {
