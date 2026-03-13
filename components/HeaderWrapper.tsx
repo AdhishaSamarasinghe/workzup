@@ -5,8 +5,10 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Header from "./Header";
 import PublicHeader from "./PublicHeader";
-import JobSeekerHeader from "./JobSeekerHeader";
 import AuthHeader from "./AuthHeader";
+import JobSeekerHeader from "./JobSeekerHeader";
+import EditRecruiterHeader from "./editrecruiter/Header";
+
 
 export default function HeaderWrapper() {
     const pathname = usePathname();
@@ -36,6 +38,11 @@ export default function HeaderWrapper() {
 
     if (isAuthenticated && isJobSeekerPage) {
         return <JobSeekerHeader alwaysSolid={true} />;
+    }
+
+    // Show the Recruiter/Employer Header for employer/recruiter dashboard routes
+    if (pathname?.startsWith("/employer") || pathname?.startsWith("/recruiter")) {
+        return <EditRecruiterHeader />;
     }
 
     // Fallback to the regular, sticky white background Header for everywhere else

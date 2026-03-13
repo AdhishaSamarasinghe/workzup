@@ -128,10 +128,14 @@ export default function RecruiterRegisterPage() {
             data.append("termsAccepted", String(formData.termsAccepted));
             data.append("emailNotifications", String(formData.emailNotifications));
 
-            await apiFetch("/api/auth/register", {
+            const res = await apiFetch("/api/auth/register", {
                 method: "POST",
                 body: data,
             });
+
+            if (res.token) {
+                localStorage.setItem("token", res.token);
+            }
 
             // Show success modal instead of redirecting immediately
             setShowSuccessModal(true);

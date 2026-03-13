@@ -7,58 +7,55 @@ const router = express.Router();
 router.get("/jobs/:jobId/applicants", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
     try {
         const { jobId } = req.params;
-        // Mocking database check for job
-        const job = { id: jobId, title: "Senior UX Designer", employerId: req.user.userId };
+        const userId = req.user.userId;
 
-        // Return mock applicants matching the UI design
-        const items = [
-            {
-                applicationId: "app_1",
-                applicantId: "user_1",
-                name: "Jane Doe",
-                title: "Senior UX designer",
-                avatarUrl: "https://i.pravatar.cc/150?u=user_1",
-                matchScore: 92,
-                relevantSkillsCount: 3,
-                status: "CONTACTED",
-                appliedAt: new Date().toISOString()
-            },
-            {
-                applicationId: "app_2",
-                applicantId: "user_2",
-                name: "John Smith",
-                title: "Product Designer",
-                avatarUrl: "https://i.pravatar.cc/150?u=user_2",
-                matchScore: 88,
-                relevantSkillsCount: 4,
-                status: "NEW",
-                appliedAt: new Date().toISOString()
-            },
-            {
-                applicationId: "app_3",
-                applicantId: "user_3",
-                name: "Emily Carter",
-                title: "UI Designer",
-                avatarUrl: "https://i.pravatar.cc/150?u=user_3",
-                matchScore: 85,
-                relevantSkillsCount: 2,
-                status: "NEW",
-                appliedAt: new Date().toISOString()
-            },
-            {
-                applicationId: "app_4",
-                applicantId: "user_4",
-                name: "Michael Brown",
-                title: "UX Researcher",
-                avatarUrl: "https://i.pravatar.cc/150?u=user_4",
-                matchScore: 81,
-                relevantSkillsCount: 3,
-                status: "SHORTLISTED",
-                appliedAt: new Date().toISOString()
-            }
-        ];
+        // Verify job ownership
+        const job = await prisma.job.findUnique({
+            where: { id: jobId }
+        });
 
-        res.status(200).json({ job, items, totalItems: 24, page: 1, limit: 8, totalPages: 3 });
+        if (!job) return res.status(404).json({ message: "Job not found" });
+        if (job.employerId !== userId) return res.status(403).json({ message: "Unauthorized to view applicants for this job" });
+
+        const { q, status, sort, page = 1, limit = 8 } = req.query;
+
+        // Filtering
+        let where = { jobId };
+        if (status && status !== "ALL") where.status = status;
+
+        // Fetch applications with applicant details
+        const applications = await prisma.application.findMany({
+            where,
+            include: {
+                applicant: true
+            },
+            orderBy: sort === "match_desc" ? { matchScore: "desc" } : { appliedAt: "desc" },
+            skip: (Number(page) - 1) * Number(limit),
+            take: Number(limit)
+        });
+
+        const totalItems = await prisma.application.count({ where });
+
+        const formattedItems = applications.map(app => ({
+            applicationId: app.id,
+            applicantId: app.applicant.id,
+            name: `${app.applicant.firstName || ""} ${app.applicant.lastName || ""}`.trim() || "Anonymous",
+            title: "Candidate", // We don't have a 'jobTitle' in User model yet, can use seekerProfile title if exists
+            avatarUrl: `https://i.pravatar.cc/150?u=${app.applicant.id}`,
+            matchScore: app.matchScore || 0,
+            relevantSkillsCount: app.relevantSkillsCount || 0,
+            status: app.status,
+            appliedAt: app.appliedAt
+        }));
+
+        res.status(200).json({
+            job: { id: job.id, title: job.title },
+            items: formattedItems,
+            totalItems,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(totalItems / Number(limit))
+        });
     } catch (error) {
         console.error("Error fetching applicants:", error);
         res.status(500).json({ message: "Server Error" });
@@ -69,23 +66,24 @@ router.get("/jobs/:jobId/applicants", authenticateToken, requireRole(["EMPLOYER"
 router.get("/applicants/:applicantId", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
     try {
         const { applicantId } = req.params;
-        const applicant = await prisma.user.findUnique({ where: { id: applicantId } });
 
-        if (!applicant) return res.status(404).json({ message: "Applicant not found" });
+        const user = await prisma.user.findUnique({
+            where: { id: applicantId },
+            include: { seekerProfile: true }
+        });
+
+        if (!user) return res.status(404).json({ message: "Applicant not found" });
 
         res.json({
-            _id: applicant.id,
-            name: `${applicant.firstName || ''} ${applicant.lastName || ''}`.trim() || 'Job Seeker',
-            title: applicant.role,
-            avatarUrl: `https://i.pravatar.cc/150?u=${applicant.id}`,
-            rating: 4.5,
-            about: "Loaded from database. Experience history mapping coming soon.",
-            summary: "Experienced job seeker",
-            skills: ["Database Migrated", "Prisma"],
-            recentExperience: [{ role: applicant.role || "Worker", company: "Various" }],
-            email: applicant.email,
-            phone: "012-3456789",
-            resumeUrl: applicant.cv || "#",
+            _id: user.id,
+            name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Anonymous",
+            title: "Job Seeker",
+            avatarUrl: `https://i.pravatar.cc/150?u=${user.id}`,
+            summary: user.seekerProfile?.bio || "No bio provided.",
+            skills: user.seekerProfile?.skills || [],
+            email: user.email,
+            phone: "+94 77 000 0000", // placeholder as phone not in schema
+            resumeUrl: user.cv || "#",
             portfolioUrl: "#"
         });
     } catch (error) {
@@ -98,39 +96,48 @@ router.get("/applicants/:applicantId", authenticateToken, requireRole(["EMPLOYER
 router.get("/applications/:applicationId", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
     try {
         const { applicationId } = req.params;
-        
-        // Mock application data
+        const userId = req.user.userId;
+
+        const application = await prisma.application.findUnique({
+            where: { id: applicationId },
+            include: {
+                job: true,
+                applicant: {
+                    include: { seekerProfile: true }
+                }
+            }
+        });
+
+        if (!application) return res.status(404).json({ message: "Application not found" });
+        if (application.job.employerId !== userId) return res.status(403).json({ message: "Unauthorized to view this application" });
+
         res.json({
             application: {
-                _id: applicationId,
-                jobId: "job_123",
-                applicantId: "user_1",
-                matchScore: 92,
-                relevantSkillsCount: 3,
-                status: "CONTACTED",
-                appliedAt: new Date().toISOString()
+                _id: application.id,
+                jobId: application.jobId,
+                applicantId: application.applicantId,
+                matchScore: application.matchScore || 0,
+                relevantSkillsCount: application.relevantSkillsCount || 0,
+                status: application.status,
+                appliedAt: application.appliedAt
             },
             job: {
-                _id: "job_123",
-                title: "Senior UX Designer"
+                _id: application.job.id,
+                title: application.job.title
             },
             applicant: {
-                _id: "user_1",
-                name: "Elara Vance",
-                title: "Senior UX Designer",
-                avatarUrl: "https://i.pravatar.cc/150?u=user_1",
-                rating: 4.5,
-                about: "Dynamic and reliable professional with 3+ years of experience in fast-paced hospitality and event environments. Proven ability to deliver exceptional customer service and adapt quickly to new challenges.",
-                summary: "Creative and detail-oriented UX Designer with 5+ years of experience in crafting user-centric digital experiences for web and mobile applications.",
-                skills: ["User research", "Wireframing", "Prototyping", "Figma", "Customer service", "Cash Handling", "Event setup", "Food Service", "Teamwork"],
-                recentExperience: [
-                    { role: "Event Staff", company: "Starlight Events co" },
-                    { role: "Catering Assistant", company: "The Grand Pizza Hotel" },
-                    { role: "Retail Associate", company: "Downtown Pop-up Market" }
-                ],
-                email: "jane.doe@example.com",
-                phone: "012-3456789",
-                resumeUrl: "#",
+                _id: application.applicant.id,
+                name: `${application.applicant.firstName || ""} ${application.applicant.lastName || ""}`.trim() || "Anonymous",
+                title: "Candidate",
+                avatarUrl: `https://i.pravatar.cc/150?u=${application.applicant.id}`,
+                rating: 5,
+                about: application.applicant.seekerProfile?.bio || "No summary provided.",
+                summary: application.applicant.seekerProfile?.bio || "No summary provided.",
+                skills: application.applicant.seekerProfile?.skills || [],
+                recentExperience: [], // Schema doesn't support structured experience yet
+                email: application.applicant.email,
+                phone: "+94 77 000 0000",
+                resumeUrl: application.applicant.cv || "#",
                 portfolioUrl: "#"
             }
         });
@@ -145,24 +152,38 @@ router.put("/applications/:applicationId/status", authenticateToken, requireRole
     try {
         const { applicationId } = req.params;
         const { status } = req.body;
+        const userId = req.user.userId;
 
         const validStatuses = ["NEW", "CONTACTED", "SHORTLISTED", "HIRED", "REJECTED"];
         if (!validStatuses.includes(status)) return res.status(400).json({ message: "Invalid status value" });
 
-        // Mock success response
-        res.json({ id: applicationId, status });
+        const application = await prisma.application.findUnique({
+            where: { id: applicationId },
+            include: { job: true }
+        });
+
+        if (!application) return res.status(404).json({ message: "Application not found" });
+        if (application.job.employerId !== userId) return res.status(403).json({ message: "Unauthorized" });
+
+        const updated = await prisma.application.update({
+            where: { id: applicationId },
+            data: { status }
+        });
+
+        res.json({ id: updated.id, status: updated.status });
     } catch (error) {
-        console.error("Error app status:", error);
+        console.error("Error updating application status:", error);
         res.status(500).json({ message: "Server Error" });
     }
 });
 
-// GET /api/recruiter/jobs - Recruiter Dashboard endpoint
+// GET /api/recruiter/jobs
 router.get("/jobs", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
     try {
         const jobs = await prisma.job.findMany({
             where: { employerId: req.user.userId },
-            include: { applications: true }
+            include: { applications: true },
+            orderBy: { createdAt: "desc" }
         });
 
         const formattedJobs = jobs.map(job => ({
@@ -175,7 +196,7 @@ router.get("/jobs", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), a
 
         res.json({
             items: formattedJobs,
-            page: 1, limit: 10, totalItems: formattedJobs.length, totalPages: 1
+            page: 1, limit: 100, totalItems: formattedJobs.length, totalPages: 1
         });
     } catch (error) {
         console.error("Error recruiter jobs:", error);
@@ -188,18 +209,28 @@ router.get("/jobs/:jobId/completion-summary", authenticateToken, requireRole(["E
     try {
         const { jobId } = req.params;
         const { workerId } = req.query;
+        const userId = req.user.userId;
 
         if (!workerId) return res.status(400).json({ message: "workerId is required" });
 
-        // Return mock summary matching UI design
+        const job = await prisma.job.findUnique({
+            where: { id: jobId }
+        });
+
+        if (!job) return res.status(404).json({ message: "Job not found" });
+        if (job.employerId !== userId) return res.status(403).json({ message: "Unauthorized" });
+
+        const worker = await prisma.user.findUnique({ where: { id: workerId } });
+        if (!worker) return res.status(404).json({ message: "Worker not found" });
+
         res.json({
             jobId,
             workerId,
-            jobTitle: "Event Staff",
-            workerName: "Alexandra Chan",
-            completionDate: "2023-10-26",
-            hoursWorked: 8,
-            finalPayment: 160.00
+            jobTitle: job.title,
+            workerName: `${worker.firstName || ""} ${worker.lastName || ""}`.trim() || worker.email,
+            completionDate: new Date().toISOString().split('T')[0],
+            hoursWorked: 8, // fallback
+            finalPayment: job.pay
         });
     } catch (error) {
         console.error("Error completion summary:", error);
@@ -212,13 +243,31 @@ router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER",
     try {
         const { jobId } = req.params;
         const { workerId, completionDate, hoursWorked, finalPayment } = req.body;
+        const userId = req.user.userId;
 
-        if (!workerId || !completionDate || hoursWorked <= 0 || finalPayment < 0) {
-            return res.status(400).json({ message: "Invalid input data" });
-        }
+        const job = await prisma.job.findUnique({ where: { id: jobId } });
+        if (!job) return res.status(404).json({ message: "Job not found" });
+        if (job.employerId !== userId) return res.status(403).json({ message: "Unauthorized" });
 
-        // Mock success response
-        res.json({ message: "Job marked as completed" });
+        // Update job status
+        await prisma.job.update({
+            where: { id: jobId },
+            data: { status: "COMPLETED" }
+        });
+
+        // Create payment record
+        await prisma.payment.create({
+            data: {
+                jobId,
+                workerId,
+                amount: Number(finalPayment),
+                status: "COMPLETED",
+                completionDate: new Date(completionDate),
+                hoursWorked: Number(hoursWorked)
+            }
+        });
+
+        res.json({ message: "Job marked as completed and payment recorded" });
     } catch (error) {
         console.error("Error completing job:", error);
         res.status(500).json({ message: "Server Error" });
@@ -230,13 +279,18 @@ router.post("/jobs/:jobId/report-issue", authenticateToken, requireRole(["EMPLOY
     try {
         const { jobId } = req.params;
         const { workerId, note } = req.body;
+        const userId = req.user.userId;
 
-        if (!workerId || !note) return res.status(400).json({ message: "Worker ID and note are required" });
+        const job = await prisma.job.findUnique({ where: { id: jobId } });
+        if (!job) return res.status(404).json({ message: "Job not found" });
+        if (job.employerId !== userId) return res.status(403).json({ message: "Unauthorized" });
 
-        // Mock success response
-        res.json({ message: "Issue reported" });
+        // We don't have an Issue model yet, so we just log it for now
+        console.warn(`ISSUE REPORTED: Recruiter ${userId} reported worker ${workerId} for job ${jobId}. Note: ${note}`);
+
+        res.json({ message: "Issue reported to administration" });
     } catch (error) {
-        console.error("Error reports:", error);
+        console.error("Error reporting issue:", error);
         res.status(500).json({ message: "Server Error" });
     }
 });

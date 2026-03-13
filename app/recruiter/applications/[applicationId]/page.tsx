@@ -30,6 +30,8 @@ interface ApplicationDetails {
         skills: string[];
         recentExperience: { role: string; company: string }[];
         portfolioUrl: string;
+        email: string;
+        phone: string;
     };
 }
 
@@ -70,7 +72,7 @@ export default function ViewApplication() {
                 body: JSON.stringify({ status: "HIRED" }),
             });
 
-            // Update local state if needed
+            // Update local state
             if (data) {
                 setData({
                     ...data,
@@ -88,199 +90,212 @@ export default function ViewApplication() {
         console.log("message", data?.applicant._id);
     };
 
+    const renderStars = (rating: number) => {
+        const fullStars = Math.floor(rating);
+        const totalStars = 5;
+        return (
+            <div className="flex gap-1">
+                {[...Array(totalStars)].map((_, i) => (
+                    <svg key={i} className={`w-4 h-4 ${i < fullStars ? "text-[#6B8BFF]" : "text-slate-200"}`} fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                ))}
+            </div>
+        );
+    };
+
+    const getExperienceIcon = (role: string) => {
+        const r = role.toLowerCase();
+        if (r.includes("event") || r.includes("staff")) {
+            return <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 005.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>;
+        }
+        if (r.includes("cater") || r.includes("food") || r.includes("pizza")) {
+            return <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>;
+        }
+        return <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>;
+    };
+
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#6B8BFF] mb-4"></div>
+                <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Loading Application...</p>
             </div>
         );
     }
 
     if (error || !data) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-500">
-                <p className="mb-4 text-lg">{error || "Application not found."}</p>
-                <button onClick={() => router.back()} className="text-blue-500 hover:underline">
-                    Go back
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC] text-slate-500 p-6 text-center">
+                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
+                    <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h2 className="text-2xl font-black text-slate-800 mb-2">Oops! Something went wrong</h2>
+                <p className="max-w-md font-bold mb-8 text-slate-400 leading-relaxed">{error || "The application you're looking for was not found."}</p>
+                <button
+                    onClick={() => router.back()}
+                    className="bg-slate-800 text-white px-8 py-3 rounded-2xl font-black hover:bg-slate-700 transition-all active:scale-95 shadow-lg"
+                >
+                    Return to Dashboard
                 </button>
             </div>
         );
     }
 
-    const { applicant, application } = data;
-
-    const renderStars = (rating: number) => {
-        const fullStars = Math.floor(rating);
-        const totalStars = 5;
-        const stars = [];
-
-        for (let i = 0; i < totalStars; i++) {
-            if (i < fullStars) {
-                stars.push(
-                    <svg key={i} className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                );
-            } else {
-                stars.push(
-                    <svg key={i} className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                );
-            }
-        }
-        return stars;
-    };
-
-    const getExperienceIcon = (role: string) => {
-        if (role.toLowerCase().includes("cater") || role.toLowerCase().includes("food")) {
-            return (
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-            );
-        }
-        if (role.toLowerCase().includes("retail") || role.toLowerCase().includes("store")) {
-            return (
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-            );
-        }
-        return (
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-        );
-    };
+    const { applicant, application, job } = data;
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-start justify-center p-4 sm:p-8 font-sans">
-            <div className="bg-white max-w-xl w-full rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 relative">
+        <div className="min-h-screen bg-[#F8FAFC] flex items-start justify-center p-6 sm:p-12">
+            <div className="bg-white max-w-2xl w-full rounded-[40px] shadow-2xl shadow-slate-200/60 border border-slate-50 overflow-hidden relative pb-12">
 
-                {/* Close Button */}
+                {/* Close/Back Button */}
                 <button
                     onClick={() => router.back()}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label="Close"
+                    className="absolute top-8 right-8 w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-all active:scale-90 z-10"
                 >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
 
-                {/* Header Profile Section */}
-                <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
-                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
-                        <Image
-                            src={applicant.avatarUrl}
-                            alt={`${applicant.name} avatar`}
-                            fill
-                            className="rounded-full object-cover shadow-sm border-2 border-white"
-                        />
-                    </div>
+                {/* Cover Strip */}
+                <div className="h-32 bg-gradient-to-r from-[#6B8BFF] to-[#8E7CFF] w-full"></div>
 
-                    <div className="flex-1 w-full text-center sm:text-left mt-2">
-                        <h1 className="text-2xl font-bold text-black mb-1">{applicant.name}</h1>
-
-                        {/* Rating Row */}
-                        <div className="flex items-center justify-center sm:justify-start space-x-2 mb-4">
-                            <div className="flex space-x-0.5">
-                                {renderStars(applicant.rating || 4.5)}
-                            </div>
-                            <span className="text-gray-600 text-xs font-semibold">{applicant.rating || 4.5}/5 Stars</span>
+                <div className="px-10 sm:px-14">
+                    {/* Header Profile Section */}
+                    <div className="relative -mt-16 flex flex-col items-center sm:items-start mb-10">
+                        <div className="relative w-32 h-32 rounded-[40px] overflow-hidden bg-slate-100 shadow-xl border-4 border-white mb-6">
+                            <Image
+                                src={applicant.avatarUrl}
+                                alt={applicant.name}
+                                fill
+                                className="object-cover"
+                            />
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex space-x-3 mt-4">
-                            <button
-                                onClick={handleHire}
-                                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${application.status === "HIRED" || hiringStatus === "success"
-                                    ? "bg-green-500 text-white"
-                                    : "bg-[#647DF5] hover:bg-blue-600 text-white"
-                                    }`}
-                            >
-                                {application.status === "HIRED" || hiringStatus === "success" ? "Hired ✓" : hiringStatus === "loading" ? "..." : "Hire for job"}
-                            </button>
-                            <button
-                                onClick={handleMessage}
-                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-black py-2.5 rounded-lg text-sm font-semibold transition-colors"
-                            >
-                                Message
-                            </button>
-                        </div>
-                        {hiringStatus === "error" && <p className="text-red-500 text-xs mt-2">Failed to update status.</p>}
-                    </div>
-                </div>
+                        <div className="text-center sm:text-left">
+                            <h1 className="text-[32px] font-black text-[#111827] leading-tight flex items-center gap-3 justify-center sm:justify-start">
+                                {applicant.name}
+                                <span className="bg-blue-50 text-[#4263eb] text-[10px] uppercase font-black px-3 py-1 rounded-full tracking-widest border border-blue-100">Verified</span>
+                            </h1>
+                            <p className="text-xl text-slate-500 font-bold mt-1 mb-4">{applicant.title} for <span className="text-[#6B8BFF]">{job.title}</span></p>
 
-                <hr className="my-8 border-gray-100" />
-
-                {/* About Section */}
-                <div className="mb-8">
-                    <h2 className="text-lg font-bold text-black mb-3">About</h2>
-                    <p className="text-gray-500 text-sm leading-relaxed">
-                        {applicant.about || "No about information provided."}
-                    </p>
-                </div>
-
-                {/* Skills Section */}
-                <div className="mb-8">
-                    <h2 className="text-lg font-bold text-black mb-3">Skills</h2>
-                    <div className="flex flex-wrap gap-x-4 gap-y-2">
-                        {applicant.skills.map((skill, index) => (
-                            <span
-                                key={skill}
-                                className={`text-sm font-medium ${index % 2 === 0 ? 'text-[#647DF5]' : 'text-gray-900'}`}
-                            >
-                                {skill}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Recent Experience Section */}
-                <div>
-                    <h2 className="text-lg font-bold text-black mb-4">Recent Experience</h2>
-                    <div className="space-y-4">
-                        {applicant.recentExperience && applicant.recentExperience.length > 0 ? (
-                            applicant.recentExperience.map((exp) => (
-                                <div key={`${exp.role}-${exp.company}`} className="flex items-center space-x-4">
-                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                        {getExperienceIcon(exp.role)}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-black">{exp.role}</p>
-                                        <p className="text-xs font-medium text-gray-500">{exp.company}</p>
-                                    </div>
+                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-6 font-bold text-slate-400 text-sm">
+                                <div className="flex items-center gap-2">
+                                    {renderStars(applicant.rating || 4.5)}
+                                    <span className="text-slate-800 font-black">{applicant.rating || 4.5}</span>
                                 </div>
-                            ))
-                        ) : (
-                            <p className="text-sm text-gray-500">No recent experience listed.</p>
-                        )}
+                                <div className="w-1.5 h-1.5 bg-slate-200 rounded-full"></div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-500 font-black">92% Match</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="flex gap-4 mb-12">
+                        <button
+                            onClick={() => {
+                                if (application.status === "HIRED" || hiringStatus === "success") {
+                                    router.push(`/recruiter/jobs/${job._id}/complete?workerId=${applicant._id}`);
+                                } else {
+                                    handleHire();
+                                }
+                            }}
+                            className={`flex-1 py-4 rounded-2xl font-black text-base shadow-lg transition-all active:scale-95 ${application.status === "HIRED" || hiringStatus === "success"
+                                ? "bg-emerald-500 text-white shadow-emerald-200"
+                                : "bg-[#6B8BFF] hover:bg-[#5A78F0] text-white shadow-[#6B8BFF]/30"
+                                }`}
+                        >
+                            {application.status === "HIRED" || hiringStatus === "success"
+                                ? "Complete Job & Pay →"
+                                : hiringStatus === "loading" ? "Processing..." : "Hire for this Job"}
+                        </button>
+
+                        <button
+                            onClick={handleMessage}
+                            className="w-16 h-16 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl flex items-center justify-center transition-all active:scale-95 shadow-md"
+                        >
+                            <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 4l-8 5-8-5V6l8 5 8-5v2z"></path></svg>
+                        </button>
+                    </div>
+
+                    <div className="space-y-12">
+                        {/* Summary / About */}
+                        <div className="relative">
+                            <div className="absolute top-0 left-[-20px] w-2 h-full bg-[#6B8BFF]/10 rounded-full"></div>
+                            <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Summary</h2>
+                            <p className="text-[17px] text-slate-600 leading-relaxed font-bold">
+                                {applicant.about || "No about information provided."}
+                            </p>
+                        </div>
+
+                        {/* Skills */}
+                        <div>
+                            <h2 className="text-lg font-black text-[#111827] mb-6 flex items-center gap-3">
+                                <span className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.3 1.047a1 1 0 00-1.3 0c-1.348 1.177-2.618 3.014-3.048 4.674a9.96 9.96 0 00-1.288 3.518 13.911 13.911 0 01-1.152 4.1a1 1 0 00.569 1.35c1.474.653 3.197 1.011 5 1.011 1.803 0 3.526-.358 5-1.01a1 1 0 00.569-1.35c-.328-.737-.714-1.467-1.152-4.102a9.96 9.96 0 00-1.288-3.518c-.43-1.66-1.7-3.497-3.048-4.674zM10 12a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path></svg>
+                                </span>
+                                Key Expertise
+                            </h2>
+                            <div className="flex flex-wrap gap-3">
+                                {applicant.skills.map((skill) => (
+                                    <span
+                                        key={skill}
+                                        className="px-6 py-2.5 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl text-sm font-black shadow-sm"
+                                    >
+                                        {skill}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Recent Experience Section */}
+                        <div>
+                            <h2 className="text-lg font-black text-[#111827] mb-6 flex items-center gap-3">
+                                <span className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"></path></svg>
+                                </span>
+                                Professional Background
+                            </h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {applicant.recentExperience && applicant.recentExperience.length > 0 ? (
+                                    applicant.recentExperience.map((exp) => (
+                                        <div key={`${exp.role}-${exp.company}`} className="bg-slate-50/50 rounded-3xl p-6 border border-slate-100 flex items-center gap-5 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all group">
+                                            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-slate-50">
+                                                {getExperienceIcon(exp.role)}
+                                            </div>
+                                            <div>
+                                                <p className="text-[15px] font-black text-slate-800">{exp.role}</p>
+                                                <p className="text-[13px] font-bold text-slate-400">{exp.company}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-slate-400 font-bold col-span-2">No recent experience listed.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Footer Profile Link */}
+                        <div className="pt-8 flex flex-col items-center">
+                            <button
+                                onClick={() => {
+                                    if (applicant.portfolioUrl && applicant.portfolioUrl !== "#") {
+                                        window.open(applicant.portfolioUrl, "_blank");
+                                    } else {
+                                        console.log("Navigating to full profile");
+                                    }
+                                }}
+                                className="group flex items-center gap-3 px-8 py-4 bg-slate-800 text-white rounded-2xl font-black text-sm transition-all hover:bg-slate-700 active:scale-95 shadow-xl shadow-slate-200"
+                            >
+                                <span>View Full Portfolio Profile</span>
+                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                <hr className="my-8 border-gray-100" />
-
-                {/* Footer Link */}
-                <div className="text-center pb-2">
-                    <button
-                        onClick={() => {
-                            if (applicant.portfolioUrl && applicant.portfolioUrl !== "#") {
-                                window.open(applicant.portfolioUrl, "_blank");
-                            } else {
-                                router.push(`/recruiter/applicants/${applicant._id}`);
-                            }
-                        }}
-                        className="text-[#647DF5] font-semibold text-sm hover:underline flex items-center justify-center mx-auto space-x-1"
-                    >
-                        <span>View full profile</span>
-                        <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                    </button>
-                </div>
-
             </div>
         </div>
     );

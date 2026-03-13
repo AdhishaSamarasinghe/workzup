@@ -77,7 +77,6 @@ async function executeFetch(path: string, options: RequestInit = {}) {
 
 // ============================================
 // LOW-LEVEL FETCH HELPER (auth-aware)
-// Used by auth/onboarding/recruiter flows and preferences profiles
 // ============================================
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
@@ -85,6 +84,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const isFormData = !!(options.body && typeof FormData !== 'undefined' && options.body instanceof FormData);
+
   const headers = {
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -93,69 +93,35 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 
   const res = await executeFetch(path, { ...options, headers });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || `Request failed (Status: ${res.status})`);
-  return data;
+  // Handle errors
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const errorMsg = errorData.message || `Request failed with status: ${res.status}`;
+    console.error(`[API Error] ${res.status}: ${errorMsg}`);
+    throw new Error(errorMsg);
+  }
+
+  // Handle success
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return await res.json();
+  }
+  return await res.text();
+
 }
 
-// ============================================
-// PREFERENCES & RECRUITER API
-// ============================================
-
-export const fetchPreferences = (userId: string) =>
-  apiFetch(`/preferences/${userId}`);
-export const updatePreferences = (userId: string, data: any) =>
-  apiFetch(`/preferences/${userId}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-
-export const fetchRecruiter = (id: string) => apiFetch(`/recruiters/${id}`);
-export const fetchRecruiterJobs = (id: string) =>
-  apiFetch(`/recruiters/${id}/jobs`);
-export const fetchRecruiterReviews = (id: string) =>
-  apiFetch(`/recruiters/${id}/reviews`);
-export const contactRecruiter = (id: string, body?: object) =>
-  apiFetch(`/recruiters/${id}/contact`, {
-    method: "POST",
-    body: JSON.stringify(body ?? {}),
-  });
-
-
-// ============================================
-// LOW-LEVEL FETCH HELPER (generic, typed)
-// Used by messaging/conversation/job flows
-// ============================================
-
+/**
+ * @deprecated Use apiFetch instead for consistency.
+ */
 export async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
   try {
-    const res = await executeFetch(endpoint, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("API Error Response:", text);
-      throw new Error(`API request failed with status: ${res.status}`);
-    }
-
-    const contentType = res.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      const text = await res.text();
-      throw new Error("Server returned non-JSON response: " + text);
-    }
-
-    return await res.json();
-  } catch (error) {
-    console.error("API Error:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Network error" };
+    const data = await apiFetch(endpoint, options);
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Network error" };
   }
 }
 
