@@ -48,7 +48,7 @@ export default function JobRecruiterLoginPage() {
             if (res.token) {
                 localStorage.setItem("token", res.token);
                 // Redirect recruiters to recruiter dashboard or welcome page
-                router.push("/onboarding/welcome");
+                router.push("/employer/create-job/my-postings");
             }
         } catch (error: any) {
             console.error("Login failed:", error);

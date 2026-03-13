@@ -49,10 +49,9 @@ export default function JobSeekerLoginPage() {
             if (res.token) {
                 localStorage.setItem("token", res.token);
                 // Based on welcome page behavior
-                router.push("/onboarding/welcome");
+                router.push("/jobseeker/browse");
             }
         } catch (error: any) {
-            console.error("Login failed:", error);
             setError(error.message || "Login failed. Please check your credentials.");
         } finally {
             setLoading(false);

@@ -4,6 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
+const path = require("path");
 
 dotenv.config();
 
@@ -22,6 +23,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── profile-preferences routes ──
 try {
@@ -49,10 +53,6 @@ try {
   app.use("/api/auth", authRoutes);
 } catch (_) { /* not yet in this branch */ }
 
-try {
-  const onboardingRoutes = require("./routes/onboarding");
-  app.use("/api/onboarding", onboardingRoutes);
-} catch (_) { /* not yet in this branch */ }
 
 try {
   const recruiterRoutes = require("./routes/recruiter");
@@ -62,6 +62,11 @@ try {
 try {
   const applicationsRoutes = require("./routes/applications");
   app.use("/api/applications", applicationsRoutes);
+} catch (_) { }
+
+try {
+  const savedJobsRoutes = require("./routes/savedJobs");
+  app.use("/api/saved-jobs", savedJobsRoutes);
 } catch (_) { }
 
 try {
@@ -111,6 +116,34 @@ app.get("/categories", async (req, res) => {
   }
 });
 
+app.get("/reviews", async (req, res) => {
+  try {
+    const prisma = require("./prismaClient");
+    const reviews = await prisma.review.findMany({
+      take: 6,
+      orderBy: { createdAt: "desc" },
+      include: {
+        reviewer: {
+          select: { firstName: true, lastName: true, role: true }
+        }
+      }
+    });
+
+    const formatted = reviews.map(r => ({
+      id: r.id,
+      name: r.reviewer?.firstName ? `${r.reviewer.firstName} ${r.reviewer.lastName || ""}`.trim() : "Anonymous User",
+      role: r.reviewer?.role === "RECRUITER" || r.reviewer?.role === "EMPLOYER" ? "Employer" : "Job Seeker",
+      avatar: r.reviewer?.firstName ? r.reviewer.firstName[0].toUpperCase() : "U",
+      rating: r.rating || 5,
+      text: r.comment || ""
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch reviews", error: err.message });
+  }
+});
+
 app.get("/max-pay", async (req, res) => {
   try {
     const prisma = require("./prismaClient");
@@ -121,6 +154,15 @@ app.get("/max-pay", async (req, res) => {
   } catch (err) {
     res.json({ max: 5000 });
   }
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error("Server Error:", err);
+  res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
+    error: process.env.NODE_ENV === "development" ? err.stack : undefined
+  });
 });
 
 function startServer(portToTry) {

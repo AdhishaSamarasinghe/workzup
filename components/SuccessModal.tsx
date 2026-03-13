@@ -61,7 +61,7 @@ export default function SuccessModal({
                         Go to Login
                     </Link>
                     <Link
-                        href="/onboarding/welcome"
+                        href={title.includes("Recruiter") ? "/employer/create-job/my-postings" : "/jobseeker/browse"}
                         className="flex-1 rounded-2xl bg-[#6B8BFF] px-8 py-4 text-lg font-bold text-white transition-colors hover:bg-[#5A75D9]"
                         onClick={onClose}
                     >

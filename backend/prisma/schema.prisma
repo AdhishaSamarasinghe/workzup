@@ -15,11 +15,14 @@ model User {
   role         String @default("JOB_SEEKER") // JOB_SEEKER, RECRUITER, ADMIN
 
   // Basic Info
-  firstName String?
-  lastName  String?
-  gender    String?
-  homeTown  String?
-  cv        String?
+  firstName  String?
+  lastName   String?
+  gender     String?
+  homeTown   String?
+  cv         String?
+  idDocument String?
+  idFront    String?
+  idBack     String?
 
   // Status flags
   onboardingStep     Int     @default(0)
@@ -64,6 +67,10 @@ model SeekerProfile {
   expectedPayMin     Float?
   expectedPayMax     Float?
   availability       String[]
+  education          Json[]   @default([])
+  experience         Json[]   @default([])
+  socialLinks        Json?
+  languages          String[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

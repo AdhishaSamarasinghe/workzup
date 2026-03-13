@@ -9,6 +9,7 @@
 const express = require("express");
 const prisma = require("../prismaClient");
 const { authenticateToken, requireRole } = require("../middleware/auth");
+const { buildBrowseJob, buildCategorySummary, getBrowseHomeData } = require("../utils/publicBrowseData");
 
 const router = express.Router();
 
@@ -25,6 +26,79 @@ router.get("/", async (req, res) => {
   } catch (err) {
     console.error("Error fetching jobs:", err);
     res.status(500).json({ message: "Failed to fetch jobs" });
+  }
+});
+
+router.get("/browse/home", async (req, res) => {
+  try {
+    const data = await getBrowseHomeData(prisma);
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching browse home data:", err);
+    res.status(500).json({ message: "Failed to fetch browse home data" });
+  }
+});
+
+router.get("/public-search", async (req, res) => {
+  try {
+    const {
+      district = "",
+      date = "",
+      category = "",
+      minPay = "",
+      maxPay = "",
+    } = req.query;
+
+    const [jobs, maxPayAggregate] = await Promise.all([
+      prisma.job.findMany({
+        where: {
+          status: { in: ["PUBLIC", "ACTIVE"] },
+        },
+        include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+              logoUrl: true,
+              industry: true,
+              city: true,
+              address: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.job.aggregate({
+        where: { status: { in: ["PUBLIC", "ACTIVE"] } },
+        _max: { pay: true },
+      }),
+    ]);
+
+    const browseJobs = jobs.map(buildBrowseJob);
+    const categoryOptions = buildCategorySummary(browseJobs).map((item) => item.label);
+
+    const filteredJobs = browseJobs.filter((job) => {
+      const matchesDistrict = !district || job.locations.includes(String(district)) || job.location === String(district);
+      const matchesDate = !date || job.jobDates.includes(String(date)) || job.date === String(date);
+      const matchesCategory =
+        !category ||
+        category === "All Jobs" ||
+        category === "All Categories" ||
+        job.derivedCategory === String(category);
+      const matchesMinPay = minPay === "" || job.pay >= Number(minPay);
+      const matchesMaxPay = maxPay === "" || job.pay <= Number(maxPay);
+
+      return matchesDistrict && matchesDate && matchesCategory && matchesMinPay && matchesMaxPay;
+    });
+
+    res.json({
+      jobs: filteredJobs,
+      categories: categoryOptions,
+      maxPay: Number(maxPayAggregate._max.pay || 5000),
+    });
+  } catch (err) {
+    console.error("Error fetching public search jobs:", err);
+    res.status(500).json({ message: "Failed to fetch public search jobs" });
   }
 });
 

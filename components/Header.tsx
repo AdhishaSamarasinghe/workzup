@@ -3,18 +3,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import ProfileAvatar from "./ProfileAvatar";
+import { useProfileIdentity } from "@/lib/useProfileIdentity";
 
 export default function Header() {
   const pathname = usePathname();
+  const { name, avatarUrl } = useProfileIdentity("Viraj");
 
   // Hide header for Message and JobChat pages (case-insensitive)
   const path = pathname ? pathname.toLowerCase() : "";
   if (path.startsWith("/message") || path.startsWith("/jobchat")) return null;
 
   const user = {
-    name: "Viraj",
+    name: name || "Viraj",
     role: "Job Seeker",
-    avatarUrl: "/avatars/default.svg",
+    avatarUrl,
   };
 
   return (
@@ -52,7 +55,12 @@ export default function Header() {
             {/* Avatar links to profile page */}
             <Link href="/profile" className="flex items-center gap-3 rounded-xl px-2 py-1 hover:bg-slate-100">
               <div className="h-10 w-10 overflow-hidden rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center">
-                <Image src={user.avatarUrl} alt={user.name} width={40} height={40} className="object-cover" />
+                <ProfileAvatar
+                  src={user.avatarUrl}
+                  name={user.name}
+                  size={40}
+                  textClassName="text-sm"
+                />
               </div>
               <div className="hidden sm:block leading-tight">
                 <div className="text-sm font-semibold text-slate-900">{user.name}</div>

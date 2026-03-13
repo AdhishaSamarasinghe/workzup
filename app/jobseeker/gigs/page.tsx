@@ -1,227 +1,165 @@
-/* eslint-disable */
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import GigFilters from "@/components/gigs/GigFilters";
 import GigHeader from "@/components/gigs/GigHeader";
 import GigCard from "@/components/gigs/GigCard";
-import Pagination from "@/components/jobs/Pagination";
-import { apiFetch, API_BASE } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { formatDateLabel, formatPay } from "@/lib/browse";
 
-// Reusing Job type but ensuring it matches backend
 type Job = {
-    id: number;
+    id: string;
     title: string;
-    company: string;
+    companyName: string;
     description: string;
     location: string;
-    pay: string;
+    pay: number;
+    payType: string;
     date: string;
-    category: string;
+    derivedCategory: string;
+    createdAt: string;
 };
 
 export default function FindGigPage() {
+    const searchParams = useSearchParams();
+    const requestedCategory = searchParams.get("category") || "";
     const [jobs, setJobs] = useState<Job[]>([]);
-
-    // Filter States
     const [location, setLocation] = useState("");
-    const [payRange, setPayRange] = useState<[number, number]>([0, 5000]); // Default Range
+    const [payRange, setPayRange] = useState<[number, number]>([0, 5000]);
     const [date, setDate] = useState("");
-    const [category, setCategory] = useState("All Jobs"); // Controlled by both Header Tabs and Sidebar
-
-    // Dynamic Categories
+    const [category, setCategory] = useState(requestedCategory || "All Jobs");
     const [availableCategories, setAvailableCategories] = useState<string[]>([]);
-    const [maxPayBound, setMaxPayBound] = useState(5000); // Dynamic Max Pay, default 5000 wait for fetch
-
-    // Sort State
+    const [maxPayBound, setMaxPayBound] = useState(5000);
     const [sortBy, setSortBy] = useState("Newest");
+    const quickCategories = useMemo(
+        () => ["All Jobs", ...availableCategories.filter((item) => item && item !== "All Jobs" && item !== "All Categories")],
+        [availableCategories]
+    );
 
-    // Pagination State
-    const [page, setPage] = useState(1);
-    const jobsPerPage = 5;
-
-    // Fetch Jobs on Filter Change or Load
-    const fetchJobs = async () => {
+    const fetchJobs = useCallback(async () => {
         const params = new URLSearchParams();
-        if (location) params.append("district", location); // Using district param as location matches backend
+        if (location) params.append("district", location);
         if (date) params.append("date", date);
         if (category && category !== "All Jobs" && category !== "All Categories") {
             params.append("category", category);
         }
 
-        // Pass min/max pay
         params.append("minPay", payRange[0].toString());
         params.append("maxPay", payRange[1].toString());
 
         try {
-            const data = await apiFetch(`/api/jobs?${params.toString()}`);
-            setJobs(Array.isArray(data) ? data : data.items || []);
-            setPage(1);
+            const data = await apiFetch(`/api/jobs/public-search?${params.toString()}`);
+            setJobs(Array.isArray(data.jobs) ? data.jobs : []);
         } catch (err) {
             console.error("Job Fetch Error:", err);
         }
-    };
+    }, [location, date, category, payRange]);
 
-    // Initial load
     useEffect(() => {
-        // Fetch Categories
-        apiFetch("/api/categories")
-            .then(data => setAvailableCategories(data))
-            .catch(err => console.error("Category Fetch Error:", err));
-
-        // Fetch Max Pay
-        apiFetch("/api/max-pay")
+        apiFetch("/api/jobs/public-search")
             .then(data => {
-                if (data.max) {
-                    setMaxPayBound(data.max);
-                    setPayRange([0, data.max]);
+                setAvailableCategories(Array.isArray(data.categories) ? data.categories : []);
+                if (data.maxPay) {
+                    setMaxPayBound(data.maxPay);
+                    setPayRange([0, data.maxPay]);
                 }
             })
-            .catch(err => console.error("Max Pay Fetch Error:", err));
+            .catch(err => console.error("Public Search Meta Fetch Error:", err));
+    }, []);
 
-        fetchJobs();
-    }, []); // Run once on mount, then Apply button triggers fetch
+    useEffect(() => {
+        const initialFetchTimer = window.setTimeout(() => {
+            void fetchJobs();
+        }, 0);
+
+        return () => window.clearTimeout(initialFetchTimer);
+    }, [fetchJobs]);
 
     const filteredJobs = useMemo(() => {
         const sorted = [...jobs];
         if (sortBy === "Newest") {
-            // Assuming IDs are timestamp based or we have created_at. 
-            // For now using ID desc as proxy for newest
-            sorted.sort((a, b) => b.id - a.id);
+            sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         } else if (sortBy === "Oldest") {
-            sorted.sort((a, b) => a.id - b.id);
+            sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         } else if (sortBy === "Pay: High to Low") {
-            sorted.sort((a, b) => {
-                const payA = parseInt(a.pay.replace(/[^0-9]/g, "")) || 0;
-                const payB = parseInt(b.pay.replace(/[^0-9]/g, "")) || 0;
-                return payB - payA;
-            });
+            sorted.sort((a, b) => b.pay - a.pay);
         } else if (sortBy === "Pay: Low to High") {
-            sorted.sort((a, b) => {
-                const payA = parseInt(a.pay.replace(/[^0-9]/g, "")) || 0;
-                const payB = parseInt(b.pay.replace(/[^0-9]/g, "")) || 0;
-                return payA - payB;
-            });
+            sorted.sort((a, b) => a.pay - b.pay);
         }
         return sorted;
     }, [jobs, sortBy]);
 
-
-    // Handlers
-    const handleApplyFilters = () => {
-        fetchJobs();
-    };
-
     const handleClearFilters = () => {
         setLocation("");
-        setPayRange([0, maxPayBound]); // Reset to dynamic max
+        setPayRange([0, maxPayBound]);
         setDate("");
         setCategory("All Jobs");
-        // Fetch all (empty params except maybe default range if we wanted)
-        // Fetch all 
-        apiFetch("/api/jobs")
-            .then(data => {
-                setJobs(Array.isArray(data) ? data : data.items || []);
-                setPage(1);
-            });
     };
 
-    // Sync Category Change from Header
     const handleTabChange = (tab: string) => {
         setCategory(tab);
-        // We also want to auto-fetch when tab is clicked for better UX
-        // But fetchJobs uses the *current* state. State updates are async.
-        // So use a useEffect dependent on category? 
-        // Or pass the new category to a helper. 
-        // For simplicity, let's rely on the user clicking Apply or handle it via useEffect [category] 
-        // IF we want "Live" filtering for category but "Manual" for sidebar. 
-        // Let's make Category Tab click trigger fetch immediately.
-
-        // Construct params manually for this specific action to avoid state lag issues
-        const params = new URLSearchParams();
-        if (location) params.append("district", location);
-        if (date) params.append("date", date);
-        if (tab !== "All Jobs" && tab !== "All Categories") {
-            params.append("category", tab);
-        }
-        params.append("minPay", payRange[0].toString());
-        params.append("maxPay", payRange[1].toString());
-
-        apiFetch(`/api/jobs?${params.toString()}`)
-            .then((data) => {
-                setJobs(Array.isArray(data) ? data : data.items || []);
-                setPage(1);
-            })
-            .catch(console.error);
     };
 
-
-    /* 📄 PAGINATION LOGIC */
-    const start = (page - 1) * jobsPerPage;
-    const visibleJobs = filteredJobs.slice(start, start + jobsPerPage);
-    const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
-
-
     return (
-        <div className="bg-[#f8f9fc] min-h-screen pt-24 pb-8">
-            <div className="max-w-7xl mx-auto px-6 flex gap-8">
-
-                {/* SIDEBAR */}
-                <div className="w-80 flex-shrink-0">
-                    <GigFilters
-                        location={location}
-                        setLocation={setLocation}
-                        payRange={payRange}
-                        setPayRange={setPayRange}
-                        date={date}
-                        setDate={setDate}
-                        selectedCategory={category}
-                        setSelectedCategory={setCategory}
-                        onApply={handleApplyFilters}
-                        onClear={handleClearFilters}
-                        minPay={0}
-                        maxPay={maxPayBound}
-                        categories={availableCategories}
-                    />
-                </div>
-
-                {/* MAIN CONTENT */}
-                <div className="flex-1">
+        <div className="min-h-screen bg-[linear-gradient(180deg,#f5f8ff_0%,#eef3f8_36%,#f7f9fc_100%)] pt-24 pb-12">
+            <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8">
+                <section className="mb-8 rounded-[32px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(240,245,255,0.96))] px-6 py-8 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:px-8 lg:px-10">
                     <GigHeader
                         resultCount={filteredJobs.length}
                         activeTab={category}
+                        tabs={quickCategories}
                         setActiveTab={handleTabChange}
                         sortBy={sortBy}
                         setSortBy={setSortBy}
                     />
+                </section>
 
-                    <div className="space-y-4 min-h-[600px]">
-                        {visibleJobs.map((job, index) => (
-                            <div
-                                key={job.id}
-                                className="animate-pop-in"
-                                style={{ animationDelay: `${index * 100}ms` }}
-                            >
-                                <GigCard {...job} />
-                            </div>
-                        ))}
+                <div className="grid gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
+                    <aside className="xl:sticky xl:top-24 xl:self-start">
+                        <GigFilters
+                            location={location}
+                            setLocation={setLocation}
+                            payRange={payRange}
+                            setPayRange={setPayRange}
+                            date={date}
+                            setDate={setDate}
+                            selectedCategory={category}
+                            setSelectedCategory={(value) => setCategory(value || "All Jobs")}
+                            onClear={handleClearFilters}
+                            minPay={0}
+                            maxPay={maxPayBound}
+                            categories={availableCategories}
+                        />
+                    </aside>
 
-                        {visibleJobs.length === 0 && (
-                            <div className="text-center py-20 text-gray-500 animate-fade-in">
-                                No gigs found matching your criteria.
-                            </div>
-                        )}
-                    </div>
+                    <section className="rounded-[32px] border border-white/70 bg-white/85 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.06)] backdrop-blur-sm sm:p-6">
+                        <div className="min-h-[600px] space-y-5">
+                            {filteredJobs.map((job, index) => (
+                                <div
+                                    key={job.id}
+                                    className="animate-pop-in"
+                                    style={{ animationDelay: `${index * 100}ms` }}
+                                >
+                                    <GigCard
+                                        title={job.title}
+                                        company={job.companyName}
+                                        description={job.description}
+                                        location={job.location}
+                                        pay={formatPay(job.pay, job.payType)}
+                                        date={formatDateLabel(job.date)}
+                                        category={job.derivedCategory}
+                                    />
+                                </div>
+                            ))}
 
-                    <div className="mt-8">
-                        {totalPages > 1 && (
-                            <Pagination
-                                page={page}
-                                totalPages={totalPages}
-                                setPage={setPage}
-                            />
-                        )}
-                    </div>
+                            {filteredJobs.length === 0 && (
+                                <div className="animate-fade-in rounded-[28px] border border-dashed border-slate-300 bg-slate-50/70 py-20 text-center text-gray-500">
+                                    No gigs found matching your criteria.
+                                </div>
+                            )}
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>

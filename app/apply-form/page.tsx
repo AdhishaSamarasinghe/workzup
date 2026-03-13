@@ -1,31 +1,76 @@
 /* eslint-disable */
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import ApplicationSuccessPopup from "@/components/ApplicationSuccessPopup";
+import { apiFetch } from "@/lib/api";
+import { BrowseJob, formatPay, formatDateLabel } from "@/lib/browse";
+import { CheckCircle2 } from "lucide-react";
 
-const jobData = {
-  title: "Event Staff for Tech Conference",
-  company: "Innovate Events Inc.",
-  location: "Downtown Convention Center",
-  jobType: "Full-time · On-site",
-  posted: "2 days ago",
-  pay: "Rs 25/hour",
-  tags: ["Event Support", "Customer Service", "Teamwork", "Communication", "Organization"],
-};
-
-export default function ApplyFormPage() {
+function ApplicationFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get("jobId");
+
+  const [job, setJob] = useState<BrowseJob | null>(null);
+  const [jobLoading, setJobLoading] = useState(true);
+  const [jobError, setJobError] = useState("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
   const [cvFileName, setCvFileName] = useState<string | null>(null);
   const [nicFileName, setNicFileName] = useState<string | null>(null);
+  const [profileDocs, setProfileDocs] = useState({
+    cv: false,
+    idDocument: false,
+    nicFront: false,
+    nicBack: false,
+  });
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [missingFieldMap, setMissingFieldMap] = useState<Record<string, string>>({});
   const [showValidationPopup, setShowValidationPopup] = useState(false);
+
+  useEffect(() => {
+    if (!jobId) {
+      setJobLoading(false);
+      setJobError("No job specified. Please go back and select a job to apply to.");
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        setJobLoading(true);
+        const data = await apiFetch(`/api/jobs/${jobId}`);
+        setJob(data.job || data);
+
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        if (token) {
+          try {
+            const profile = await apiFetch("/api/auth/profile");
+            setProfileDocs({
+              cv: !!profile.cv,
+              idDocument: !!profile.idDocument,
+              nicFront: !!profile.idFront,
+              nicBack: !!profile.idBack,
+            });
+          } catch (e) {
+            console.error("Could not fetch profile", e);
+          }
+        }
+
+      } catch (err: any) {
+        console.error("Failed to load job details:", err);
+        setJobError("Failed to load job details. The job may have been removed.");
+      } finally {
+        setJobLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [jobId]);
 
   const getFieldLabel = (
     form: HTMLFormElement,
@@ -114,6 +159,8 @@ export default function ApplyFormPage() {
     }
   };
 
+  const hasProfileNic = profileDocs.idDocument || (profileDocs.nicFront && profileDocs.nicBack);
+
   const openSuccessPopup = () => {
     setShowSuccessPopup(true);
   };
@@ -129,7 +176,7 @@ export default function ApplyFormPage() {
 
   const handleBrowseJobs = () => {
     setShowSuccessPopup(false);
-    router.push("/jobs");
+    router.push("/jobseeker/browse");
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -185,9 +232,34 @@ export default function ApplyFormPage() {
     }
   };
 
+  if (jobLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-slate-500 font-medium text-lg">Loading application form...</div>
+      </div>
+    );
+  }
+
+  if (jobError || !job) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-800 mb-2">Job Not Found</h2>
+          <p className="text-slate-500 mb-6">{jobError}</p>
+          <button 
+            onClick={() => router.push("/jobseeker/browse")}
+            className="inline-flex items-center justify-center rounded-xl bg-[#6D83F2] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5B73F1]"
+          >
+            Back to Browse
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-[#F8FAFC]">
-      <section className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+    <div className="bg-[#F8FAFC] min-h-screen">
+      <section className="mx-auto w-full max-w-6xl px-4 pb-16 pt-24 sm:pt-28 md:px-6 lg:px-8">
         <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -195,23 +267,23 @@ export default function ApplyFormPage() {
                 Job Apply
               </p>
               <h1 className="mt-2 text-3xl font-semibold text-[#111827] sm:text-4xl">
-                {jobData.title}
+                {job.title}
               </h1>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[#6B7280]">
-                <span className="font-medium text-[#111827]">{jobData.company}</span>
+                <span className="font-medium text-[#111827]">{job.companyName}</span>
                 <span className="h-1 w-1 rounded-full bg-[#CBD5F5]" />
-                <span>{jobData.location}</span>
+                <span>{job.location}</span>
                 <span className="h-1 w-1 rounded-full bg-[#CBD5F5]" />
-                <span>{jobData.jobType}</span>
+                <span>{job.derivedCategory}</span>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-3 text-sm text-[#6B7280]">
               <div className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2">
-                Pay Rate: <span className="font-semibold text-[#111827]">{jobData.pay}</span>
+                Pay Rate: <span className="font-semibold text-[#111827]">{formatPay(job.pay, job.payType)}</span>
               </div>
               <div className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2">
-                Posted: <span className="font-semibold text-[#111827]">{jobData.posted}</span>
+                Posted: <span className="font-semibold text-[#111827]">{formatDateLabel(job.date)}</span>
               </div>
             </div>
           </div>
@@ -221,44 +293,8 @@ export default function ApplyFormPage() {
           <div className="space-y-6">
             <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
               <h2 className="text-xl font-semibold text-[#111827]">Job Description</h2>
-              <p className="mt-3 text-sm leading-6 text-[#4B5563]">
-                Join our team as an Event Staff member for the annual Tech Innovate Conference. You will
-                assist attendees, manage registration desks, and provide general support to event
-                organizers. We are looking for energetic and reliable individuals who thrive in fast-paced
-                environments.
-              </p>
-              <h3 className="mt-6 text-base font-semibold text-[#111827]">Responsibilities</h3>
-              <ul className="mt-3 space-y-2 text-sm text-[#4B5563]">
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#6D83F2]" />
-                  Check-in attendees and provide badges and event materials.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#6D83F2]" />
-                  Direct attendees to sessions, workshops, and facilities.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#6D83F2]" />
-                  Assist with setup and breakdown of event spaces.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#6D83F2]" />
-                  Answer questions and ensure a welcoming experience.
-                </li>
-              </ul>
-            </section>
-
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-xl font-semibold text-[#111827]">Required Skills</h2>
-              <div className="mt-4 flex flex-wrap gap-3">
-                {jobData.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-2 text-sm font-medium text-[#1F2937]"
-                  >
-                    {tag}
-                  </span>
-                ))}
+              <div className="mt-3 text-sm leading-6 text-[#4B5563] whitespace-pre-line">
+                {job.description}
               </div>
             </section>
           </div>
@@ -276,6 +312,8 @@ export default function ApplyFormPage() {
               encType="multipart/form-data"
               noValidate
             >
+              <input type="hidden" name="jobId" value={jobId || ""} />
+              
               <div className="space-y-2">
                 <label
                   htmlFor="fullName"
@@ -360,21 +398,69 @@ export default function ApplyFormPage() {
                   htmlFor="cv"
                   className={`text-sm font-medium ${isFieldMissing("cv") ? "text-red-600" : "text-[#111827]"}`}
                 >
-                  Upload CV
+                  CV
                 </label>
+                {profileDocs.cv ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      <span className="text-sm font-medium text-emerald-800">
+                        CV already available from your profile.
+                      </span>
+                    </div>
+                    <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-[#111827]">Optional: upload a job-specific CV</p>
+                          <p className="mt-1 text-xs text-[#6B7280]">
+                            Only upload another CV if you want to tailor it specifically for this application.
+                          </p>
+                        </div>
+                        {cvFileName && (
+                          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
+                            New file selected
+                          </span>
+                        )}
+                      </div>
+                      <label
+                        htmlFor="cv"
+                        className="mt-4 flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-[#CBD5F5] bg-white px-4 py-3 text-sm text-[#6B7280]"
+                      >
+                        <span className="truncate mr-4 flex-1">
+                          {cvFileName ? cvFileName : "Upload a separate CV for this job (optional)"}
+                        </span>
+                        <span className="rounded-full bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#6D83F2] whitespace-nowrap">
+                          Browse
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <label
+                      htmlFor="cv"
+                      className={`flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-4 py-3 text-sm ${isFieldMissing("cv")
+                          ? "border-red-500 bg-red-50 text-red-700"
+                          : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
+                        }`}
+                    >
+                      <span className="truncate mr-4 flex-1">
+                        {cvFileName ? cvFileName : "Drag and drop or click to upload"}
+                      </span>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2] whitespace-nowrap">
+                        Browse
+                      </span>
+                    </label>
+                    {isFieldMissing("cv") && (
+                      <p className="text-xs font-medium text-red-600">Please upload your CV.</p>
+                    )}
+                  </>
+                )}
                 <label
                   htmlFor="cv"
-                  className={`flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-4 py-3 text-sm ${isFieldMissing("cv")
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
-                    }`}
+                  className="sr-only"
                 >
-                  <span>
-                    {cvFileName ? cvFileName : "Drag and drop or click to upload"}
-                  </span>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
-                    Browse
-                  </span>
+                  Upload CV
                 </label>
                 <input
                   id="cv"
@@ -382,7 +468,7 @@ export default function ApplyFormPage() {
                   type="file"
                   accept=".pdf,.doc,.docx"
                   className="hidden"
-                  required
+                  required={!profileDocs.cv}
                   onChange={(event) => {
                     const file = event.currentTarget.files?.[0];
                     setCvFileName(file ? file.name : null);
@@ -391,52 +477,72 @@ export default function ApplyFormPage() {
                     }
                   }}
                 />
-                {isFieldMissing("cv") && (
-                  <p className="text-xs font-medium text-red-600">Please upload your CV.</p>
-                )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 mt-4">
                 <label
                   htmlFor="nic"
                   className={`text-sm font-medium ${isFieldMissing("nic") ? "text-red-600" : "text-[#111827]"}`}
                 >
-                  Upload NIC
+                  ID / NIC
                 </label>
-                <label
-                  htmlFor="nic"
-                  className={`flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed px-4 py-4 text-sm ${isFieldMissing("nic")
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
-                    }`}
-                >
-                  <img
-                    src="/nic-guide.jpg"
-                    alt="NIC upload guide"
-                    className="w-full rounded-lg border border-[#E5E7EB] object-cover"
-                  />
-                  <span>
-                    {nicFileName ? (
-                      nicFileName
-                    ) : (
-                      <>
-                        Please upload high-quality images of both the <strong>front</strong> and
-                        <strong> back</strong> of your National Identity Card (NIC). Ensure all text
-                        is clearly legible.
-                      </>
+                {hasProfileNic ? (
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      <span className="text-sm font-medium text-emerald-800">
+                        ID / NIC already verified from your profile.
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {((profileDocs.nicFront && !profileDocs.nicBack) || (!profileDocs.nicFront && profileDocs.nicBack)) && !profileDocs.idDocument && !nicFileName && (
+                      <div className="flex items-center gap-2 mb-2 rounded-xl border border-amber-100 bg-amber-50 p-3">
+                        <span className="text-sm font-medium text-amber-800">
+                          Partial NIC found on your profile. Please complete it from your profile page before applying.
+                        </span>
+                      </div>
                     )}
-                  </span>
-                  <span className="self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
-                    Browse
-                  </span>
-                </label>
+                    <label
+                      htmlFor="nic"
+                      className={`flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed px-4 py-4 text-sm ${isFieldMissing("nic")
+                          ? "border-red-500 bg-red-50 text-red-700"
+                          : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
+                        }`}
+                    >
+                      <img
+                        src="/nic-guide.jpg"
+                        alt="NIC upload guide"
+                        className="w-full rounded-lg border border-[#E5E7EB] object-cover bg-white"
+                      />
+                      <span>
+                        {nicFileName ? (
+                          <span className="font-semibold">{nicFileName}</span>
+                        ) : (
+                          <>
+                            Please upload high-quality images of both the <strong>front</strong> and
+                            <strong> back</strong> of your National Identity Card (NIC). Ensure all text
+                            is clearly legible.
+                          </>
+                        )}
+                      </span>
+                      <span className="self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
+                        Browse
+                      </span>
+                    </label>
+                    {isFieldMissing("nic") && (
+                      <p className="text-xs font-medium text-red-600">Please upload your NIC.</p>
+                    )}
+                  </>
+                )}
                 <input
                   id="nic"
                   name="nic"
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
                   className="hidden"
-                  required
+                  required={!hasProfileNic}
                   onChange={(event) => {
                     const file = event.currentTarget.files?.[0];
                     setNicFileName(file ? file.name : null);
@@ -445,9 +551,6 @@ export default function ApplyFormPage() {
                     }
                   }}
                 />
-                {isFieldMissing("nic") && (
-                  <p className="text-xs font-medium text-red-600">Please upload your NIC.</p>
-                )}
               </div>
 
               <div className="space-y-2">
@@ -529,5 +632,17 @@ export default function ApplyFormPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ApplyFormPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-slate-500 font-medium text-lg">Loading...</div>
+      </div>
+    }>
+      <ApplicationFormContent />
+    </Suspense>
   );
 }

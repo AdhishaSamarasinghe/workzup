@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
 
-const ALLOWED_FOLDERS = new Set(["resumes", "nic"]);
+const ALLOWED_FOLDERS = new Set(["resumes", "nic", "avatars"]);
 
 const CONTENT_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
   ".doc": "application/msword",
   ".docx":
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

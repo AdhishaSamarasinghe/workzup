@@ -3,6 +3,14 @@ const prisma = require("../prismaClient");
 const { authenticateToken, requireRole } = require("../middleware/auth");
 const router = express.Router();
 
+const normalizeApplicationStatus = (application) => {
+    if (!application) return application;
+    return {
+        ...application,
+        status: application.status === "NEW" ? "PENDING" : application.status
+    };
+};
+
 // POST /api/applications - Apply to a job
 router.post("/", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res) => {
     try {
@@ -27,7 +35,7 @@ router.post("/", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res
             data: {
                 jobId,
                 applicantId,
-                status: "NEW", // NEW, CONTACTED, SHORTLISTED, REJECTED
+                status: "PENDING", // PENDING, CONTACTED, SHORTLISTED, HIRED, REJECTED
                 matchScore: Math.floor(Math.random() * 40) + 60, // Mock AI Match logic
                 relevantSkillsCount: 2
             }
@@ -44,7 +52,7 @@ router.post("/", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res
             }
         });
 
-        res.status(201).json({ message: "Application submitted successfully", application });
+        res.status(201).json({ message: "Application submitted successfully", application: normalizeApplicationStatus(application) });
 
     } catch (error) {
         console.error("Apply Error:", error);
@@ -57,12 +65,55 @@ router.get("/my-applications", authenticateToken, requireRole(["JOB_SEEKER"]), a
     try {
         const applications = await prisma.application.findMany({
             where: { applicantId: req.user.userId },
-            include: { job: true }
+            include: {
+                job: {
+                    include: {
+                        company: true
+                    }
+                }
+            },
+            orderBy: { appliedAt: "desc" }
         });
 
-        res.json({ applications });
+        res.json({ applications: applications.map(normalizeApplicationStatus) });
     } catch (error) {
         console.error("My Applications Error:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// GET /api/applications/:id - View one of my applications
+router.get("/:id", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const application = await prisma.application.findUnique({
+            where: { id },
+            include: {
+                job: {
+                    include: {
+                        company: true
+                    }
+                },
+                applicant: {
+                    include: {
+                        seekerProfile: true
+                    }
+                }
+            }
+        });
+
+        if (!application) {
+            return res.status(404).json({ message: "Application not found" });
+        }
+
+        if (application.applicantId !== req.user.userId) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+
+        res.json({ application: normalizeApplicationStatus(application) });
+    } catch (error) {
+        console.error("Application Details Error:", error);
         res.status(500).json({ message: "Server Error" });
     }
 });
