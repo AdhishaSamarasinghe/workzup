@@ -19,6 +19,7 @@ model User {
   lastName   String?
   gender     String?
   homeTown   String?
+  phone      String?
   cv         String?
   idDocument String?
   idFront    String?
@@ -60,6 +61,7 @@ model SeekerProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  title              String?
   bio                String?
   skills             String[]
   preferredJobTypes  String[] // e.g., ["Part-time", "Full-time"]

@@ -2,9 +2,23 @@ import { API_BASE } from "@/lib/api";
 
 export function resolveUploadUrl(pathValue?: string | null) {
   if (!pathValue) return null;
-  if (/^https?:\/\//i.test(pathValue)) return pathValue;
+  if (/^https?:\/\//i.test(pathValue)) {
+    try {
+      const parsed = new URL(pathValue);
+      const normalizedPath = parsed.pathname.replace(/\\/g, "/").replace(/^\/+/, "");
+      if (normalizedPath.startsWith("uploads/")) {
+        return `/api/${normalizedPath}`;
+      }
+    } catch {
+      return pathValue;
+    }
+    return pathValue;
+  }
   if (pathValue.startsWith("/")) return pathValue;
   const normalized = pathValue.replace(/\\/g, "/").replace(/^\/+/, "");
+  if (normalized.startsWith("uploads/")) {
+    return `/api/${normalized}`;
+  }
   return `${API_BASE}/${normalized}`;
 }
 

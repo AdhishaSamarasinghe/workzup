@@ -9,7 +9,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ProfileAvatar from "@/components/ProfileAvatar";
-import { resolveProfileAvatar } from "@/lib/profile";
+import { resolveProfileAvatar, resolveUploadUrl } from "@/lib/profile";
+import ProfileCompletionWizard from "@/components/ProfileCompletionWizard";
 
 // --- Types ---
 interface JobSeekerProfileData {
@@ -40,14 +41,18 @@ interface JobSeekerProfileData {
         portfolio?: string;
         avatarUrl?: string;
     };
+    phone?: string;
+    availableTimes?: string;
 }
 
+type PreviewKind = "image" | "pdf" | "file";
 export default function JobSeekerProfile() {
     const [profile, setProfile] = useState<JobSeekerProfileData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("overview");
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const [showWizard, setShowWizard] = useState(false);
 
     useEffect(() => {
         fetchProfile();
@@ -82,6 +87,10 @@ export default function JobSeekerProfile() {
             title: updates.title ?? profile.title,
             location: updates.location ?? profile.location,
             aboutMe: updates.aboutMe ?? profile.aboutMe,
+            phone: updates.phone ?? profile.phone,
+            skills: updates.skills ?? profile.skills,
+            languages: updates.languages ?? profile.languages,
+            availableTimes: updates.availableTimes ?? profile.availableTimes,
         };
         try {
             await apiFetch("/api/auth/profile", {
@@ -100,7 +109,6 @@ export default function JobSeekerProfile() {
             return true;
         } catch (err) {
             console.error("Save error", err);
-            alert("Failed to save profile.");
             return false;
         }
     };
@@ -164,7 +172,7 @@ export default function JobSeekerProfile() {
                 console.error("Avatar persistence via backend profile update failed", saveError);
             }
 
-            setProfile(nextProfile);
+            setProfile(nextProfile as JobSeekerProfileData);
             if (typeof window !== "undefined") {
                 window.dispatchEvent(new CustomEvent("profile-updated", {
                     detail: {
@@ -189,6 +197,22 @@ export default function JobSeekerProfile() {
             </div>
         );
     }
+
+    const calculateStrength = (p: JobSeekerProfileData | null) => {
+        if (!p) return 0;
+        let score = 0;
+        if (p.firstName && p.lastName) score += 10;
+        if (p.avatar && !String(p.avatar).includes("default")) score += 10;
+        if (p.phone) score += 10;
+        if (p.aboutMe && p.aboutMe.length > 2) score += 15;
+        if (p.skills && p.skills.length > 0) score += 20;
+        if (p.languages && p.languages.length > 0) score += 10;
+        if (p.cv) score += 10;
+        if (p.idFront && p.idBack) score += 15;
+        return Math.min(score, 100);
+    };
+
+    const profileStrength = calculateStrength(profile);
 
     if (error || !profile) {
         return (
@@ -292,7 +316,7 @@ export default function JobSeekerProfile() {
                                 transition={{ duration: 0.2 }}
                                 className="w-full"
                             >
-                                {activeTab === "overview" && <TabOverview profile={profile} />}
+                                {activeTab === "overview" && <TabOverview profile={profile} profileStrength={profileStrength} onOpenWizard={() => setShowWizard(true)} />}
                                 {activeTab === "personal" && <TabPersonalInfo profile={profile} onSave={handleSaveProfile} />}
                                 {activeTab === "experience" && <TabExperience profile={profile} onSave={handleSaveProfile} />}
                                 {activeTab === "skills" && <TabSkills profile={profile} onSave={handleSaveProfile} onRefresh={fetchProfile} />}
@@ -302,6 +326,32 @@ export default function JobSeekerProfile() {
                     </div>
                 </div>
             </div>
+
+            {showWizard && profile && (
+                <ProfileCompletionWizard 
+                    profile={profile} 
+                    onClose={() => setShowWizard(false)}
+                    onSaveStep={handleSaveProfile}
+                    onUploadDocs={async (cv, idFront, idBack) => {
+                        const formData = new FormData();
+                        if (cv) formData.append("cv", cv);
+                        if (idFront) formData.append("idFront", idFront);
+                        if (idBack) formData.append("idBack", idBack);
+                        
+                        try {
+                            await apiFetch("/api/auth/upload-docs", {
+                                method: "POST",
+                                body: formData
+                            });
+                            await fetchProfile();
+                            return true;
+                        } catch (err) {
+                            console.error(err);
+                            return false;
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }
@@ -310,9 +360,30 @@ export default function JobSeekerProfile() {
 // TAB COMPONENTS
 // ---------------------------------------------------------
 
-function TabOverview({ profile }: { profile: JobSeekerProfileData }) {
+function TabOverview({ profile, profileStrength, onOpenWizard }: { profile: JobSeekerProfileData, profileStrength: number, onOpenWizard: () => void }) {
     return (
         <div className="space-y-6">
+            {profileStrength < 100 && (
+                <div className="bg-white rounded-3xl border border-slate-200 p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.05)] overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#6b8bff]/5 rounded-bl-full translate-x-1/3 -translate-y-1/3 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#6b8bff]/5 rounded-tr-full -translate-x-1/2 translate-y-1/2 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+                    
+                    <div className="flex items-center gap-6 z-10 w-full md:w-auto">
+                        <div className="relative w-24 h-24 flex-shrink-0 flex items-center justify-center">
+                            <svg viewBox="0 0 36 36" className="w-24 h-24 -rotate-90 drop-shadow-sm">
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f1f5f9" strokeWidth="3" />
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#6b8bff" strokeWidth="3" strokeDasharray={`${profileStrength}, 100`} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+                            </svg>
+                            <span className="absolute text-slate-800 font-black text-xl">{profileStrength}%</span>
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-black text-slate-900 leading-tight mb-2 tracking-tight">Complete your profile for a <span className="text-[#6b8bff] relative whitespace-nowrap"><span className="relative z-10">better experience</span><span className="absolute bottom-1 left-0 w-full h-2 bg-[#6b8bff]/20 -z-10 -rotate-1"></span></span></h3>
+                            <button onClick={onOpenWizard} className="text-white bg-[#6b8bff] hover:bg-[#5a7af0] shadow-sm shadow-[#6b8bff]/20 px-6 py-2 rounded-xl font-bold text-sm tracking-wide transition-all hover:-translate-y-0.5 mt-2">COMPLETE NOW</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
                 <div className="flex justify-between items-start mb-6">
                     <div>
@@ -327,8 +398,8 @@ function TabOverview({ profile }: { profile: JobSeekerProfileData }) {
                     )}
                 </div>
 
-                <div className="prose prose-slate max-w-none text-slate-600 bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8">
-                    {profile.aboutMe || "No summary provided yet."}
+                <div className="prose prose-slate max-w-none text-slate-600 bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8 font-medium">
+                    {profile.aboutMe || "No summary provided yet. Click complete now to add a summary!"}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -395,28 +466,45 @@ function TabOverview({ profile }: { profile: JobSeekerProfileData }) {
 }
 
 function TabPersonalInfo({ profile, onSave }: { profile: JobSeekerProfileData, onSave: (p: any) => Promise<boolean> }) {
+    const defaultPhone = profile.phone ? profile.phone.replace(/^(\+94|0)/, '') : "";
     const [formData, setFormData] = useState({
         firstName: profile.firstName,
         lastName: profile.lastName,
         title: profile.title,
         location: profile.location,
+        phone: defaultPhone,
         aboutMe: profile.aboutMe,
-        languages: profile.languages.join(", ")
+        languages: profile.languages ? profile.languages.join(", ") : "",
+        availableTimes: profile.availableTimes || ""
     });
+    const [phoneError, setPhoneError] = useState("");
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (e.target.name === "phone") setPhoneError("");
         setSaved(false);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setPhoneError("");
+        if (formData.phone) {
+            const cleanedPhone = formData.phone.replace(/[\s-]/g, '');
+            if (!/^\d{9}$/.test(cleanedPhone)) {
+                setPhoneError("Please enter exactly 9 digits without the leading 0 (e.g. 771234567).");
+                return;
+            }
+        }
         setSaving(true);
+        const cleanedPhone = formData.phone.replace(/[\s-]/g, '');
+        const finalPhone = cleanedPhone ? `+94${cleanedPhone}` : "";
         const success = await onSave({
             ...formData,
-            languages: formData.languages.split(",").map(s => s.trim()).filter(Boolean)
+            phone: finalPhone,
+            languages: formData.languages.split(",").map(s => s.trim()).filter(Boolean),
+            availableTimes: formData.availableTimes
         });
         setSaving(false);
         if (success) {
@@ -452,8 +540,48 @@ function TabPersonalInfo({ profile, onSave }: { profile: JobSeekerProfileData, o
                 </div>
 
                 <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Phone Number</label>
+                    <div className="relative flex items-center">
+                        <div className="absolute left-0 inset-y-0 flex items-center pl-4 pr-3 text-slate-900 font-bold bg-slate-100 rounded-l-xl border-r border-slate-200 select-none">
+                            🇱🇰 +94
+                        </div>
+                        <input type="text" name="phone" value={formData.phone} onChange={e => { e.target.value = e.target.value.replace(/[^\d\s-]/g, ''); handleChange(e); }} placeholder="77 123 4567" className={`w-full bg-slate-50 border ${phoneError ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 focus:ring-[#6b8bff]'} rounded-xl pl-24 pr-4 py-3 outline-none focus:ring-2 transition-all font-medium text-slate-900`} />
+                    </div>
+                    {phoneError && <p className="text-red-500 text-sm mt-1 mb-2 font-medium">{phoneError}</p>}
+                </div>
+
+                <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Languages (Comma separated)</label>
                     <input type="text" name="languages" value={formData.languages} onChange={handleChange} placeholder="English, French, Spanish" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Available Times</label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                        {["Full Time", "Part Time", "Weekdays", "Weekends", "Mornings", "Afternoons", "Evenings", "Night Shifts"].map(opt => {
+                            const currentAvails = formData.availableTimes ? formData.availableTimes.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+                            const isSelected = currentAvails.includes(opt);
+                            return (
+                                <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => {
+                                        const newAvails = isSelected ? currentAvails.filter((o: string) => o !== opt) : [...currentAvails, opt];
+                                        setFormData({ ...formData, availableTimes: newAvails.join(', ') });
+                                        setSaved(false);
+                                    }}
+                                    className={`px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
+                                        isSelected
+                                        ? "bg-[#6b8bff] border-[#6b8bff] text-white shadow-sm"
+                                        : "bg-white border-slate-200 text-slate-600 hover:border-[#6b8bff] hover:text-[#6b8bff]"
+                                    }`}
+                                >
+                                    {opt}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <input type="text" name="availableTimes" value={formData.availableTimes} onChange={handleChange} placeholder="Or type a custom availability (e.g. Tuesday mornings)" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 transition-all font-medium text-slate-900 text-sm" />
                 </div>
 
                 <div>
@@ -489,10 +617,7 @@ function TabExperience({ profile, onSave }: { profile: JobSeekerProfileData, onS
         }
     };
 
-    const addEdu = () => setEducation([...education, { id: Date.now().toString(), institution: "", degree: "", year: "" }]);
-    const delEdu = (id: string) => setEducation(education.filter(e => e.id !== id));
-    
-    const addExp = () => setExperience([...experience, { id: Date.now().toString(), company: "", role: "", duration: "", description: "" }]);
+    const addExp = () => setExperience([...experience, { id: Date.now().toString(), title: "", company: "", duration: "", description: "" }]);
     const delExp = (id: string) => setExperience(experience.filter(e => e.id !== id));
 
     return (
@@ -536,33 +661,36 @@ function TabExperience({ profile, onSave }: { profile: JobSeekerProfileData, onS
 
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-slate-900">Education</h2>
-                    <button onClick={addEdu} className="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center bg-emerald-50 px-3 py-1.5 rounded-lg">
-                        <Plus className="w-4 h-4 mr-1" /> Add Education
-                    </button>
+                    <h2 className="text-xl font-bold text-slate-900">Education Levels (Select all that apply)</h2>
                 </div>
                 
-                {education.length === 0 && <p className="text-slate-500 italic text-sm">No education history added yet.</p>}
-                
-                <div className="space-y-4">
-                    {education.map((edu, idx) => (
-                        <div key={edu.id} className="relative bg-slate-50 p-6 rounded-2xl border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <button onClick={() => delEdu(edu.id)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 bg-white p-1.5 rounded-md shadow-sm border border-slate-200"><Trash2 className="w-4 h-4" /></button>
-                            <div className="md:col-span-3 pr-8">
-                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Institution / University</label>
-                                <input type="text" value={edu.institution} onChange={(e) => { const n = [...education]; n[idx].institution = e.target.value; setEducation(n); }} placeholder="e.g. University of Westminster" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-emerald-500" />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Degree / Certificate</label>
-                                <input type="text" value={edu.degree} onChange={(e) => { const n = [...education]; n[idx].degree = e.target.value; setEducation(n); }} placeholder="BSc Computer Science" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-emerald-500" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Graduation Year</label>
-                                <input type="text" value={edu.year} onChange={(e) => { const n = [...education]; n[idx].year = e.target.value; setEducation(n); }} placeholder="2024" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium outline-none focus:border-emerald-500" />
-                            </div>
-                        </div>
-                    ))}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {["GCE O/L", "GCE A/L", "Undergraduate", "Degree Holder", "Postgraduate", "Other"].map(opt => {
+                        const isSelected = education.some((e: any) => e.level === opt || e.degree === opt); // Fallback for old data
+                        return (
+                            <button
+                                key={opt}
+                                type="button"
+                                onClick={() => {
+                                    if (isSelected) {
+                                        setEducation(education.filter((e: any) => e.level !== opt && e.degree !== opt));
+                                    } else {
+                                        setEducation([...education, { id: Date.now().toString(), level: opt }]);
+                                    }
+                                    setSaved(false);
+                                }}
+                                className={`px-4 py-3 border rounded-xl text-sm font-bold transition-all ${
+                                    isSelected
+                                    ? "bg-slate-900 border-slate-900 text-white shadow-md"
+                                    : "bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                }`}
+                            >
+                                {opt}
+                            </button>
+                        );
+                    })}
                 </div>
+                <p className="text-xs text-slate-500 font-medium pt-4">Providing education details builds trust with employers. Select your qualifications here.</p>
             </div>
 
             <div className="flex items-center justify-end">

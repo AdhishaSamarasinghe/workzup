@@ -42,6 +42,7 @@ export default function JobRecruiterLoginPage() {
                 body: JSON.stringify({
                     email: formData.email,
                     password: formData.password,
+                    expectedRole: "EMPLOYER",
                 }),
             });
 

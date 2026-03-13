@@ -1,7 +1,23 @@
 import { NextResponse } from "next/server";
 import { API_BASE } from "@/lib/api";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import { randomUUID } from "crypto";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+const APPLICATION_UPLOADS_DIR = path.join(process.cwd(), "backend", "uploads", "applications");
+
+async function persistUpload(file: File, prefix: string) {
+  const extension = path.extname(file.name) || "";
+  const safeName = `${prefix}-${Date.now()}-${randomUUID()}${extension}`;
+  const targetPath = path.join(APPLICATION_UPLOADS_DIR, safeName);
+
+  await mkdir(APPLICATION_UPLOADS_DIR, { recursive: true });
+  await writeFile(targetPath, Buffer.from(await file.arrayBuffer()));
+
+  return `uploads/applications/${safeName}`;
+}
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +26,6 @@ export async function POST(request: Request) {
     const fullName = String(formData.get("fullName") || "").trim();
     const email = String(formData.get("email") || "").trim();
     const phone = String(formData.get("phone") || "").trim();
-    const coverLetter = String(formData.get("coverLetter") || "").trim();
     const cv = formData.get("cv");
     const nic = formData.get("nic");
 
@@ -18,8 +33,8 @@ export async function POST(request: Request) {
     const jobId = String(formData.get("jobId") || "default-job");
 
     // Make file uploads optional at this layer since users might have them on their profile
-    if (!fullName || !email || !phone || !coverLetter) {
-      return NextResponse.json({ message: "Please fill all required text fields." }, { status: 400 });
+    if (!fullName || !email || !phone) {
+      return NextResponse.json({ message: "Please fill all required fields." }, { status: 400 });
     }
 
     if (cv && cv instanceof File && cv.size > MAX_FILE_SIZE) {
@@ -27,6 +42,12 @@ export async function POST(request: Request) {
     }
     if (nic && nic instanceof File && nic.size > MAX_FILE_SIZE) {
       return NextResponse.json({ message: "NIC must be under 5MB." }, { status: 400 });
+    }
+
+    let submittedCv: string | null = null;
+
+    if (cv instanceof File && cv.size > 0) {
+      submittedCv = await persistUpload(cv, "application-cv");
     }
 
     // Capture the user JWT from the incoming request headers to prove JobSeeker identity
@@ -48,9 +69,7 @@ export async function POST(request: Request) {
         fullName,
         email,
         phone,
-        coverLetter
-        // Storing CVs natively in S3/Supabase storage should be implemented later, 
-        // for now we confirm the application directly on Postgres!
+        submittedCv,
       })
     });
 
