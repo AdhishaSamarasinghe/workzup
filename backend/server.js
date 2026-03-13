@@ -18,6 +18,7 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:3000",
   credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -67,6 +68,13 @@ try {
   const adminRoutes = require("./routes/admin");
   app.use("/api/admin", adminRoutes);
 } catch (_) { }
+
+try {
+  const employerJobsRoute = require("./routes/employerJobs");
+  app.use("/api/employer/my-postings", employerJobsRoute);
+} catch (err) {
+  console.error("Failed to load employerJobsRoute:", err);
+}
 
 let PORT = process.env.PORT || 5000;
 
