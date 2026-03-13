@@ -14,7 +14,7 @@ const normalizeApplicationStatus = (application) => {
 // POST /api/applications - Apply to a job
 router.post("/", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res) => {
     try {
-        const { jobId } = req.body;
+        const { jobId, coverLetter, submittedCv } = req.body;
         const applicantId = req.user.userId;
 
         if (!jobId) return res.status(400).json({ message: "jobId is required" });
@@ -37,7 +37,9 @@ router.post("/", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res
                 applicantId,
                 status: "PENDING", // PENDING, CONTACTED, SHORTLISTED, HIRED, REJECTED
                 matchScore: Math.floor(Math.random() * 40) + 60, // Mock AI Match logic
-                relevantSkillsCount: 2
+                relevantSkillsCount: 2,
+                coverLetter: coverLetter || null,
+                submittedCv: submittedCv || null
             }
         });
 

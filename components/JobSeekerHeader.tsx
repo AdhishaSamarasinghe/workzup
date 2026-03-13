@@ -60,8 +60,9 @@ export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?:
                 <div className="flex items-center gap-4 md:gap-8">
                     {/* Primary nav links (hidden on mobile) */}
                     <nav className={`hidden md:flex items-center gap-6 text-sm font-medium transition-colors ${!isScrolled ? 'text-white' : 'text-slate-700'}`}>
-                        <Link href="/jobseeker/browse" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Find Jobs</Link>
-                        <Link href="/jobseeker/applications" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">My Applications</Link>
+                        <Link href="/jobseeker/browse" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Home</Link>
+                        <Link href="/jobseeker/gigs" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Find Jobs</Link>
+                        <Link href="/applications" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">My Applications</Link>
                         <Link href="/jobseeker/saved" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Saved Jobs</Link>
                         <Link href="/messages" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Messages</Link>
                     </nav>
@@ -97,11 +98,11 @@ export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?:
                                     My Profile
                                 </Link>
                                 <Link
-                                    href="/applications"
+                                    href="/jobseeker/profile"
                                     className="block w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                                     onClick={() => setDropdownOpen(false)}
                                 >
-                                    My Applications
+                                    Settings
                                 </Link>
                                 <button
                                     onClick={handleLogout}

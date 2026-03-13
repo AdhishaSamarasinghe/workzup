@@ -231,7 +231,9 @@ router.get("/profile", authenticateToken, async (req, res) => {
       name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : "Job Seeker",
       firstName: user.firstName || "",
       lastName: user.lastName || "",
-      title: user.seekerProfile?.bio ? user.seekerProfile.bio.split(".")[0] : "Professional",
+      email: user.email || "",
+      phone: user.phone || "",
+      title: user.seekerProfile?.title || "Professional",
       location: user.homeTown || "Sri Lanka",
       avatar: buildAvatarUrl(req, user.seekerProfile?.socialLinks?.avatarUrl, user.firstName, user.lastName),
       isAvailable: true,
@@ -251,6 +253,7 @@ router.get("/profile", authenticateToken, async (req, res) => {
       experience: user.seekerProfile?.experience || [],
       socialLinks: user.seekerProfile?.socialLinks || { linkedin: "", github: "", portfolio: "", avatarUrl: "" },
       languages: user.seekerProfile?.languages || [],
+      availableTimes: user.seekerProfile?.availability?.length > 0 ? user.seekerProfile.availability.join(", ") : "",
       cv: user.cv || null,
       idDocument: user.idDocument || null,
       idFront: user.idFront || null,
@@ -356,7 +359,7 @@ router.put("/profile", authenticateToken, async (req, res) => {
   try {
     const { 
       firstName, lastName, location, aboutMe, title, skills, 
-      education, experience, socialLinks, languages 
+      education, experience, socialLinks, languages, phone, availableTimes
     } = req.body;
 
     const existingProfile = await prisma.seekerProfile.findUnique({
@@ -375,7 +378,8 @@ router.put("/profile", authenticateToken, async (req, res) => {
       data: {
         firstName: firstName,
         lastName: lastName,
-        homeTown: location
+        homeTown: location,
+        phone: phone || null
       }
     });
 
@@ -383,21 +387,25 @@ router.put("/profile", authenticateToken, async (req, res) => {
     await prisma.seekerProfile.upsert({
       where: { userId: req.user.userId },
       update: {
+        title: title || existingProfile?.title,
         bio: aboutMe,
         skills: skills || [],
         education: education || [],
         experience: experience || [],
         socialLinks: mergedSocialLinks,
-        languages: languages || []
+        languages: languages || [],
+        availability: availableTimes ? String(availableTimes).split(",").map(s => s.trim()).filter(Boolean) : []
       },
       create: {
         userId: req.user.userId,
+        title: title,
         bio: aboutMe,
         skills: skills || [],
         education: education || [],
         experience: experience || [],
         socialLinks: mergedSocialLinks,
-        languages: languages || []
+        languages: languages || [],
+        availability: availableTimes ? String(availableTimes).split(",").map(s => s.trim()).filter(Boolean) : []
       }
     });
 

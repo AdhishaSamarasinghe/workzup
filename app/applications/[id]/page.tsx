@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { ExternalLink, FileText, X } from "lucide-react";
+import { resolveUploadUrl } from "@/lib/profile";
 
 type ApplicationRecord = {
   id: string;
@@ -11,6 +13,8 @@ type ApplicationRecord = {
   updatedAt: string;
   matchScore?: number | null;
   relevantSkillsCount?: number | null;
+  coverLetter?: string | null;
+  submittedCv?: string | null;
   job?: {
     id: string;
     title: string;
@@ -62,6 +66,70 @@ const formatPay = (pay?: number | null, payType?: string | null) => {
   return `$${pay}/${payType || "hour"}`;
 };
 
+type PreviewKind = "image" | "pdf" | "file";
+
+const getPreviewKind = (source?: string | null): PreviewKind => {
+  const value = String(source || "").toLowerCase();
+  if (/\.(jpg|jpeg|png|webp|gif|bmp|svg)$/.test(value)) return "image";
+  if (/\.pdf$/.test(value)) return "pdf";
+  return "file";
+};
+
+function DocumentCard({
+  label,
+  fileName,
+  url,
+  kind,
+  onOpen,
+}: {
+  label: string;
+  fileName: string;
+  url: string;
+  kind: PreviewKind;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#6D83F2] hover:shadow-md"
+    >
+      <div className="h-36 overflow-hidden bg-[#F8FAFC] p-2">
+        {kind === "image" ? (
+          <img
+            src={url}
+            alt={label}
+            className="h-full w-full rounded-xl object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+          />
+        ) : kind === "pdf" ? (
+          <div className="h-full w-full overflow-hidden rounded-xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+            <iframe
+              src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=page-width`}
+              title={label}
+              className="pointer-events-none ml-[-10px] mt-[-10px] h-[calc(100%+20px)] w-[calc(100%+20px)] border-0 bg-white"
+            />
+          </div>
+        ) : (
+          <div className="flex h-full items-center justify-center rounded-xl bg-white">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#111827] text-white">
+              <FileText className="h-6 w-6" />
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-3 border-t border-[#EEF2F7] px-4 py-3">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7C8AA5]">
+            {label}
+          </div>
+          <div className="truncate text-sm font-medium text-[#111827]">{fileName}</div>
+        </div>
+        <span className="shrink-0 text-sm font-semibold text-[#6D83F2]">Open</span>
+      </div>
+    </button>
+  );
+}
+
 export default function ApplicationDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -69,6 +137,12 @@ export default function ApplicationDetailsPage() {
   const [record, setRecord] = useState<ApplicationRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activePreview, setActivePreview] = useState<{
+    title: string;
+    fileName: string;
+    url: string;
+    kind: PreviewKind;
+  } | null>(null);
 
   useEffect(() => {
     if (!applicationId) {
@@ -111,6 +185,38 @@ export default function ApplicationDetailsPage() {
     const firstName = record?.applicant?.firstName?.trim() || "";
     const lastName = record?.applicant?.lastName?.trim() || "";
     return [firstName, lastName].filter(Boolean).join(" ");
+  }, [record]);
+
+  const submittedDocuments = useMemo(() => {
+    const docs = [
+      {
+        title: "CV / Resume",
+        path: record?.submittedCv || record?.applicant?.cv || null,
+      },
+      {
+        title: "NIC Front",
+        path: record?.applicant?.idFront || null,
+      },
+      ...(record?.applicant?.idBack
+        ? [{
+            title: "NIC Back",
+            path: record.applicant.idBack,
+          }]
+        : []),
+    ];
+
+    return docs
+      .map((doc) => {
+        const url = resolveUploadUrl(doc.path);
+        if (!url || !doc.path) return null;
+        return {
+          title: doc.title,
+          url,
+          fileName: doc.path.split(/[\\/]/).pop() || doc.title,
+          kind: getPreviewKind(doc.path),
+        };
+      })
+      .filter(Boolean) as { title: string; url: string; fileName: string; kind: PreviewKind }[];
   }, [record]);
 
   return (
@@ -166,7 +272,39 @@ export default function ApplicationDetailsPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
+          <div className="space-y-6">
+            {record && !isLoading && submittedDocuments.length > 0 && (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-[#111827]">Submitted Documents</h2>
+                    <p className="mt-1 text-sm text-[#6B7280]">
+                      Preview the CV and identity documents attached to this application.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {submittedDocuments.map((document) => (
+                    <DocumentCard
+                      key={`${document.title}-${document.fileName}`}
+                      label={document.title}
+                      fileName={document.fileName}
+                      url={document.url}
+                      kind={document.kind}
+                      onOpen={() => setActivePreview({
+                        title: document.title,
+                        fileName: document.fileName,
+                        url: document.url,
+                        kind: document.kind,
+                      })}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
             <h2 className="text-lg font-semibold text-[#111827]">Application Details</h2>
 
             {isLoading && (
@@ -256,8 +394,75 @@ export default function ApplicationDetailsPage() {
               </>
             )}
           </div>
+          </div>
         </div>
       </section>
+
+      {activePreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/70 p-4"
+          onClick={() => setActivePreview(null)}
+        >
+          <div
+            className="relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] px-5 py-4">
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7C8AA5]">
+                  {activePreview.title}
+                </div>
+                <div className="truncate text-base font-semibold text-[#111827]">
+                  {activePreview.fileName}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={activePreview.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm font-semibold text-[#374151] hover:bg-[#F9FAFB]"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open in new tab
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setActivePreview(null)}
+                  className="rounded-xl border border-[#E5E7EB] p-2 text-[#6B7280] hover:bg-[#F9FAFB]"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 bg-[#F5F8FC] p-4">
+              {activePreview.kind === "image" ? (
+                <img
+                  src={activePreview.url}
+                  alt={activePreview.title}
+                  className="h-full max-h-[72vh] w-full rounded-2xl object-contain"
+                />
+              ) : activePreview.kind === "pdf" ? (
+                <iframe
+                  src={activePreview.url}
+                  title={activePreview.title}
+                  className="h-[72vh] w-full rounded-2xl border-0 bg-white"
+                />
+              ) : (
+                <div className="flex h-[72vh] flex-col items-center justify-center rounded-2xl bg-white px-6 text-center">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#111827] text-white">
+                    <FileText className="h-8 w-8" />
+                  </div>
+                  <div className="text-lg font-semibold text-[#111827]">
+                    This file can’t be previewed inline.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

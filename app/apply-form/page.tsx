@@ -16,12 +16,19 @@ function ApplicationFormContent() {
   const [job, setJob] = useState<BrowseJob | null>(null);
   const [jobLoading, setJobLoading] = useState(true);
   const [jobError, setJobError] = useState("");
+  const [applicantDetails, setApplicantDetails] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+  });
+  const [autofilledFields, setAutofilledFields] = useState<Record<string, boolean>>({});
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
   const [cvFileName, setCvFileName] = useState<string | null>(null);
-  const [nicFileName, setNicFileName] = useState<string | null>(null);
+  const [nicFrontFileName, setNicFrontFileName] = useState<string | null>(null);
+  const [nicBackFileName, setNicBackFileName] = useState<string | null>(null);
   const [profileDocs, setProfileDocs] = useState({
     cv: false,
     idDocument: false,
@@ -56,6 +63,51 @@ function ApplicationFormContent() {
               nicFront: !!profile.idFront,
               nicBack: !!profile.idBack,
             });
+            const nextFullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ");
+            const nextEmail = profile.email || "";
+
+            const animateAutofill = (field: "fullName" | "email", value: string, startDelay: number) => {
+              if (!value) return;
+
+              setTimeout(() => {
+                let cursor = 0;
+                const timer = window.setInterval(() => {
+                  cursor += 1;
+                  setApplicantDetails((prev) => {
+                    if (prev[field] && prev[field] !== value.slice(0, cursor - 1)) {
+                      window.clearInterval(timer);
+                      return prev;
+                    }
+
+                    return {
+                      ...prev,
+                      [field]: value.slice(0, cursor),
+                    };
+                  });
+
+                  if (cursor >= value.length) {
+                    window.clearInterval(timer);
+                    setAutofilledFields((prev) => ({ ...prev, [field]: true }));
+                    window.setTimeout(() => {
+                      setAutofilledFields((prev) => ({ ...prev, [field]: false }));
+                    }, 900);
+                  }
+                }, 18);
+              }, startDelay);
+            };
+
+            setApplicantDetails((prev) => ({
+              ...prev,
+              phone: prev.phone || "",
+            }));
+
+            setApplicantDetails((prev) => {
+              if (prev.fullName || prev.email) return prev;
+              return { ...prev, fullName: "", email: "" };
+            });
+
+            if (!applicantDetails.fullName) animateAutofill("fullName", nextFullName, 120);
+            if (!applicantDetails.email) animateAutofill("email", nextEmail, 360);
           } catch (e) {
             console.error("Could not fetch profile", e);
           }
@@ -199,6 +251,30 @@ function ApplicationFormContent() {
 
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
+      if (!hasProfileNic) {
+        const idFront = formData.get("idFront");
+        const idBack = formData.get("idBack");
+
+        if (!(idFront instanceof File) || idFront.size === 0 || !(idBack instanceof File) || idBack.size === 0) {
+          throw new Error("Please upload both the front and back of your NIC.");
+        }
+
+        const docsFormData = new FormData();
+        docsFormData.append("idFront", idFront);
+        docsFormData.append("idBack", idBack);
+
+        await apiFetch("/api/auth/upload-docs", {
+          method: "POST",
+          body: docsFormData,
+        });
+
+        setProfileDocs((prev) => ({
+          ...prev,
+          nicFront: true,
+          nicBack: true,
+        }));
+      }
+
       const response = await fetch("/api/apply-form", {
         method: "POST",
         headers: {
@@ -223,6 +299,9 @@ function ApplicationFormContent() {
       }
       openSuccessPopup();
       form.reset();
+      setCvFileName(null);
+      setNicFrontFileName(null);
+      setNicBackFileName(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Something went wrong.";
       setIsSuccess(false);
@@ -328,10 +407,14 @@ function ApplicationFormContent() {
                   type="text"
                   placeholder="Enter your full name"
                   required
-                  onInput={(event) =>
-                    clearMissingTextFieldIfFilled("fullName", event.currentTarget.value)
-                  }
-                  className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${isFieldMissing("fullName")
+                  value={applicantDetails.fullName}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setApplicantDetails((prev) => ({ ...prev, fullName: value }));
+                    setAutofilledFields((prev) => ({ ...prev, fullName: false }));
+                    clearMissingTextFieldIfFilled("fullName", value);
+                  }}
+                  className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 transition-all duration-500 ${autofilledFields.fullName ? "bg-[#EEF4FF]" : ""} ${isFieldMissing("fullName")
                       ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200"
                       : "border-[#E5E7EB] bg-white focus:border-[#6D83F2] focus:ring-[#6D83F2]/30"
                     }`}
@@ -354,10 +437,14 @@ function ApplicationFormContent() {
                   type="email"
                   placeholder="you@email.com"
                   required
-                  onInput={(event) =>
-                    clearMissingTextFieldIfFilled("email", event.currentTarget.value)
-                  }
-                  className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${isFieldMissing("email")
+                  value={applicantDetails.email}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setApplicantDetails((prev) => ({ ...prev, email: value }));
+                    setAutofilledFields((prev) => ({ ...prev, email: false }));
+                    clearMissingTextFieldIfFilled("email", value);
+                  }}
+                  className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 transition-all duration-500 ${autofilledFields.email ? "bg-[#EEF4FF]" : ""} ${isFieldMissing("email")
                       ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200"
                       : "border-[#E5E7EB] bg-white focus:border-[#6D83F2] focus:ring-[#6D83F2]/30"
                     }`}
@@ -380,9 +467,12 @@ function ApplicationFormContent() {
                   type="tel"
                   placeholder="(+94) 123-456-789"
                   required
-                  onInput={(event) =>
-                    clearMissingTextFieldIfFilled("phone", event.currentTarget.value)
-                  }
+                  value={applicantDetails.phone}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setApplicantDetails((prev) => ({ ...prev, phone: value }));
+                    clearMissingTextFieldIfFilled("phone", value);
+                  }}
                   className={`w-full rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${isFieldMissing("phone")
                       ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200"
                       : "border-[#E5E7EB] bg-white focus:border-[#6D83F2] focus:ring-[#6D83F2]/30"
@@ -497,86 +587,104 @@ function ApplicationFormContent() {
                   </div>
                 ) : (
                   <>
-                    {((profileDocs.nicFront && !profileDocs.nicBack) || (!profileDocs.nicFront && profileDocs.nicBack)) && !profileDocs.idDocument && !nicFileName && (
+                    {((profileDocs.nicFront && !profileDocs.nicBack) || (!profileDocs.nicFront && profileDocs.nicBack)) && !profileDocs.idDocument && !nicFrontFileName && !nicBackFileName && (
                       <div className="flex items-center gap-2 mb-2 rounded-xl border border-amber-100 bg-amber-50 p-3">
                         <span className="text-sm font-medium text-amber-800">
                           Partial NIC found on your profile. Please complete it from your profile page before applying.
                         </span>
                       </div>
                     )}
-                    <label
-                      htmlFor="nic"
-                      className={`flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed px-4 py-4 text-sm ${isFieldMissing("nic")
-                          ? "border-red-500 bg-red-50 text-red-700"
-                          : "border-[#CBD5F5] bg-[#F8FAFC] text-[#6B7280]"
-                        }`}
-                    >
+                    <div className="space-y-4 rounded-xl border border-dashed border-[#CBD5F5] bg-[#F8FAFC] px-4 py-4">
                       <img
                         src="/nic-guide.jpg"
                         alt="NIC upload guide"
                         className="w-full rounded-lg border border-[#E5E7EB] object-cover bg-white"
                       />
-                      <span>
-                        {nicFileName ? (
-                          <span className="font-semibold">{nicFileName}</span>
-                        ) : (
-                          <>
-                            Please upload high-quality images of both the <strong>front</strong> and
-                            <strong> back</strong> of your National Identity Card (NIC). Ensure all text
-                            is clearly legible.
-                          </>
-                        )}
-                      </span>
-                      <span className="self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6D83F2]">
-                        Browse
-                      </span>
-                    </label>
-                    {isFieldMissing("nic") && (
-                      <p className="text-xs font-medium text-red-600">Please upload your NIC.</p>
-                    )}
-                  </>
-                )}
-                <input
-                  id="nic"
-                  name="nic"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  required={!hasProfileNic}
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.[0];
-                    setNicFileName(file ? file.name : null);
-                    if (file) {
-                      clearMissingField("nic");
-                    }
-                  }}
-                />
-              </div>
+                      <p className="text-sm text-[#6B7280]">
+                        Please upload high-quality images of both the <strong>front</strong> and <strong>back</strong> of your National Identity Card (NIC). Ensure all text is clearly legible.
+                      </p>
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="coverLetter"
-                  className={`text-sm font-medium ${isFieldMissing("coverLetter") ? "text-red-600" : "text-[#111827]"
-                    }`}
-                >
-                  Cover Letter
-                </label>
-                <textarea
-                  id="coverLetter"
-                  name="coverLetter"
-                  rows={5}
-                  placeholder="Write a short cover letter..."
-                  required
-                  onInput={(event) =>
-                    clearMissingTextFieldIfFilled("coverLetter", event.currentTarget.value)
-                  }
-                  className={`w-full resize-none rounded-xl border px-4 py-3 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 ${isFieldMissing("coverLetter")
-                      ? "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200"
-                      : "border-[#E5E7EB] bg-white focus:border-[#6D83F2] focus:ring-[#6D83F2]/30"
-                    }`}
-                />
-                {isFieldMissing("coverLetter") && (
-                  <p className="text-xs font-medium text-red-600">Please fill this field.</p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label
+                            htmlFor="idFront"
+                            className={`block text-sm font-medium ${isFieldMissing("idFront") ? "text-red-600" : "text-[#111827]"}`}
+                          >
+                            NIC Front
+                          </label>
+                          <label
+                            htmlFor="idFront"
+                            className={`flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-4 py-3 text-sm ${isFieldMissing("idFront")
+                              ? "border-red-500 bg-red-50 text-red-700"
+                              : "border-[#CBD5F5] bg-white text-[#6B7280]"
+                              }`}
+                          >
+                            <span className="truncate mr-4 flex-1">
+                              {nicFrontFileName || "Upload front side"}
+                            </span>
+                            <span className="rounded-full bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#6D83F2] whitespace-nowrap">
+                              Browse
+                            </span>
+                          </label>
+                          {isFieldMissing("idFront") && (
+                            <p className="text-xs font-medium text-red-600">Please upload the front of your NIC.</p>
+                          )}
+                          <input
+                            id="idFront"
+                            name="idFront"
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            className="hidden"
+                            required={!hasProfileNic}
+                            onChange={(event) => {
+                              const file = event.currentTarget.files?.[0];
+                              setNicFrontFileName(file ? file.name : null);
+                              if (file) clearMissingField("idFront");
+                            }}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label
+                            htmlFor="idBack"
+                            className={`block text-sm font-medium ${isFieldMissing("idBack") ? "text-red-600" : "text-[#111827]"}`}
+                          >
+                            NIC Back
+                          </label>
+                          <label
+                            htmlFor="idBack"
+                            className={`flex cursor-pointer items-center justify-between rounded-xl border border-dashed px-4 py-3 text-sm ${isFieldMissing("idBack")
+                              ? "border-red-500 bg-red-50 text-red-700"
+                              : "border-[#CBD5F5] bg-white text-[#6B7280]"
+                              }`}
+                          >
+                            <span className="truncate mr-4 flex-1">
+                              {nicBackFileName || "Upload back side"}
+                            </span>
+                            <span className="rounded-full bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#6D83F2] whitespace-nowrap">
+                              Browse
+                            </span>
+                          </label>
+                          {isFieldMissing("idBack") && (
+                            <p className="text-xs font-medium text-red-600">Please upload the back of your NIC.</p>
+                          )}
+                          <input
+                            id="idBack"
+                            name="idBack"
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            className="hidden"
+                            required={!hasProfileNic}
+                            onChange={(event) => {
+                              const file = event.currentTarget.files?.[0];
+                              setNicBackFileName(file ? file.name : null);
+                              if (file) clearMissingField("idBack");
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
 
