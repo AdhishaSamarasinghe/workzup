@@ -5,6 +5,10 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Header from "./Header";
 import PublicHeader from "./PublicHeader";
+import AuthHeader from "./AuthHeader";
+import JobSeekerHeader from "./JobSeekerHeader";
+import EditRecruiterHeader from "./editrecruiter/Header";
+
 
 export default function HeaderWrapper() {
     const pathname = usePathname();
