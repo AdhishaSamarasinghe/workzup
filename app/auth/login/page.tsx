@@ -153,7 +153,7 @@ export default function JobSeekerLoginPage() {
                             <div className="flex items-center justify-between pt-2">
                                 <span className="text-sm font-bold text-black tracking-tight">Forgot Password</span>
                                 <Link
-                                    href="#"
+                                    href="/auth/forgot-password"
                                     className="px-6 py-1.5 text-sm font-semibold text-[#6B8BFF] border-2 border-[#6B8BFF]/40 rounded hover:bg-blue-50 transition-colors"
                                 >
                                     RESET NOW

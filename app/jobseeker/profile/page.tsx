@@ -235,8 +235,7 @@ export default function JobSeekerProfile() {
         { id: "overview", label: "Overview", icon: User },
         { id: "personal", label: "Personal Info", icon: FileText },
         { id: "experience", label: "Experience & Education", icon: Briefcase },
-        { id: "skills", label: "Docs & Skills", icon: Award },
-        { id: "security", label: "Security", icon: Shield },
+        { id: "skills", label: "Docs & Skills", icon: Award }
     ];
 
     return (
@@ -318,9 +317,8 @@ export default function JobSeekerProfile() {
                             >
                                 {activeTab === "overview" && <TabOverview profile={profile} profileStrength={profileStrength} onOpenWizard={() => setShowWizard(true)} />}
                                 {activeTab === "personal" && <TabPersonalInfo profile={profile} onSave={handleSaveProfile} />}
-                                {activeTab === "experience" && <TabExperience profile={profile} onSave={handleSaveProfile} />}
+                                {activeTab === "experience" && <TabExperience profile={profile} onSave={handleSaveProfile} onRefresh={fetchProfile} />}
                                 {activeTab === "skills" && <TabSkills profile={profile} onSave={handleSaveProfile} onRefresh={fetchProfile} />}
-                                {activeTab === "security" && <TabSecurity />}
                             </motion.div>
                         </AnimatePresence>
                     </div>
@@ -935,69 +933,4 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
     );
 }
 
-function TabSecurity() {
-    const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
-    const [status, setStatus] = useState<{type: "error"|"success", msg: string} | null>(null);
-    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setStatus(null);
-
-        if (passwords.new !== passwords.confirm) {
-            return setStatus({ type: "error", msg: "New passwords do not match." });
-        }
-        if (passwords.new.length < 6) {
-            return setStatus({ type: "error", msg: "New password must be at least 6 characters." });
-        }
-
-        setLoading(true);
-        try {
-            await apiFetch("/api/auth/password", {
-                method: "PUT",
-                body: JSON.stringify({ currentPassword: passwords.current, newPassword: passwords.new })
-            });
-            setStatus({ type: "success", msg: "Password successfully changed!" });
-            setPasswords({ current: "", new: "", confirm: "" });
-        } catch (err: any) {
-            setStatus({ type: "error", msg: err.message || "Failed to change password." });
-        }
-        setLoading(false);
-    };
-
-    return (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 max-w-2xl">
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Security Settings</h2>
-            <p className="text-slate-500 mb-8 font-medium">Manage your password and account security preferences here to ensure your account remains safe.</p>
-
-            {status && (
-                <div className={`p-4 rounded-xl mb-6 font-medium text-sm flex items-start gap-3 ${status.type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
-                    {status.type === 'error' ? <Shield className="w-5 h-5 shrink-0" /> : <CheckCircle2 className="w-5 h-5 shrink-0" />}
-                    {status.msg}
-                </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-5 border border-slate-100 p-6 rounded-2xl bg-slate-50">
-                <h3 className="font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2">Change Password</h3>
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Current Password</label>
-                    <input required type="password" value={passwords.current} onChange={e => setPasswords({...passwords, current: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
-                </div>
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">New Password</label>
-                    <input required type="password" value={passwords.new} onChange={e => setPasswords({...passwords, new: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
-                </div>
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Confirm New Password</label>
-                    <input required type="password" value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
-                </div>
-
-                <div className="pt-4 flex justify-end">
-                    <button type="submit" disabled={loading} className="px-8 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-70 flex items-center shadow-lg shadow-red-200">
-                        {loading ? "Updating Security..." : "Change Password"}
-                    </button>
-                </div>
-            </form>
-        </div>
-    );
-}

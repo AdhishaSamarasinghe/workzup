@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 interface GigCardProps {
     title: string;
@@ -8,6 +9,7 @@ interface GigCardProps {
     date: string;
     description: string;
     category: string;
+    id: string;
 }
 
 const GigCard: React.FC<GigCardProps> = ({
@@ -18,6 +20,7 @@ const GigCard: React.FC<GigCardProps> = ({
     date,
     description,
     category,
+    id,
 }) => {
     // Determine color based on category for the tag
     const getCategoryColor = (cat: string = "") => {
@@ -72,9 +75,9 @@ const GigCard: React.FC<GigCardProps> = ({
                     </div>
                 </div>
 
-                <button className="rounded-xl bg-[#6b8bff] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#5a7ae0]">
+                <Link href={`/jobseeker/jobs/${id}`} className="rounded-xl bg-[#6b8bff] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#5a7ae0]">
                     View Details
-                </button>
+                </Link>
             </div>
         </div>
     );
