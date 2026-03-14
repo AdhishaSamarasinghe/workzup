@@ -2,26 +2,37 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
 import { signIn } from "next-auth/react";
 
 import Logo from "@/components/Logo";
 import SuccessModal from "@/components/SuccessModal";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const REQUIRED_FIELD_LABELS: Record<string, string> = {
+    firstName: "First Name",
+    lastName: "Last Name",
+    email: "Email",
+    password: "Password",
+    confirmPassword: "Confirm Password",
+    gender: "Gender",
+    homeTown: "Home Town",
+};
+
 export default function RecruiterRegisterPage() {
-    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [successMsg, setSuccessMsg] = useState("");
+    const [verificationMsg, setVerificationMsg] = useState("");
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [otp, setOtp] = useState("");
-    const [isOtpSent, setIsOtpSent] = useState(false);
-    const [isOtpVerified, setIsOtpVerified] = useState(false);
+    const [sentVerificationCode, setSentVerificationCode] = useState("");
     const [otpLoading, setOtpLoading] = useState(false);
+    const [resendCountdown, setResendCountdown] = useState(0);
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -36,62 +47,91 @@ export default function RecruiterRegisterPage() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: type === "checkbox" ? checked : value,
-        }));
+        setFormData((prev) => {
+            const next = {
+                ...prev,
+                [name]: type === "checkbox" ? checked : value,
+            };
+
+            // If email changes after a code is sent, force re-send/verification.
+            if (name === "email" && value !== prev.email) {
+                setSentVerificationCode("");
+                setOtp("");
+                setResendCountdown(0);
+            }
+
+            return next;
+        });
     };
 
     const handleGenderChange = (gender: string) => {
         setFormData((prev) => ({ ...prev, gender }));
     };
 
+    useEffect(() => {
+        if (resendCountdown <= 0) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            setResendCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+
+        return () => {
+            window.clearInterval(timer);
+        };
+    }, [resendCountdown]);
+
+    const getMissingRequiredFields = () => {
+        const missing = Object.entries(REQUIRED_FIELD_LABELS)
+            .filter(([field]) => !formData[field as keyof typeof formData])
+            .map(([, label]) => label);
+
+        return missing;
+    };
+
     const handleSendOtp = async () => {
         setError("");
         setSuccessMsg("");
-        if (!formData.email) {
-            setError("Please enter your email first.");
+        setVerificationMsg("");
+        const email = formData.email.trim();
+
+        if (!email) {
+            setError("Email is required before sending a verification code.");
             return;
         }
+
+        if (!EMAIL_REGEX.test(email)) {
+            setError("Please enter a valid email address.");
+            return;
+        }
+
         setOtpLoading(true);
         try {
-            const res = await fetch("/api/auth/send-otp", {
+            const res = await fetch("/api/send-verification-code", {
                 method: "POST",
-                body: JSON.stringify({ email: formData.email }),
+                body: JSON.stringify({ email }),
                 headers: { "Content-Type": "application/json" }
             });
-            if (!res.ok) throw new Error("Failed to send code");
-            setIsOtpSent(true);
-            setSuccessMsg("Verification code sent to your email!");
+
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || "Failed to send verification code");
+            }
+
+            setSentVerificationCode(String(data.code || ""));
+            setResendCountdown(60);
+            setVerificationMsg("Verification code sent");
+
+            // Temporary test-only behavior until real email integration is added.
+            console.log("[Verification Code - Temporary]", {
+                email,
+                code: data.code,
+            });
         } catch (error: any) {
             console.error("Failed to send OTP:", error);
             setError(error.message || "Failed to send verification code.");
-        } finally {
-            setOtpLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async () => {
-        setError("");
-        setSuccessMsg("");
-        if (!otp) {
-            setError("Please enter the verification code.");
-            return;
-        }
-        setOtpLoading(true);
-        try {
-            const res = await fetch("/api/auth/verify-otp", {
-                method: "POST",
-                body: JSON.stringify({ email: formData.email, otp }),
-                headers: { "Content-Type": "application/json" }
-            });
-            const data = await res.json();
-            if (!res.ok || !data.success) throw new Error("Invalid code");
-            setIsOtpVerified(true);
-            setSuccessMsg("Email verified successfully!");
-        } catch (error: any) {
-            console.error("Failed to verify OTP:", error);
-            setError(error.message || "Invalid verification code.");
         } finally {
             setOtpLoading(false);
         }
@@ -101,15 +141,39 @@ export default function RecruiterRegisterPage() {
         e.preventDefault();
         setError("");
         setSuccessMsg("");
+        setVerificationMsg("");
+
+        const missingRequiredFields = getMissingRequiredFields();
+        if (missingRequiredFields.length > 0) {
+            setError(`Please fill all required fields: ${missingRequiredFields.join(", ")}.`);
+            return;
+        }
+
+        if (!EMAIL_REGEX.test(formData.email.trim())) {
+            setError("Please enter a valid email address.");
+            return;
+        }
 
         if (formData.password !== formData.confirmPassword) {
             setError("Passwords do not match");
             return;
         }
-        if (!isOtpVerified) {
-            setError("Please verify your email address before registering.");
+
+        if (!sentVerificationCode) {
+            setError("Please send the verification code first.");
             return;
         }
+
+        if (!otp.trim()) {
+            setError("Please enter the verification code.");
+            return;
+        }
+
+        if (otp.trim() !== sentVerificationCode) {
+            setError("Verification code is incorrect.");
+            return;
+        }
+
         if (!formData.termsAccepted) {
             setError("Please accept the Privacy Policy and Terms");
             return;
@@ -117,27 +181,21 @@ export default function RecruiterRegisterPage() {
 
         setLoading(true);
         try {
-            const data = new FormData();
-            data.append("firstName", formData.firstName);
-            data.append("lastName", formData.lastName);
-            data.append("email", formData.email);
-            data.append("password", formData.password);
-            data.append("gender", formData.gender);
-            data.append("homeTown", formData.homeTown);
-            data.append("role", "EMPLOYER"); // Set role to EMPLOYER for recruiters as per user model
-            data.append("termsAccepted", String(formData.termsAccepted));
-            data.append("emailNotifications", String(formData.emailNotifications));
-
-            const res = await apiFetch("/api/auth/register", {
-                method: "POST",
-                body: data,
+            // Temporary test-only behavior: log payload instead of sending to DB/API.
+            console.log("[Recruiter Register - Temporary]", {
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                password: formData.password,
+                confirmPassword: formData.confirmPassword,
+                gender: formData.gender,
+                homeTown: formData.homeTown,
+                termsAccepted: formData.termsAccepted,
+                emailNotifications: formData.emailNotifications,
+                role: "EMPLOYER",
             });
 
-            if (res.token) {
-                localStorage.setItem("token", res.token);
-            }
-
-            // Show success modal instead of redirecting immediately
+            setSuccessMsg("Registration completed successfully");
             setShowSuccessModal(true);
 
         } catch (error: any) {
@@ -239,22 +297,8 @@ export default function RecruiterRegisterPage() {
                                     className="block w-full rounded-md border-0 bg-[#E0E0E0] py-3.5 pl-4 pr-20 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 transition-all disabled:opacity-60"
                                     value={formData.email}
                                     onChange={handleChange}
-                                    disabled={isOtpVerified}
+                                    disabled={loading}
                                 />
-                                {isOtpVerified && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsOtpVerified(false);
-                                            setIsOtpSent(false);
-                                            setOtp("");
-                                            setError("");
-                                        }}
-                                        className="absolute inset-y-0 right-3 flex items-center text-sm font-bold text-[#6B8BFF] hover:text-[#5A75D9]"
-                                    >
-                                        Change
-                                    </button>
-                                )}
                             </div>
 
                             {/* OTP Section */}
@@ -266,31 +310,32 @@ export default function RecruiterRegisterPage() {
                                         className="block w-full rounded-md border-0 bg-[#E0E0E0] py-3.5 pl-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 disabled:opacity-60 transition-all"
                                         value={otp}
                                         onChange={(e) => setOtp(e.target.value)}
-                                        disabled={!isOtpSent || isOtpVerified}
+                                        disabled={!sentVerificationCode || loading}
                                     />
                                 </div>
                                 <div className="shrink-0 w-full sm:w-auto">
-                                    {!isOtpSent || (!isOtpVerified && !isOtpSent) ? (
-                                        <button
-                                            type="button"
-                                            onClick={handleSendOtp}
-                                            disabled={otpLoading || isOtpVerified || !formData.email}
-                                            className="w-full sm:w-auto rounded-md bg-[#6B8BFF] px-6 py-3.5 text-sm font-bold text-white shadow-sm hover:bg-[#5A75D9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B8BFF] disabled:opacity-70 transition-colors"
-                                        >
-                                            {otpLoading ? "SENDING..." : "SEND CODE"}
-                                        </button>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            onClick={handleVerifyOtp}
-                                            disabled={otpLoading || isOtpVerified || !otp}
-                                            className={`w-full sm:w-auto rounded-md px-6 py-3.5 text-sm font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-70 transition-colors ${isOtpVerified ? 'bg-green-500 hover:bg-green-600 focus-visible:outline-green-500' : 'bg-[#6B8BFF] hover:bg-[#5A75D9] focus-visible:outline-[#6B8BFF]'}`}
-                                        >
-                                            {isOtpVerified ? "VERIFIED ✓" : (otpLoading ? "VERIFYING..." : "VERIFY")}
-                                        </button>
-                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={handleSendOtp}
+                                        disabled={otpLoading || loading || resendCountdown > 0}
+                                        className="w-full sm:w-auto rounded-md bg-[#6B8BFF] px-6 py-3.5 text-sm font-bold text-white shadow-sm hover:bg-[#5A75D9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B8BFF] disabled:opacity-70 transition-colors"
+                                    >
+                                        {otpLoading ? "Sending..." : resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "SEND CODE"}
+                                    </button>
                                 </div>
                             </div>
+
+                            {resendCountdown > 0 && (
+                                <p className="-mt-2 text-xs text-gray-500">
+                                    You can request a new verification code in {resendCountdown}s.
+                                </p>
+                            )}
+
+                            {verificationMsg && (
+                                <p className="-mt-2 text-sm text-green-600 font-medium">
+                                    {verificationMsg}
+                                </p>
+                            )}
 
                             {/* Password Fields */}
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
