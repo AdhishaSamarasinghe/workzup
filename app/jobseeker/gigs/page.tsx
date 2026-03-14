@@ -149,6 +149,7 @@ export default function FindGigPage() {
                                         pay={formatPay(job.pay, job.payType)}
                                         date={formatDateLabel(job.date)}
                                         category={job.derivedCategory}
+                                        id={job.id}
                                     />
                                 </div>
                             ))}

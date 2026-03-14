@@ -446,4 +446,167 @@ router.put("/password", authenticateToken, async (req, res) => {
   }
 });
 
+// Mock OTP storage (In production, use Redis or DB with expiry)
+const otpStore = new Map();
+
+// POST /api/auth/profile/send-email-otp
+router.post("/profile/send-email-otp", authenticateToken, async (req, res) => {
+  try {
+    const { newEmail } = req.body;
+    if (!newEmail || !newEmail.includes('@')) {
+      return res.status(400).json({ message: "A valid new email is required" });
+    }
+
+    // Check if email is already in use
+    const existing = await prisma.user.findUnique({ where: { email: newEmail } });
+    if (existing) {
+      return res.status(409).json({ message: "Email is already in use by another account" });
+    }
+
+    // Generate a 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store it alongside the user ID and the requested new email, expire in 10 mins
+    otpStore.set(req.user.userId, {
+      otp,
+      newEmail,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
+    });
+
+    // Mock sending email
+    console.log(`\n\n[EMAIL MOCK] Verification code for ${newEmail} is: ${otp}\n\n`);
+
+    res.json({ message: `OTP sent to ${newEmail}` });
+  } catch (error) {
+    console.error("Send OTP Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// POST /api/auth/profile/verify-email-otp
+router.post("/profile/verify-email-otp", authenticateToken, async (req, res) => {
+  try {
+    const { newEmail, otp } = req.body;
+    
+    if (!newEmail || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
+    const record = otpStore.get(req.user.userId);
+    
+    if (!record) {
+      return res.status(400).json({ message: "No OTP request found. Please request a new one." });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(req.user.userId);
+      return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+    }
+
+    if (record.newEmail !== newEmail || record.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP or Email combination." });
+    }
+
+    // Verify success, update the User
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data: { email: newEmail }
+    });
+
+    // Clean up
+    otpStore.delete(req.user.userId);
+
+    res.json({ message: "Email updated successfully" });
+  } catch (error) {
+    console.error("Verify OTP Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// DELETE /api/auth/profile
+router.delete("/profile", authenticateToken, async (req, res) => {
+  try {
+    // Prisma `onDelete: Cascade` handles related records (SeekerProfile, etc)
+    // if configured correctly in the schema.
+    await prisma.user.delete({
+      where: { id: req.user.userId }
+    });
+    res.json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Delete Account Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+// POST /api/auth/forgot-password/request
+router.post("/forgot-password/request", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: "This email address is not registered. Please sign up or try another." });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Key by email so unauthenticated users can reset
+    otpStore.set(`RESET_${email}`, {
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
+    });
+
+    console.log(`\n\n[EMAIL MOCK] Password reset code for ${email} is: ${otp}\n\n`);
+
+    res.json({ message: "A password reset code has been sent to your email." });
+  } catch (error) {
+    console.error("Forgot Password Request Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// POST /api/auth/forgot-password/reset
+router.post("/forgot-password/reset", async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "Email, OTP, and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    const record = otpStore.get(`RESET_${email}`);
+    
+    if (!record) {
+      return res.status(400).json({ message: "No reset request found. Please request a new code." });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(`RESET_${email}`);
+      return res.status(400).json({ message: "Reset code has expired. Please request a new one." });
+    }
+
+    if (record.otp !== otp) {
+      return res.status(400).json({ message: "Invalid reset code." });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    const updatedUser = await prisma.user.update({
+      where: { email },
+      data: { passwordHash }
+    });
+
+    otpStore.delete(`RESET_${email}`);
+
+    res.json({ message: "Password has been successfully reset." });
+  } catch (error) {
+    console.error("Password Reset Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 module.exports = router;

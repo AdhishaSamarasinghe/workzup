@@ -294,6 +294,21 @@ export async function updateJobDetails(
 }
 
 // ============================================
+// PREFERENCES API
+// ============================================
+
+export async function updatePreferences(
+  userId: string,
+  data: any,
+): Promise<ApiResponse<any>> {
+  // Currently mapping preferences to the profile update endpoint
+  return fetchApi<any>(`/auth/profile`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+// ============================================
 // SEARCH API
 // ============================================
 
