@@ -83,7 +83,7 @@ async function executeFetch(path: string, options: RequestInit = {}) {
             return await performFetch(fallbackUrl);
           }
         } catch {
-          // ignore fallback health check failure
+          // Ignore fallback health check failure
         }
       }
 
@@ -99,7 +99,6 @@ async function executeFetch(path: string, options: RequestInit = {}) {
 // ============================================
 // LOW-LEVEL FETCH HELPER (auth-aware)
 // ============================================
-
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -142,7 +141,7 @@ export async function fetchApi<T>(
 ): Promise<ApiResponse<T>> {
   try {
     const data = await apiFetch(endpoint, options);
-    return { success: true, data };
+    return { success: true, data: data as T };
   } catch (error: unknown) {
     return {
       success: false,
@@ -154,7 +153,6 @@ export async function fetchApi<T>(
 // ============================================
 // CONVERSATION API
 // ============================================
-
 export async function getConversations(): Promise<ApiResponse<Conversation[]>> {
   return fetchApi<Conversation[]>("/conversations");
 }
@@ -205,7 +203,6 @@ export async function markConversationAsRead(
 // ============================================
 // MESSAGE API
 // ============================================
-
 export async function getMessages(
   conversationId: string
 ): Promise<ApiResponse<Message[]>> {
@@ -216,7 +213,7 @@ export async function sendMessage(
   conversationId: string,
   data: SendMessageRequest
 ): Promise<ApiResponse<Message>> {
-  return fetchApi<Message>(`/messages`, {
+  return fetchApi<Message>("/messages", {
     method: "POST",
     body: JSON.stringify({ ...data, conversationId }),
   });
@@ -256,7 +253,6 @@ export async function markMessageAsRead(
 // ============================================
 // TYPING STATUS API
 // ============================================
-
 export async function updateTypingStatus(
   conversationId: string,
   isTyping: boolean
@@ -276,7 +272,6 @@ export async function getTypingUsers(
 // ============================================
 // JOB API
 // ============================================
-
 export async function getJobDetails(
   jobId: string
 ): Promise<ApiResponse<JobDetails>> {
@@ -296,13 +291,13 @@ export async function updateJobDetails(
 // ============================================
 // PREFERENCES API
 // ============================================
-
 export async function updatePreferences(
   userId: string,
-  data: any,
-): Promise<ApiResponse<any>> {
-  // Currently mapping preferences to the profile update endpoint
-  return fetchApi<any>(`/auth/profile`, {
+  data: Record<string, unknown>
+): Promise<ApiResponse<Record<string, unknown>>> {
+  void userId;
+
+  return fetchApi<Record<string, unknown>>("/auth/profile", {
     method: "PUT",
     body: JSON.stringify(data),
   });
@@ -311,7 +306,6 @@ export async function updatePreferences(
 // ============================================
 // SEARCH API
 // ============================================
-
 export async function searchMessages(
   query: string,
   conversationId?: string
