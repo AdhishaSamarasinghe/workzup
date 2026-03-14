@@ -31,6 +31,7 @@ export default function JobSeekerRegisterPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [otp, setOtp] = useState("");
     const [sentVerificationCode, setSentVerificationCode] = useState("");
+    const [isCodeVerified, setIsCodeVerified] = useState(false);
     const [otpLoading, setOtpLoading] = useState(false);
     const [resendCountdown, setResendCountdown] = useState(0);
     const [formData, setFormData] = useState({
@@ -58,6 +59,7 @@ export default function JobSeekerRegisterPage() {
             if (name === "email" && value !== prev.email) {
                 setSentVerificationCode("");
                 setOtp("");
+                setIsCodeVerified(false);
             }
 
             return next;
@@ -122,6 +124,7 @@ export default function JobSeekerRegisterPage() {
 
             setSentVerificationCode(String(data.code || ""));
             setResendCountdown(60);
+            setIsCodeVerified(false);
             setVerificationMsg("Verification code sent");
 
             // Temporary test-only behavior until real email integration is added.
@@ -135,6 +138,29 @@ export default function JobSeekerRegisterPage() {
         } finally {
             setOtpLoading(false);
         }
+    };
+
+    const handleVerifyCode = () => {
+        setError("");
+
+        if (!sentVerificationCode) {
+            setError("Please send the verification code first.");
+            return;
+        }
+
+        if (!otp.trim()) {
+            setError("Please enter the verification code.");
+            return;
+        }
+
+        if (otp.trim() !== sentVerificationCode) {
+            setIsCodeVerified(false);
+            setError("Verification code is incorrect.");
+            return;
+        }
+
+        setIsCodeVerified(true);
+        setVerificationMsg("Verification code verified successfully");
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -169,8 +195,8 @@ export default function JobSeekerRegisterPage() {
             return;
         }
 
-        if (otp.trim() !== sentVerificationCode) {
-            setError("Verification code is incorrect.");
+        if (!isCodeVerified) {
+            setError("Please verify the code before registering.");
             return;
         }
 
@@ -312,11 +338,14 @@ export default function JobSeekerRegisterPage() {
                                         placeholder="Verification Code"
                                         className="block w-full rounded-md border-0 bg-[#E0E0E0] py-3.5 pl-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 disabled:opacity-60"
                                         value={otp}
-                                        onChange={(e) => setOtp(e.target.value)}
+                                        onChange={(e) => {
+                                            setOtp(e.target.value);
+                                            setIsCodeVerified(false);
+                                        }}
                                         disabled={!sentVerificationCode || loading}
                                     />
                                 </div>
-                                <div className="shrink-0 w-full sm:w-auto">
+                                <div className="shrink-0 w-full sm:w-auto flex gap-2">
                                     <button
                                         type="button"
                                         onClick={handleSendOtp}
@@ -324,6 +353,14 @@ export default function JobSeekerRegisterPage() {
                                         className="w-full sm:w-auto rounded-md bg-[#6B8BFF] px-6 py-3.5 text-sm font-bold text-white shadow-sm hover:bg-[#5A75D9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B8BFF] disabled:opacity-70 transition-colors"
                                     >
                                         {otpLoading ? "Sending..." : resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "SEND CODE"}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleVerifyCode}
+                                        disabled={loading || !sentVerificationCode || !otp.trim()}
+                                        className={`w-full sm:w-auto rounded-md px-6 py-3.5 text-sm font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-70 transition-colors ${isCodeVerified ? "bg-green-600 hover:bg-green-700 focus-visible:outline-green-600" : "bg-[#6B8BFF] hover:bg-[#5A75D9] focus-visible:outline-[#6B8BFF]"}`}
+                                    >
+                                        {isCodeVerified ? "VERIFIED" : "VERIFY"}
                                     </button>
                                 </div>
                             </div>
