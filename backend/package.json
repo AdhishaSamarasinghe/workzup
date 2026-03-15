@@ -19,7 +19,8 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2-rc.1",
-    "nodemailer": "^8.0.2"
+    "nodemailer": "^8.0.2",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@ljharb/tsconfig": "^0.3.2",

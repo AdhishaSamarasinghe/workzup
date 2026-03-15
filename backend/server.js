@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const express = require("express");
+const http = require("http");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
@@ -9,6 +10,7 @@ const path = require("path");
 dotenv.config();
 
 const app = express();
+const httpServer = http.createServer(app);
 
 // Trust reverse proxy (e.g., Heroku, Render, AWS, Nginx)
 app.set("trust proxy", 1);
@@ -166,7 +168,7 @@ app.use((err, req, res, next) => {
 });
 
 function startServer(portToTry) {
-  const server = app.listen(portToTry, () => {
+  const server = httpServer.listen(portToTry, () => {
     PORT = portToTry;
     console.log(`Backend running on http://localhost:${PORT}`);
   });
