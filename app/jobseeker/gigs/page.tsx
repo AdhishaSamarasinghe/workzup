@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import GigFilters from "@/components/gigs/GigFilters";
 import GigHeader from "@/components/gigs/GigHeader";
 import GigCard from "@/components/gigs/GigCard";
@@ -23,6 +24,7 @@ type Job = {
 
 export default function FindGigPage() {
     const searchParams = useSearchParams();
+    const { status } = useSession();
     const requestedCategory = searchParams.get("category") || "";
     const [jobs, setJobs] = useState<Job[]>([]);
     const [location, setLocation] = useState("");
@@ -76,6 +78,14 @@ export default function FindGigPage() {
         return () => window.clearTimeout(initialFetchTimer);
     }, [fetchJobs]);
 
+    useEffect(() => {
+        const initialFetchTimer = window.setTimeout(() => {
+            void fetchJobs();
+        }, 0);
+
+        return () => window.clearTimeout(initialFetchTimer);
+    }, [fetchJobs]);
+
     const filteredJobs = useMemo(() => {
         const sorted = [...jobs];
         if (sortBy === "Newest") {
@@ -89,6 +99,8 @@ export default function FindGigPage() {
         }
         return sorted;
     }, [jobs, sortBy]);
+
+
 
     const handleClearFilters = () => {
         setLocation("");

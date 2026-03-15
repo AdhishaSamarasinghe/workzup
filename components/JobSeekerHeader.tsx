@@ -62,6 +62,7 @@ export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?:
                     <nav className={`hidden md:flex items-center gap-6 text-sm font-medium transition-colors ${!isScrolled ? 'text-white' : 'text-slate-700'}`}>
                         <Link href="/jobseeker/browse" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Home</Link>
                         <Link href="/jobseeker/gigs" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Find Jobs</Link>
+                        <Link href="/jobseeker/matches" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">AI Matches</Link>
                         <Link href="/applications" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">My Applications</Link>
                         <Link href="/jobseeker/saved" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Saved Jobs</Link>
                         <Link href="/messages" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Messages</Link>

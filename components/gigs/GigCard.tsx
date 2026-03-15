@@ -10,6 +10,7 @@ interface GigCardProps {
     description: string;
     category: string;
     id: string;
+    matchScore?: number;
 }
 
 const GigCard: React.FC<GigCardProps> = ({
@@ -21,6 +22,7 @@ const GigCard: React.FC<GigCardProps> = ({
     description,
     category,
     id,
+    matchScore,
 }) => {
     // Determine color based on category for the tag
     const getCategoryColor = (cat: string = "") => {
@@ -43,9 +45,16 @@ const GigCard: React.FC<GigCardProps> = ({
                     <h3 className="text-2xl font-bold tracking-tight text-gray-900">{title}</h3>
                     <p className="mt-1 text-sm font-medium text-gray-500">{company}</p>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-sm font-semibold ${getCategoryColor(category)}`}>
-                    {category}
-                </span>
+                <div className="flex items-center gap-2">
+                    {matchScore !== undefined && matchScore > 0 && (
+                        <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-bold text-green-700 shadow-sm">
+                            {Math.round(matchScore)}% Match
+                        </span>
+                    )}
+                    <span className={`rounded-full px-3 py-1 text-sm font-semibold ${getCategoryColor(category)}`}>
+                        {category}
+                    </span>
+                </div>
             </div>
 
             <p className="mb-6 text-sm leading-7 text-gray-500">

@@ -1,0 +1,7 @@
+flask==3.0.2
+spacy>=3.8.2
+scikit-learn==1.4.1.post1
+PyPDF2==3.0.1
+python-docx==1.1.0
+flask-cors==4.0.0
+numpy==1.26.4
