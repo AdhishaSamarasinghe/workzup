@@ -140,10 +140,25 @@ const searchMessages = async (req, res) => {
     }
 };
 
+// POST /api/messages/upload
+const uploadImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No image provided' });
+        }
+        
+        const imageUrl = `/uploads/${req.file.filename}`;
+        res.status(200).json({ success: true, url: imageUrl });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+};
+
 module.exports = {
     getMessages,
     sendMessage,
     updateMessage,
     deleteMessage,
-    searchMessages
+    searchMessages,
+    uploadImage
 };
