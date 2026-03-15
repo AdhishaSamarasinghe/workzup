@@ -10,6 +10,15 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
   const [loading, setLoading] = useState(true);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const socketRef = React.useRef<Socket | null>(null);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, typingUsers]);
 
   useEffect(() => {
     if (!conversation?.id) return;
@@ -123,6 +132,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
