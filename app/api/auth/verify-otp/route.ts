@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { otpStore, cleanupExpiredOtps } from '../otpStore';
 
 export async function POST(request: Request) {
     try {
@@ -9,9 +10,28 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "Email and OTP are required" }, { status: 400 });
         }
 
-        // Mock OTP verification (static 123456)
-        if (otp === "123456") {
-            console.log(`[Mock Verify] OTP verified for ${email}`);
+        cleanupExpiredOtps();
+        const record = otpStore.get(email);
+
+        if (!record) {
+            return NextResponse.json({
+                success: false,
+                message: "No OTP request found for this email. Please request a new code.",
+            }, { status: 400 });
+        }
+
+        if (Date.now() > record.expiresAt) {
+            otpStore.delete(email);
+            return NextResponse.json({
+                success: false,
+                message: "OTP has expired. Please request a new one.",
+            }, { status: 400 });
+        }
+
+        // Verify the code
+        if (record.otp === otp) {
+            // Valid, delete single-use code
+            otpStore.delete(email);
             return NextResponse.json({
                 success: true,
                 message: "OTP verified successfully",
