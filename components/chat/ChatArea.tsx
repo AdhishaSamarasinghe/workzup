@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
 import MessageInput from './MessageInput';
 
 export default function ChatArea({ conversation, currentUserId }: { conversation: any, currentUserId: string }) {
@@ -26,6 +27,30 @@ export default function ChatArea({ conversation, currentUserId }: { conversation
     };
 
     fetchMessages();
+  }, [conversation?.id]);
+
+  useEffect(() => {
+    if (!conversation?.id) return;
+
+    const socket: Socket = io('http://localhost:5000', {
+      withCredentials: true,
+    });
+
+    socket.on('connect', () => {
+      socket.emit('join_room', conversation.id);
+    });
+
+    socket.on('receive_message', (newMsg: any) => {
+      setMessages((prev) => {
+        if (prev.find((m) => m.id === newMsg.id || m.timestamp === newMsg.timestamp && m.content === newMsg.content)) return prev;
+        return [...prev, newMsg];
+      });
+    });
+
+    return () => {
+      socket.emit('leave_room', conversation.id);
+      socket.disconnect();
+    };
   }, [conversation?.id]);
 
   const otherParticipant = conversation.participants?.find((p: string) => p !== currentUserId) || 'Unknown User';
