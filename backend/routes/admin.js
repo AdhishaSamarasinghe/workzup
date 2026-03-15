@@ -70,4 +70,38 @@ router.get("/metrics", authenticateToken, requireRole(["ADMIN"]), async (req, re
     }
 });
 
+// GET /api/admin/conversations - View all conversations
+router.get("/conversations", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const conversations = await prisma.conversation.findMany({
+            orderBy: { updatedAt: 'desc' },
+            include: {
+                messages: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1
+                }
+            }
+        });
+        res.json({ success: true, data: conversations });
+    } catch (error) {
+        console.error("Admin Conversations Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
+// GET /api/admin/conversations/:id/messages - View all messages in a conversation
+router.get("/conversations/:id/messages", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const messages = await prisma.message.findMany({
+            where: { conversationId: id },
+            orderBy: { createdAt: 'asc' }
+        });
+        res.json({ success: true, data: messages });
+    } catch (error) {
+        console.error("Admin Messages Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
 module.exports = router;

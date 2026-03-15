@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import MessagesBadge from '@/components/chat/MessagesBadge';
 
 export default function EditRecruiterHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -32,8 +33,8 @@ export default function EditRecruiterHeader() {
           <Link href="#" className="transition-colors hover:text-accent">
             Jobs
           </Link>
-          <Link href="#" className="transition-colors hover:text-accent">
-            Messages
+          <Link href="/messages" className="transition-colors hover:text-accent">
+            <MessagesBadge />
           </Link>
         </nav>
 
@@ -138,11 +139,11 @@ export default function EditRecruiterHeader() {
               Jobs
             </Link>
             <Link
-              href="#"
+              href="/messages"
               className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
               onClick={() => setMenuOpen(false)}
             >
-              Messages
+              <MessagesBadge />
             </Link>
           </nav>
         </div>
