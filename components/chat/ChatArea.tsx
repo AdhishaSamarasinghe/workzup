@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import MessageInput from './MessageInput';
 
 export default function ChatArea({ conversation, currentUserId }: { conversation: any, currentUserId: string }) {
   const [messages, setMessages] = useState<any[]>([]);
@@ -28,6 +29,10 @@ export default function ChatArea({ conversation, currentUserId }: { conversation
   }, [conversation?.id]);
 
   const otherParticipant = conversation.participants?.find((p: string) => p !== currentUserId) || 'Unknown User';
+
+  const handleMessageSent = (newMsg: any) => {
+    setMessages((prev) => [...prev, newMsg]);
+  };
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -68,10 +73,12 @@ export default function ChatArea({ conversation, currentUserId }: { conversation
         )}
       </div>
 
-      {/* Input Area will go here (Commit 9) */}
-      <div className="p-4 bg-white border-t border-gray-200 shrink-0">
-        <div className="text-center text-gray-400 text-sm">Input area goes here...</div>
-      </div>
+      {/* Input Area */}
+      <MessageInput 
+        conversationId={conversation.id} 
+        currentUserId={currentUserId} 
+        onMessageSent={handleMessageSent} 
+      />
     </div>
   );
 }
