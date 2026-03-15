@@ -143,6 +143,13 @@ export default function ApplicationDetailsPage() {
     url: string;
     kind: PreviewKind;
   } | null>(null);
+  const [availableDocuments, setAvailableDocuments] = useState<{
+    title: string;
+    url: string;
+    fileName: string;
+    kind: PreviewKind;
+  }[]>([]);
+  const [missingDocuments, setMissingDocuments] = useState<string[]>([]);
 
   useEffect(() => {
     if (!applicationId) {
@@ -219,6 +226,40 @@ export default function ApplicationDetailsPage() {
       .filter(Boolean) as { title: string; url: string; fileName: string; kind: PreviewKind }[];
   }, [record]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const verifyDocuments = async () => {
+      if (!submittedDocuments.length) {
+        setAvailableDocuments([]);
+        setMissingDocuments([]);
+        return;
+      }
+
+      const checks = await Promise.all(
+        submittedDocuments.map(async (doc) => {
+          try {
+            const response = await fetch(doc.url, { method: "HEAD", cache: "no-store" });
+            return { doc, available: response.ok };
+          } catch {
+            return { doc, available: false };
+          }
+        })
+      );
+
+      if (cancelled) return;
+
+      setAvailableDocuments(checks.filter((item) => item.available).map((item) => item.doc));
+      setMissingDocuments(checks.filter((item) => !item.available).map((item) => item.doc.title));
+    };
+
+    verifyDocuments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [submittedDocuments]);
+
   return (
     <div className="min-h-screen bg-[#F5F8FC]">
       <section className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
@@ -273,7 +314,7 @@ export default function ApplicationDetailsPage() {
           </div>
 
           <div className="space-y-6">
-            {record && !isLoading && submittedDocuments.length > 0 && (
+            {record && !isLoading && (availableDocuments.length > 0 || missingDocuments.length > 0) && (
               <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -284,8 +325,14 @@ export default function ApplicationDetailsPage() {
                   </div>
                 </div>
 
+                {missingDocuments.length > 0 && (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Some previously uploaded files are missing from storage: {missingDocuments.join(", ")}. Please re-upload them from your profile settings.
+                  </div>
+                )}
+
                 <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {submittedDocuments.map((document) => (
+                  {availableDocuments.map((document) => (
                     <DocumentCard
                       key={`${document.title}-${document.fileName}`}
                       label={document.title}
