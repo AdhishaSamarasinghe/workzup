@@ -39,14 +39,14 @@ export default function MessagesPage() {
   }, [currentUserId]);
 
   return (
-    <div className="flex h-[calc(100vh-80px)] mt-[80px] bg-gray-50 border-t border-gray-200">
+    <div className="flex justify-center h-[calc(100vh-80px)] mt-[80px] bg-[#f9fafb] p-6 lg:p-8">
+      <div className="flex w-full max-w-7xl bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden">
       <InboxSidebar 
         onSelectConversation={setSelectedConversation} 
         selectedId={selectedConversation?.id || null} 
         onlineUsers={onlineUsers}
       />
-      
-      <div className="flex-1 bg-white flex flex-col h-full border-l border-gray-200 overflow-hidden">
+      <div className="flex-1 bg-[#fcfcfd] flex flex-col h-full border-l border-gray-100 overflow-hidden relative">
         {selectedConversation && socket ? (
           <ChatArea conversation={selectedConversation} currentUserId={currentUserId} socket={socket} onlineUsers={onlineUsers} />
         ) : (
@@ -57,6 +57,7 @@ export default function MessagesPage() {
             <p className="text-lg">Select a conversation to start chatting</p>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
