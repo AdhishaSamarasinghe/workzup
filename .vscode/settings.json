@@ -11,5 +11,6 @@
     "**/node_modules/**": true,
     "**/.next/**": true,
     "**/backend/node_modules/**": true
-  }
+  },
+  "python.terminal.activateEnvironment": false
 }
