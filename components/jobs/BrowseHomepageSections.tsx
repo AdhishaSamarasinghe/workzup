@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { BriefcaseBusiness, Building2, ChevronRight, Layers3, MapPin } from "lucide-react";
 import JobCard from "@/components/jobs/JobCard";
+import GigCard from "@/components/gigs/GigCard";
 import type { BrowseCategory, BrowseCompany, BrowseJob } from "@/lib/browse";
 import { formatDateLabel, formatPay } from "@/lib/browse";
 
@@ -113,13 +114,22 @@ export function FeaturedJobsSection({
         title="Featured Jobs"
         description=""
         action={
-          <Link
-            href="/jobseeker/gigs"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#6b8bff] hover:bg-[#f5f8ff] hover:text-[#6b8bff] hover:shadow-md"
-          >
-            Explore All Jobs
-            <ChevronRight className="h-4 w-4" />
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/jobseeker/matches"
+              className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-100 hover:shadow-md"
+            >
+              Explore AI Matches
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/jobseeker/gigs"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#6b8bff] hover:bg-[#f5f8ff] hover:text-[#6b8bff] hover:shadow-md"
+            >
+              Explore All Jobs
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
         }
       />
 
@@ -368,5 +378,71 @@ export function TopHiringCompaniesSection({
         </div>
       )}
     </section>
+  );
+}
+
+export function RecommendedJobsSection({
+  jobs,
+  onJobClick,
+}: {
+  jobs: (BrowseJob & { matchScore?: number })[];
+  onJobClick?: (jobId: string) => void;
+}) {
+  if (jobs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-[28px] border border-dashed border-slate-300 bg-white/80 px-8 py-16 text-center shadow-sm w-full">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500">
+          <BriefcaseBusiness className="h-8 w-8" />
+        </div>
+        <h3 className="mt-5 text-xl font-semibold text-slate-900">No AI matches yet</h3>
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500">
+          Make sure your profile is complete and you have uploaded a CV to start receiving personalized AI recommendations.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full">
+      <div className="mb-6 flex justify-end">
+        <Link
+          href="/jobseeker/gigs"
+          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-slate-50 hover:text-indigo-600 hover:shadow-md"
+        >
+          Explore All Jobs
+          <ChevronRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      <div className="flex flex-col gap-5">
+        {jobs.map((job, index) => {
+          const cat = typeof job.category === 'object' && job.category !== null 
+            ? (job.category as any).name 
+            : typeof job.category === 'string' 
+              ? job.category 
+              : (job as any).derivedCategory || "Uncategorized";
+
+          return (
+            <div
+              key={job.id}
+              className="animate-pop-in"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <GigCard
+                id={job.id}
+                title={job.title}
+                company={job.companyName}
+                description={job.description}
+                location={job.location}
+                pay={formatPay(job.pay, job.payType)}
+                date={formatDateLabel(job.date)}
+                matchScore={job.matchScore}
+                category={cat}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
