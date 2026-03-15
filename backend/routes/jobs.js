@@ -225,7 +225,7 @@ router.get("/recommendations/ai", authenticateToken, requireRole(["JOB_SEEKER"])
     };
 
     // Call Python AI Service
-    const aiServiceUrl = process.env.AI_SERVICE_URL || "http://127.0.0.1:5000/recommend";
+    const aiServiceUrl = process.env.AI_SERVICE_URL || "http://127.0.0.1:5002/recommend";
     
     // Use global fetch (available in Node 18+)
     const response = await fetch(aiServiceUrl, {
