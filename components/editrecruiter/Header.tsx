@@ -32,7 +32,7 @@ export default function EditRecruiterHeader() {
           <Link href="#" className="transition-colors hover:text-accent">
             Jobs
           </Link>
-          <Link href="#" className="transition-colors hover:text-accent">
+          <Link href="/messages" className="transition-colors hover:text-accent">
             Messages
           </Link>
         </nav>
@@ -138,7 +138,7 @@ export default function EditRecruiterHeader() {
               Jobs
             </Link>
             <Link
-              href="#"
+              href="/messages"
               className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
               onClick={() => setMenuOpen(false)}
             >
