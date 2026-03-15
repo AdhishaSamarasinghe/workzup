@@ -67,7 +67,6 @@ export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?:
                         <Link href="/jobseeker/matches" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">AI Matches</Link>
                         <Link href="/applications" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">My Applications</Link>
                         <Link href="/messages" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors"><MessagesBadge /></Link>
-                        <Link href="/preferences" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Preferences</Link>
                     </nav>
 
                     {/* Profile Dropdown Area */}
