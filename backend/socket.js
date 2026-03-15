@@ -75,6 +75,16 @@ const initSocket = (server) => {
             }
         });
 
+        socket.on("typing", (data) => {
+            const { conversationId, senderId } = data;
+            socket.to(conversationId).emit("typing", { senderId });
+        });
+
+        socket.on("stop_typing", (data) => {
+            const { conversationId, senderId } = data;
+            socket.to(conversationId).emit("stop_typing", { senderId });
+        });
+
         socket.on("disconnect", () => {
             console.log("WebSocket: Client disconnected:", socket.id);
         });
