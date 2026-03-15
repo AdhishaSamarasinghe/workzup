@@ -9,7 +9,8 @@
     "lint": "eslint",
     "dev:frontend": "kill-port 3000 && next dev -p 3000",
     "dev:backend": "npm --prefix backend run dev",
-    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\""
+    "dev:ai": "cd ai-service && .\\venv\\Scripts\\python app.py",
+    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:ai\""
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.34",
@@ -22,6 +23,7 @@
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "next-auth": "^4.24.13",
+    "nodemailer": "^7.0.13",
     "react": "19.2.3",
     "react-day-picker": "^9.13.0",
     "react-dom": "19.2.3"
@@ -29,6 +31,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^7.0.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "concurrently": "^9.2.1",

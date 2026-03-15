@@ -6,6 +6,7 @@ const path = require("path");
 const fs = require("fs");
 const prisma = require("../prismaClient");
 const { authenticateToken } = require("../middleware/auth");
+const { sendOTP } = require("../lib/emailService");
 
 const router = express.Router();
 
@@ -473,8 +474,11 @@ router.post("/profile/send-email-otp", authenticateToken, async (req, res) => {
       expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
     });
 
-    // Mock sending email
-    console.log(`\n\n[EMAIL MOCK] Verification code for ${newEmail} is: ${otp}\n\n`);
+    // Send real email
+    const emailSent = await sendOTP(newEmail, otp, false);
+    if (!emailSent) {
+      return res.status(500).json({ message: "Failed to send OTP email. Please try again later." });
+    }
 
     res.json({ message: `OTP sent to ${newEmail}` });
   } catch (error) {
@@ -556,7 +560,11 @@ router.post("/forgot-password/request", async (req, res) => {
       expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
     });
 
-    console.log(`\n\n[EMAIL MOCK] Password reset code for ${email} is: ${otp}\n\n`);
+    // Send real email
+    const emailSent = await sendOTP(email, otp, true);
+    if (!emailSent) {
+      return res.status(500).json({ message: "Failed to send password reset email. Please try again later." });
+    }
 
     res.json({ message: "A password reset code has been sent to your email." });
   } catch (error) {

@@ -110,7 +110,7 @@ export default function RecruiterRegisterPage() {
 
         setOtpLoading(true);
         try {
-            const res = await fetch("/api/send-verification-code", {
+            const res = await fetch("/api/auth/send-otp", {
                 method: "POST",
                 body: JSON.stringify({ email }),
                 headers: { "Content-Type": "application/json" }
@@ -122,16 +122,11 @@ export default function RecruiterRegisterPage() {
                 throw new Error(data.message || "Failed to send verification code");
             }
 
-            setSentVerificationCode(String(data.code || ""));
+            // Dummy flag to wait for server verification since we no longer send code to client
+            setSentVerificationCode("WAITING_FOR_SERVER_VERIFICATION");
             setResendCountdown(60);
             setIsCodeVerified(false);
             setVerificationMsg("Verification code sent");
-
-            // Temporary test-only behavior until real email integration is added.
-            console.log("[Verification Code - Temporary]", {
-                email,
-                code: data.code,
-            });
         } catch (error: any) {
             console.error("Failed to send OTP:", error);
             setError(error.message || "Failed to send verification code.");
@@ -140,7 +135,7 @@ export default function RecruiterRegisterPage() {
         }
     };
 
-    const handleVerifyCode = () => {
+    const handleVerifyCode = async () => {
         setError("");
 
         if (!sentVerificationCode) {
@@ -153,14 +148,29 @@ export default function RecruiterRegisterPage() {
             return;
         }
 
-        if (otp.trim() !== sentVerificationCode) {
-            setIsCodeVerified(false);
-            setError("Verification code is incorrect.");
-            return;
-        }
+        setOtpLoading(true);
+        try {
+            const res = await fetch("/api/auth/verify-otp", {
+                method: "POST",
+                body: JSON.stringify({ email: formData.email.trim(), otp: otp.trim() }),
+                headers: { "Content-Type": "application/json" }
+            });
 
-        setIsCodeVerified(true);
-        setVerificationMsg("Verification code verified successfully");
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || "Invalid verification code");
+            }
+
+            setIsCodeVerified(true);
+            setVerificationMsg("Verification code verified successfully");
+        } catch (error: any) {
+            console.error("Verification failed:", error);
+            setIsCodeVerified(false);
+            setError(error.message || "Failed to verify code.");
+        } finally {
+            setOtpLoading(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

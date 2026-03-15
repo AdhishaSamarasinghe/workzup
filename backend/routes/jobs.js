@@ -160,6 +160,111 @@ router.post("/", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), asyn
   }
 });
 
+// GET /api/jobs/recommendations/ai — fetch AI job recommendations
+router.get("/recommendations/ai", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { seekerProfile: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Get all public jobs
+    const jobs = await prisma.job.findMany({
+      where: { status: { in: ["PUBLIC", "ACTIVE"] } },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true,
+            industry: true,
+            city: true,
+            address: true,
+          },
+        },
+      },
+    });
+
+    if (!jobs || jobs.length === 0) {
+      return res.json([]);
+    }
+
+    // Prepare profile payload
+    const profile = user.seekerProfile || {};
+    
+    // Resolve absolute path for CV if it exists
+    let cvPath = null;
+    if (user.cv) {
+      const path = require('path');
+      cvPath = path.resolve(__dirname, "..", user.cv);
+    }
+
+    // Build payload for AI service
+    const payload = {
+      profile: {
+        title: profile.title,
+        bio: profile.bio,
+        skills: profile.skills || [],
+        education: profile.education || [],
+        experience: profile.experience || [],
+        languages: profile.languages || []
+      },
+      cvPath: cvPath,
+      jobs: jobs.map(j => ({
+        id: j.id,
+        title: j.title,
+        description: j.description,
+        requirements: j.requirements || [],
+        category: j.category
+      }))
+    };
+
+    // Call Python AI Service
+    const aiServiceUrl = process.env.AI_SERVICE_URL || "http://127.0.0.1:5002/recommend";
+    
+    // Use global fetch (available in Node 18+)
+    const response = await fetch(aiServiceUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI Service responded with status: ${response.status}`);
+    }
+
+    const aiResult = await response.json();
+    
+    if (!aiResult.success) {
+      throw new Error(aiResult.error || "AI Service failed");
+    }
+
+    const recommendations = aiResult.recommendations || [];
+    const jobMap = new Map(jobs.map(j => [j.id, j]));
+    
+    const hydratedJobs = recommendations
+      .filter(r => jobMap.has(r.jobId) /* && r.score > 0 */)
+      .map(r => {
+        const fullJob = jobMap.get(r.jobId);
+        const formatted = buildBrowseJob(fullJob);
+        formatted.matchScore = r.score;
+        return formatted;
+      })
+      .slice(0, 10); // Return top 10 matches
+
+    res.json(hydratedJobs);
+
+  } catch (err) {
+    console.error("Error fetching AI recommendations:", err);
+    res.status(500).json({ message: "Failed to fetch recommendations: " + err.message });
+  }
+});
+
 // GET /api/jobs/:id — fetch a single job by ID
 router.get("/:id", async (req, res) => {
   try {
