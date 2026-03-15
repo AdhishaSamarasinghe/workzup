@@ -93,9 +93,24 @@ const getTypingUsers = (req, res) => {
     res.status(200).json({ success: true, data: [] });
 };
 
-// POST /api/conversations/:id/typing
 const updateTypingStatus = (req, res) => {
     res.status(200).json({ success: true, data: [] });
+};
+
+// GET /api/conversations/unread-count
+const getUnreadCount = async (req, res) => {
+    try {
+        const conversations = await prisma.conversation.findMany({
+            where: { unreadCount: { gt: 0 } }
+        });
+        
+        let totalUnread = 0;
+        conversations.forEach(c => totalUnread += c.unreadCount);
+
+        res.status(200).json({ success: true, count: totalUnread });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
 };
 
 module.exports = {
@@ -104,5 +119,6 @@ module.exports = {
     createConversation,
     updateConversation,
     getTypingUsers,
-    updateTypingStatus
+    updateTypingStatus,
+    getUnreadCount
 };

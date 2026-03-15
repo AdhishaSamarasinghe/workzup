@@ -5,6 +5,7 @@ const conversationsController = require('../controllers/conversationsController'
 // GET /api/conversations - Return all conversations
 router.get('/', conversationsController.getAllConversations);
 
+router.get('/unread-count', conversationsController.getUnreadCount);
 // POST /api/conversations - Create a conversation
 router.post('/', conversationsController.createConversation);
 
