@@ -9,8 +9,11 @@ const path = require("path");
 
 dotenv.config();
 
+const { initSocket } = require("./socket");
+
 const app = express();
 const httpServer = http.createServer(app);
+initSocket(httpServer);
 
 // Trust reverse proxy (e.g., Heroku, Render, AWS, Nginx)
 app.set("trust proxy", 1);
