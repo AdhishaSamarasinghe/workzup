@@ -8,6 +8,8 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const APPLICATION_UPLOADS_DIR = path.join(process.cwd(), "backend", "uploads", "applications");
 
+let detectedBackendBase: string | null = null;
+
 async function persistUpload(file: File, prefix: string) {
   const extension = path.extname(file.name) || "";
   const safeName = `${prefix}-${Date.now()}-${randomUUID()}${extension}`;
@@ -17,6 +19,37 @@ async function persistUpload(file: File, prefix: string) {
   await writeFile(targetPath, Buffer.from(await file.arrayBuffer()));
 
   return `uploads/applications/${safeName}`;
+}
+
+async function postApplicationToBackend(authHeader: string, body: Record<string, unknown>) {
+  const requestOptions: RequestInit = {
+    method: "POST",
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  };
+
+  const candidateBases = [
+    detectedBackendBase,
+    API_BASE,
+    API_BASE.includes("localhost:5000") ? API_BASE.replace("5000", "5001") : null,
+  ].filter((value, index, array): value is string => !!value && array.indexOf(value) === index);
+
+  let lastError: unknown = null;
+
+  for (const base of candidateBases) {
+    try {
+      const response = await fetch(`${base}/api/applications`, requestOptions);
+      detectedBackendBase = base;
+      return response;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Backend unavailable");
 }
 
 export async function POST(request: Request) {
@@ -29,12 +62,15 @@ export async function POST(request: Request) {
     const cv = formData.get("cv");
     const nic = formData.get("nic");
 
-    // We expect the frontend to start submitting the jobId in the form
-    const jobId = String(formData.get("jobId") || "default-job");
+    const jobId = String(formData.get("jobId") || "").trim();
 
     // Make file uploads optional at this layer since users might have them on their profile
     if (!fullName || !email || !phone) {
       return NextResponse.json({ message: "Please fill all required fields." }, { status: 400 });
+    }
+
+    if (!jobId) {
+      return NextResponse.json({ message: "Job reference is missing. Please open the job and apply again." }, { status: 400 });
     }
 
     if (cv && cv instanceof File && cv.size > MAX_FILE_SIZE) {
@@ -57,20 +93,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized. Please login to apply." }, { status: 401 });
     }
 
-    const backendResponse = await fetch(`${API_BASE}/api/applications`, {
-      method: "POST",
-      headers: {
-        // Forward the JWT to the backend REST API
-        "Authorization": authHeader,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        jobId,
-        fullName,
-        email,
-        phone,
-        submittedCv,
-      })
+    const backendResponse = await postApplicationToBackend(authHeader, {
+      jobId,
+      fullName,
+      email,
+      phone,
+      submittedCv,
     });
 
     const payload = await backendResponse.json();
@@ -89,7 +117,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Application submission error:", error);
     return NextResponse.json(
-      { message: "Unable to process application." },
+      { message: "Unable to reach the application server/database. Please ensure backend is running and try again." },
       { status: 500 }
     );
   }
