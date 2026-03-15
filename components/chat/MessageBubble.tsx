@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-export default function MessageBubble({ msg, isMine }: { msg: any; isMine: boolean }) {
+export default function MessageBubble({ msg, isMine, participantName }: { msg: any; isMine: boolean, participantName?: string }) {
   const content = msg.content || msg.text || '';
   const isImage = content.startsWith('[IMAGE]');
   const imageUrl = isImage ? `http://localhost:5000${content.replace('[IMAGE]', '')}` : '';
@@ -11,15 +11,35 @@ export default function MessageBubble({ msg, isMine }: { msg: any; isMine: boole
   const locationCoords = isLocation ? content.replace('[LOCATION]', '') : '';
   const mapLink = isLocation ? `https://www.google.com/maps/search/?api=1&query=${locationCoords}` : '';
 
+  const displayName = isMine ? 'You' : (participantName || 'User');
+
   return (
-    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} group mb-2 animate-in-bubble`}>
-      <div 
-        className={`max-w-[75%] px-4 py-2 relative transition-all duration-200 ease-in-out hover:shadow-md ${
-          isMine 
-            ? 'bg-indigo-600 text-white rounded-2xl rounded-tr-sm shadow-sm' 
-            : 'bg-white border text-gray-800 rounded-2xl rounded-tl-sm shadow-sm border-gray-100'
-        }`}
-      >
+    <div className={`flex w-full ${isMine ? 'justify-end' : 'justify-start'} group mb-4 animate-in-bubble`}>
+      <div className={`flex max-w-[80%] gap-3 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+        
+        {/* Avatar */}
+        <div className="shrink-0 mt-1">
+          <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-600 font-medium text-xs">
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+        </div>
+
+        {/* Message Content & Meta */}
+        <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+          {/* Name & Time Row */}
+          <div className="flex items-center gap-2 mb-1.5 px-1">
+            <span className="text-sm font-semibold text-gray-800">{displayName}</span>
+            <span className="text-[11px] font-medium text-gray-400">{msg.timestamp || '05:00 PM'}</span>
+          </div>
+
+          {/* Bubble */}
+          <div 
+            className={`px-4 py-3 relative rounded-2xl ${
+              isMine 
+                ? 'bg-[#3B82F6] text-white rounded-tr-sm shadow-sm' 
+                : 'bg-[#F3F4F6] text-gray-800 rounded-tl-sm'
+            }`}
+          >
         {isImage ? (
           <div className="overflow-hidden rounded-lg mt-1 mb-2">
             <img src={imageUrl} alt="Attachment" className="max-w-full h-auto max-h-[300px] object-contain" />
@@ -47,24 +67,7 @@ export default function MessageBubble({ msg, isMine }: { msg: any; isMine: boole
             {content}
           </div>
         )}
-        
-        <div className={`flex items-center gap-1 mt-1 justify-end ${isMine ? 'text-indigo-200' : 'text-gray-400'}`}>
-          <span className="text-[10px] uppercase font-medium tracking-wider">
-            {msg.timestamp || 'Just now'}
-          </span>
-          {isMine && (
-            <svg 
-              className={`w-3 h-3 ${msg.isRead ? 'text-blue-300' : 'text-indigo-300'}`} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-              {msg.isRead && (
-                <path className="text-blue-300" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 13l4 4L22 7"></path>
-              )}
-            </svg>
-          )}
+          </div>
         </div>
       </div>
     </div>

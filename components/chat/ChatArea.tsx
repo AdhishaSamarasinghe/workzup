@@ -92,12 +92,12 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-white relative">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white shrink-0 flex items-center justify-between">
+      <div className="p-4 px-6 border-b border-gray-100 bg-white shrink-0 flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium">
               {otherParticipant.charAt(0).toUpperCase()}
             </div>
             {isOnline && (
@@ -105,22 +105,61 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
             )}
           </div>
           <div>
-            <h3 className="font-semibold text-gray-800 text-lg leading-tight">{otherParticipant}</h3>
-            <p className="text-xs text-gray-500">{isOnline ? 'Online' : 'Offline'}</p>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-gray-900 text-[15px]">{otherParticipant}</h3>
+              <span className="text-[11px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded text-center leading-none">
+                Visit 2
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">Last visit Sep 16, 2024</p>
           </div>
         </div>
+        
+        {/* Actions */}
+        <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-50">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+          </svg>
+        </button>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-indigo-200 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+      <div className="flex-1 overflow-y-auto p-4 px-6 flex flex-col gap-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+        
+        {/* Mocked Date Separator */}
+        <div className="flex justify-center my-6">
+          <span className="bg-[#1e293b] text-white text-xs font-medium px-4 py-1.5 rounded-full shadow-sm">
+            Today, Nov 16
+          </span>
+        </div>
+
         {loading ? (
           <div className="text-center text-gray-500 mt-4">Loading messages...</div>
         ) : messages.length === 0 ? (
           <div className="text-center text-gray-500 mt-4">No messages yet. Send a hello!</div>
         ) : (
-          messages.map((msg) => (
-            <MessageBubble key={msg.id} msg={msg} isMine={msg.senderId === currentUserId} />
-          ))
+          messages.map((msg, index) => {
+            // Mock "New Message" separator logic: let's inject a visual line if there are multiple messages
+            // For the sake of matching the UI exactly, let's inject it before the last message
+            const showNewMessageDivider = messages.length > 2 && index === messages.length - 1;
+
+            return (
+              <React.Fragment key={msg.id}>
+                {showNewMessageDivider && (
+                  <div className="flex items-center gap-4 my-6">
+                    <div className="flex-1 h-px bg-red-200"></div>
+                    <span className="text-red-500 font-semibold text-xs tracking-wide">New Message</span>
+                    <div className="flex-1 h-px bg-red-200"></div>
+                  </div>
+                )}
+                <MessageBubble 
+                  msg={msg} 
+                  isMine={msg.senderId === currentUserId} 
+                  participantName={otherParticipant}
+                />
+              </React.Fragment>
+            );
+          })
         )}
         
         {typingUsers.length > 0 && (
