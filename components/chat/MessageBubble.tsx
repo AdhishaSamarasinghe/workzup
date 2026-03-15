@@ -12,7 +12,7 @@ export default function MessageBubble({ msg, isMine }: { msg: any; isMine: boole
   const mapLink = isLocation ? `https://www.google.com/maps/search/?api=1&query=${locationCoords}` : '';
 
   return (
-    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} group mb-2`}>
+    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} group mb-2 animate-in-bubble`}>
       <div 
         className={`max-w-[75%] px-4 py-2 relative transition-all duration-200 ease-in-out hover:shadow-md ${
           isMine 

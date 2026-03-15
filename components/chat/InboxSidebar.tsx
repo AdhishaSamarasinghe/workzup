@@ -29,7 +29,7 @@ export default function InboxSidebar({ onSelectConversation, selectedId, onlineU
       <div className="p-4 border-b border-gray-200 shrink-0">
         <h2 className="text-xl font-semibold text-gray-800">Messages</h2>
       </div>
-      <div className="flex-1 overflow-y-auto w-full">
+      <div className="flex-1 overflow-y-auto w-full [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
         {loading ? (
           <div className="p-4 text-center text-gray-500">Loading...</div>
         ) : conversations.length === 0 ? (

@@ -112,7 +112,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-indigo-200 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
         {loading ? (
           <div className="text-center text-gray-500 mt-4">Loading messages...</div>
         ) : messages.length === 0 ? (
