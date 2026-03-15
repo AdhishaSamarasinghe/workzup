@@ -2,14 +2,18 @@
 
 import React, { useState, useRef } from 'react';
 
-export default function MessageInput({ conversationId, currentUserId, onMessageSent }: any) {
+export default function MessageInput({ conversationId, currentUserId, onMessageSent, onTyping }: any) {
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || !conversationId) return;
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    if (onTyping) onTyping(false);
 
     setIsSending(true);
     try {
@@ -112,6 +116,18 @@ export default function MessageInput({ conversationId, currentUserId, onMessageS
     });
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setText(e.target.value);
+    
+    if (onTyping) {
+      onTyping(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        onTyping(false);
+      }, 2000);
+    }
+  };
+
   return (
     <div className="p-4 bg-white border-t border-gray-200 shrink-0">
       <form onSubmit={handleSend} className="flex items-center gap-2">
@@ -148,7 +164,7 @@ export default function MessageInput({ conversationId, currentUserId, onMessageS
         <input 
           type="text" 
           value={text} 
-          onChange={(e) => setText(e.target.value)}
+          onChange={handleChange}
           placeholder="Type a message..."
           className="flex-1 bg-gray-100 rounded-full px-6 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-100 transition-shadow"
           disabled={isSending}
