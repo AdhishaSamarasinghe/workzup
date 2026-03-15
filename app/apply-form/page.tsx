@@ -39,6 +39,7 @@ function ApplicationFormContent() {
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [missingFieldMap, setMissingFieldMap] = useState<Record<string, string>>({});
   const [showValidationPopup, setShowValidationPopup] = useState(false);
+  const [firstMissingFieldId, setFirstMissingFieldId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!jobId) {
@@ -138,6 +139,23 @@ function ApplicationFormContent() {
     return field.name || "This field";
   };
 
+  const scrollToField = (
+    form: HTMLFormElement,
+    field: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  ) => {
+    const isFileInput = field instanceof HTMLInputElement && field.type === "file";
+
+    if (isFileInput && field.id) {
+      const clickableLabel = form.querySelector(`label[for="${field.id}"]`) as HTMLElement | null;
+      clickableLabel?.scrollIntoView({ behavior: "smooth", block: "center" });
+      clickableLabel?.focus();
+      return;
+    }
+
+    field.scrollIntoView({ behavior: "smooth", block: "center" });
+    field.focus({ preventScroll: true });
+  };
+
   const validateRequiredFields = (form: HTMLFormElement) => {
     const requiredFields = Array.from(
       form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("[required]")
@@ -167,17 +185,8 @@ function ApplicationFormContent() {
       });
 
       if (firstMissingField) {
-        const isFileInput =
-          firstMissingField instanceof HTMLInputElement && firstMissingField.type === "file";
-        if (isFileInput && firstMissingField.id) {
-          const clickableLabel = form.querySelector(
-            `label[for="${firstMissingField.id}"]`
-          ) as HTMLElement | null;
-          clickableLabel?.scrollIntoView({ behavior: "smooth", block: "center" });
-          clickableLabel?.focus();
-        } else {
-          firstMissingField.focus();
-        }
+        scrollToField(form, firstMissingField);
+        setFirstMissingFieldId(firstMissingField.id || firstMissingField.name || null);
       }
 
       setMissingFieldMap(nextMissingFieldMap);
@@ -187,6 +196,7 @@ function ApplicationFormContent() {
 
     setMissingFieldMap({});
     setShowValidationPopup(false);
+    setFirstMissingFieldId(null);
 
     return true;
   };
@@ -731,7 +741,19 @@ function ApplicationFormContent() {
             </ul>
             <button
               type="button"
-              onClick={() => setShowValidationPopup(false)}
+              onClick={() => {
+                setShowValidationPopup(false);
+
+                if (!firstMissingFieldId) {
+                  return;
+                }
+
+                const target = document.getElementById(firstMissingFieldId);
+                if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+                  target.scrollIntoView({ behavior: "smooth", block: "center" });
+                  target.focus({ preventScroll: true });
+                }
+              }}
               className="mt-5 w-full rounded-xl bg-[#6D83F2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5B73F1] sm:text-base"
             >
               Got it
