@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import MessageInput from './MessageInput';
+import MessageBubble from './MessageBubble';
 
 export default function ChatArea({ conversation, currentUserId }: { conversation: any, currentUserId: string }) {
   const [messages, setMessages] = useState<any[]>([]);
@@ -76,25 +77,9 @@ export default function ChatArea({ conversation, currentUserId }: { conversation
         ) : messages.length === 0 ? (
           <div className="text-center text-gray-500 mt-4">No messages yet. Send a hello!</div>
         ) : (
-          messages.map((msg) => {
-            const isMine = msg.senderId === currentUserId;
-            return (
-              <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                <div 
-                  className={`max-w-[70%] px-4 py-2 rounded-2xl ${
-                    isMine 
-                      ? 'bg-indigo-600 text-white rounded-br-sm' 
-                      : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm shadow-sm'
-                  }`}
-                >
-                  <p className="text-sm">{msg.content || msg.text}</p>
-                  <span className={`text-[10px] block mt-1 ${isMine ? 'text-indigo-200 text-right' : 'text-gray-400 text-right'}`}>
-                    {msg.timestamp || 'Just now'}
-                  </span>
-                </div>
-              </div>
-            );
-          })
+          messages.map((msg) => (
+            <MessageBubble key={msg.id} msg={msg} isMine={msg.senderId === currentUserId} />
+          ))
         )}
       </div>
 
