@@ -5,7 +5,7 @@ import { io, Socket } from 'socket.io-client';
 import MessageInput from './MessageInput';
 import MessageBubble from './MessageBubble';
 
-export default function ChatArea({ conversation, currentUserId }: { conversation: any, currentUserId: string }) {
+export default function ChatArea({ conversation, currentUserId, socket, onlineUsers = [] }: { conversation: any, currentUserId: string, socket: Socket, onlineUsers?: string[] }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
@@ -33,11 +33,7 @@ export default function ChatArea({ conversation, currentUserId }: { conversation
   }, [conversation?.id]);
 
   useEffect(() => {
-    if (!conversation?.id) return;
-
-    const socket: Socket = io('http://localhost:5000', {
-      withCredentials: true,
-    });
+    if (!conversation?.id || !socket) return;
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -65,10 +61,12 @@ export default function ChatArea({ conversation, currentUserId }: { conversation
 
     return () => {
       socket.emit('leave_room', conversation.id);
-      socket.disconnect();
+      socket.off('receive_message');
+      socket.off('typing');
+      socket.off('stop_typing');
       socketRef.current = null;
     };
-  }, [conversation?.id]);
+  }, [conversation?.id, socket]);
 
   const emitTyping = (isTyping: boolean) => {
     if (socketRef.current && conversation?.id) {
@@ -78,6 +76,7 @@ export default function ChatArea({ conversation, currentUserId }: { conversation
   };
 
   const otherParticipant = conversation.participants?.find((p: string) => p !== currentUserId) || 'Unknown User';
+  const isOnline = onlineUsers.includes(otherParticipant);
 
   const handleMessageSent = (newMsg: any) => {
     setMessages((prev) => [...prev, newMsg]);
@@ -87,9 +86,19 @@ export default function ChatArea({ conversation, currentUserId }: { conversation
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 bg-white shrink-0 flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold text-gray-800 text-lg">{otherParticipant}</h3>
-          <p className="text-xs text-gray-500">Live Chat</p>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+              {otherParticipant.charAt(0).toUpperCase()}
+            </div>
+            {isOnline && (
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+            )}
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800 text-lg leading-tight">{otherParticipant}</h3>
+            <p className="text-xs text-gray-500">{isOnline ? 'Online' : 'Offline'}</p>
+          </div>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ const { Server } = require("socket.io");
 const prisma = require('./prismaClient');
 
 let io;
+const onlineUsers = new Map(); // socket.id -> userId
 
 const initSocket = (server) => {
     io = new Server(server, {
@@ -14,6 +15,14 @@ const initSocket = (server) => {
 
     io.on("connection", (socket) => {
         console.log("WebSocket: New client connected:", socket.id);
+
+        socket.on("setup_user", (userId) => {
+            onlineUsers.set(socket.id, userId);
+            // Emit to the connecting socket its own online users list
+            socket.emit("online_users", Array.from(new Set(onlineUsers.values())));
+            // Broadcast to everyone else that this user is connected
+            socket.broadcast.emit("user_connected", userId);
+        });
 
         socket.on("join_room", (conversationId) => {
             socket.join(conversationId);
@@ -87,6 +96,14 @@ const initSocket = (server) => {
 
         socket.on("disconnect", () => {
             console.log("WebSocket: Client disconnected:", socket.id);
+            const userId = onlineUsers.get(socket.id);
+            if (userId) {
+                onlineUsers.delete(socket.id);
+                // Emit offline if user has no other active connections
+                if (!Array.from(onlineUsers.values()).includes(userId)) {
+                    io.emit("user_disconnected", userId);
+                }
+            }
         });
     });
 
