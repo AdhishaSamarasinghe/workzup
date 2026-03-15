@@ -1,0 +1,57 @@
+# Workzup Installation Guide and Required Packages
+
+To ensure all functionalities, including OTP registration and emails, work correctly, you and your friends need to install dependencies for all three parts of the application: the Frontend, the Backend, and the AI Service.
+
+Here are the exact commands to run in your terminal:
+
+## 1. Frontend (Next.js)
+Open a terminal in the root folder (`workzup`) and run:
+```bash
+npm install
+```
+Key packages installed for the frontend include: `next`, `react`, `next-auth`, `framer-motion`, `lucide-react`, `@radix-ui/react-popover`, `@ai-sdk/react`.
+
+## 2. Backend (Express & Prisma)
+Open a terminal and navigate to the backend folder, then install dependencies:
+```bash
+cd backend
+npm install
+```
+Key packages installed for the backend (crucial for OTP & Authentication):
+- `nodemailer` (Handles sending the OTP emails)
+- `bcryptjs` (For password hashing)
+- `jsonwebtoken` (For JWT generation)
+- `@prisma/client` (For database access)
+
+**Important step for OTP to work:** 
+Your friends MUST create a `.env` file inside the `backend` folder with the correct email credentials. If they don't have this, the `nodemailer` package cannot send the OTP emails and they will get errors during registration.
+Example `.env` content for the backend:
+```env
+PORT=5000
+DATABASE_URL="your_database_url_here"
+JWT_SECRET="your_jwt_secret"
+EMAIL_USER="your-email@gmail.com"
+EMAIL_PASS="your-app-password"
+```
+
+Also, they need to generate the Prisma client after installing packages:
+```bash
+npx prisma generate
+```
+
+## 3. AI Service (Python Flask)
+Open a terminal and navigate to the `ai-service` folder. It's recommended to use a virtual environment:
+```bash
+cd ai-service
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+```
+Key packages installed for AI: `flask`, `spacy`, `scikit-learn`, `PyPDF2`, `python-docx`.
+
+## Running the Entire Project
+Once all packages are installed across the three directories, you can run the whole project from the root `workzup` directory using:
+```bash
+npm run dev:all
+```
