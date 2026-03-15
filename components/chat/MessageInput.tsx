@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 export default function MessageInput({ conversationId, currentUserId, onMessageSent }: any) {
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,9 +37,67 @@ export default function MessageInput({ conversationId, currentUserId, onMessageS
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !conversationId) return;
+
+    setIsSending(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const uploadRes = await fetch('http://localhost:5000/messages/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const uploadData = await uploadRes.json();
+      
+      if (uploadData.success && uploadData.url) {
+        const payload = {
+          conversationId,
+          senderId: currentUserId,
+          content: `[IMAGE]${uploadData.url}`,
+        };
+
+        const res = await fetch('http://localhost:5000/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        const data = await res.json();
+        if (data.success && onMessageSent) {
+          onMessageSent(data.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to upload image", error);
+    } finally {
+      setIsSending(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="p-4 bg-white border-t border-gray-200 shrink-0">
       <form onSubmit={handleSend} className="flex items-center gap-2">
+        <input 
+          type="file" 
+          accept="image/*" 
+          className="hidden" 
+          ref={fileInputRef} 
+          onChange={handleImageUpload} 
+        />
+        <button 
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isSending}
+          className="p-2 text-gray-400 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+          </svg>
+        </button>
         <input 
           type="text" 
           value={text} 

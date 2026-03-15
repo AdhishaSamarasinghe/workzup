@@ -4,6 +4,8 @@ import React from 'react';
 
 export default function MessageBubble({ msg, isMine }: { msg: any; isMine: boolean }) {
   const content = msg.content || msg.text || '';
+  const isImage = content.startsWith('[IMAGE]');
+  const imageUrl = isImage ? `http://localhost:5000${content.replace('[IMAGE]', '')}` : '';
   
   return (
     <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} group mb-2`}>
@@ -14,9 +16,15 @@ export default function MessageBubble({ msg, isMine }: { msg: any; isMine: boole
             : 'bg-white border text-gray-800 rounded-2xl rounded-tl-sm shadow-sm border-gray-100'
         }`}
       >
-        <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-          {content}
-        </div>
+        {isImage ? (
+          <div className="overflow-hidden rounded-lg mt-1 mb-2">
+            <img src={imageUrl} alt="Attachment" className="max-w-full h-auto max-h-[300px] object-contain" />
+          </div>
+        ) : (
+          <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+            {content}
+          </div>
+        )}
         
         <div className={`flex items-center gap-1 mt-1 justify-end ${isMine ? 'text-indigo-200' : 'text-gray-400'}`}>
           <span className="text-[10px] uppercase font-medium tracking-wider">
