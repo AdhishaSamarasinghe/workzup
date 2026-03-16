@@ -3,7 +3,7 @@ import React from 'react';
 
 const AboutPage = () => {
     return (
-        <div className="flex flex-col gap-20 py-10 px-4 md:px-0 max-w-275 mx-auto w-full">
+        <div className="flex flex-col gap-20 pt-4 pb-10 px-4 md:px-0 max-w-275 mx-auto w-full">
 
             {/* Hero Section */}
             <section className="flex flex-col md:flex-row items-center justify-between gap-10">
