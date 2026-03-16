@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import MessageInput from './MessageInput';
 import MessageBubble from './MessageBubble';
+import { apiFetch } from '@/lib/api';
 
 export default function ChatArea({ conversation, currentUserId, socket, onlineUsers = [] }: { conversation: any, currentUserId: string, socket: Socket, onlineUsers?: string[] }) {
   const [messages, setMessages] = useState<any[]>([]);
@@ -26,8 +27,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:5000/messages?conversationId=${conversation.id}`);
-        const data = await res.json();
+        const data = await apiFetch(`/messages?conversationId=${conversation.id}`);
         if (data.success) {
           setMessages(data.data);
         }
@@ -38,16 +38,20 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
       }
     };
 
-    fetchMessages();
+    void fetchMessages();
   }, [conversation?.id]);
 
   useEffect(() => {
     if (!conversation?.id || !socket) return;
     socketRef.current = socket;
 
-    socket.on('connect', () => {
+    const handleConnect = () => {
       socket.emit('join_room', conversation.id);
-    });
+    };
+
+    // Join immediately when conversation changes, and also after reconnects.
+    socket.emit('join_room', conversation.id);
+    socket.on('connect', handleConnect);
 
     socket.on('receive_message', (newMsg: any) => {
       setMessages((prev) => {
@@ -70,6 +74,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
 
     return () => {
       socket.emit('leave_room', conversation.id);
+      socket.off('connect', handleConnect);
       socket.off('receive_message');
       socket.off('typing');
       socket.off('stop_typing');

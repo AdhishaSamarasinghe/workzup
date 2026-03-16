@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 
-export default function InboxSidebar({ onSelectConversation, selectedId, onlineUsers = [] }: { onSelectConversation: (conv: any) => void, selectedId: string | null, onlineUsers?: string[] }) {
+export default function InboxSidebar({ onSelectConversation, selectedId, onlineUsers = [], currentUserId }: { onSelectConversation: (conv: any) => void, selectedId: string | null, onlineUsers?: string[], currentUserId: string }) {
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const res = await fetch('http://localhost:5000/conversations');
-        const data = await res.json();
+        const data = await apiFetch('/conversations');
         if (data.success) {
           setConversations(data.data);
         }
@@ -21,7 +21,7 @@ export default function InboxSidebar({ onSelectConversation, selectedId, onlineU
       }
     };
     
-    fetchConversations();
+    void fetchConversations();
   }, []);
 
   return (
@@ -66,7 +66,7 @@ export default function InboxSidebar({ onSelectConversation, selectedId, onlineU
           <div className="p-4 text-center text-gray-500">No conversations yet</div>
         ) : (
           conversations.map((conv) => {
-            const partnerId = conv.participants?.find((p: string) => p !== 'user-1') || conv.participants?.[1] || conv.participants?.[0] || 'Unknown User';
+            const partnerId = conv.participants?.find((p: string) => p !== currentUserId) || conv.participants?.[1] || conv.participants?.[0] || 'Unknown User';
             const isOnline = onlineUsers.includes(partnerId);
             const isSelected = selectedId === conv.id;
 

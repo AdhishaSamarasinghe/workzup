@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
+import { apiFetch } from '@/lib/api';
 
 export default function MessageInput({ conversationId, currentUserId, onMessageSent, onTyping }: any) {
   const [text, setText] = useState("");
@@ -23,13 +24,11 @@ export default function MessageInput({ conversationId, currentUserId, onMessageS
         content: text,
       };
 
-      const res = await fetch('http://localhost:5000/messages', {
+      const data = await apiFetch('/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
-      const data = await res.json();
+
       if (data.success && onMessageSent) {
         onMessageSent(data.data);
       }
@@ -49,12 +48,11 @@ export default function MessageInput({ conversationId, currentUserId, onMessageS
     try {
       const formData = new FormData();
       formData.append('image', file);
-      
-      const uploadRes = await fetch('http://localhost:5000/messages/upload', {
+
+      const uploadData = await apiFetch('/messages/upload', {
         method: 'POST',
         body: formData
       });
-      const uploadData = await uploadRes.json();
       
       if (uploadData.success && uploadData.url) {
         const payload = {
@@ -63,13 +61,11 @@ export default function MessageInput({ conversationId, currentUserId, onMessageS
           content: `[IMAGE]${uploadData.url}`,
         };
 
-        const res = await fetch('http://localhost:5000/messages', {
+        const data = await apiFetch('/messages', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        
-        const data = await res.json();
+
         if (data.success && onMessageSent) {
           onMessageSent(data.data);
         }
@@ -95,13 +91,11 @@ export default function MessageInput({ conversationId, currentUserId, onMessageS
           content: `[LOCATION]${latitude},${longitude}`,
         };
 
-        const res = await fetch('http://localhost:5000/messages', {
+        const data = await apiFetch('/messages', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        
-        const data = await res.json();
+
         if (data.success && onMessageSent) {
           onMessageSent(data.data);
         }
