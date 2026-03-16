@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 // Safe mock Job type
 type EmployerJob = {
@@ -108,16 +109,16 @@ export default function MyJobPostingsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full sm:w-auto flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm outline-none focus:border-blue-500"
           />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full sm:w-auto rounded-lg border border-slate-300 px-4 py-2 text-sm outline-none focus:border-blue-500 bg-white"
-          >
-            <option value="ALL">All Status</option>
-            <option value="PUBLIC">Public</option>
-            <option value="PRIVATE">Private</option>
-            <option value="DRAFT">Draft</option>
-          </select>
+          <div className="w-full sm:w-[190px]">
+            <CustomSelect
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val || "ALL")}
+              options={["ALL", "PUBLIC", "PRIVATE", "DRAFT"]}
+              placeholder="All Status"
+              searchable={false}
+              showAllOption={false}
+            />
+          </div>
           <button
             onClick={fetchJobs}
             className="w-full sm:w-auto rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
