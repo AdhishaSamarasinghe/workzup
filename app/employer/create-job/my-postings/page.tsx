@@ -22,12 +22,21 @@ export default function MyJobPostingsPage() {
   const [jobs, setJobs] = useState<EmployerJob[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [hasToken, setHasToken] = useState<boolean>(false);
+  const [checkedToken, setCheckedToken] = useState<boolean>(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   // Custom simple debounce hook to avoid needing to install new packages
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    setHasToken(!!token);
+    setCheckedToken(true);
+  }, []);
 
   useEffect(() => {
     const timerId = setTimeout(() => {
@@ -37,8 +46,17 @@ export default function MyJobPostingsPage() {
   }, [searchTerm]);
 
   const fetchJobs = useCallback(async () => {
+    if (!checkedToken) return;
+
     setLoading(true);
     setError("");
+
+    if (!hasToken) {
+      setJobs([]);
+      setError("Please sign in as recruiter or employer to view your job postings.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const queryParams = new URLSearchParams();
@@ -52,7 +70,7 @@ export default function MyJobPostingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchTerm, statusFilter]);
+  }, [debouncedSearchTerm, statusFilter, hasToken, checkedToken]);
 
   useEffect(() => {
     fetchJobs();
@@ -117,7 +135,17 @@ export default function MyJobPostingsPage() {
 
         {error && !loading && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700">
-            {error}
+            <div className="space-y-3">
+              <p>{error}</p>
+              {!hasToken && (
+                <Link
+                  href="/auth/login/recruiter"
+                  className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                >
+                  Go to Recruiter Login
+                </Link>
+              )}
+            </div>
           </div>
         )}
 
