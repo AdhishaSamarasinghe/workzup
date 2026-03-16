@@ -4,19 +4,24 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { usePathname } from "next/navigation";
 
-export default function PublicHeader() {
-    const [isScrolled, setIsScrolled] = useState(false);
+export default function PublicHeader({ alwaysSolid = false }: { alwaysSolid?: boolean }) {
+    const pathname = usePathname();
+    const [scrolledDelta, setScrolledDelta] = useState(false);
+    const isScrolled = alwaysSolid || scrolledDelta;
 
     useEffect(() => {
+        if (alwaysSolid) return;
+
         const handleScroll = () => {
             // Threshold for when the header becomes a solid/blurred background (e.g., crossing the hero area)
-            setIsScrolled(window.scrollY > 20);
+            setScrolledDelta(window.scrollY > 20);
         };
 
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
+    }, [alwaysSolid]);
 
     return (
         <motion.header
@@ -28,13 +33,26 @@ export default function PublicHeader() {
                 : "bg-transparent py-5"
                 }`}
         >
-            <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 {/* Logo */}
                 <Link href="/" className="flex items-center">
                     <div className={`transition-all duration-500 ${!isScrolled ? 'brightness-0 invert drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]' : ''}`}>
                         <Image src="/logo_main.png" alt="WorkzUp" width={140} height={32} priority className="h-auto w-auto max-w-[120px] md:max-w-[140px]" />
                     </div>
                 </Link>
+
+                {/* Navigation */}
+                <nav className={`hidden md:flex items-center gap-8 text-sm font-medium transition-colors ${!isScrolled ? "text-white" : "text-slate-700"}`}>
+                    <Link href="/" className={`transition-colors hover:text-[#6b8cff] ${pathname === "/" ? "font-semibold" : "opacity-90 hover:opacity-100"}`}>
+                        Home
+                    </Link>
+                    <Link href="/about" className={`transition-colors hover:text-[#6b8cff] ${pathname === "/about" ? "font-semibold" : "opacity-90 hover:opacity-100"}`}>
+                        About
+                    </Link>
+                    <Link href="/help" className="opacity-90 transition-colors hover:opacity-100 hover:text-[#6b8cff]">
+                        Help
+                    </Link>
+                </nav>
 
 
                 {/* Auth Buttons */}

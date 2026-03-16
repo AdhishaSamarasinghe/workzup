@@ -27,7 +27,7 @@ export default function HeaderWrapper() {
 
     // Marketing page uses the public navigation bar.
     if (pathname === "/about") {
-        return <PublicHeader />;
+        return <PublicHeader alwaysSolid={true} />;
     }
 
     // Show the transparent headers ONLY on the jobseeker/browse page
