@@ -39,7 +39,7 @@ const GigCard: React.FC<GigCardProps> = ({
     };
 
     return (
-        <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+        <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-6 shadow-[0_10px_26px_rgba(15,23,42,0.09)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(15,23,42,0.14)]">
             <div className="mb-3 flex items-start justify-between gap-5">
                 <div className="min-w-0">
                     <h3 className="text-2xl font-bold tracking-tight text-gray-900">{title}</h3>

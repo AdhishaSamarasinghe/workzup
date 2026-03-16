@@ -33,7 +33,7 @@ const GigHeader: React.FC<GigHeaderProps> = ({
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-[0_12px_28px_rgba(15,23,42,0.1)]">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Available Results</p>
                     <p className="mt-2 text-3xl font-bold text-slate-900">{resultCount}</p>
                 </div>
