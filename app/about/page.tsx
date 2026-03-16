@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Link from 'next/link';
 
 const AboutPage = () => {
     return (
@@ -17,12 +18,12 @@ const AboutPage = () => {
                         Workzup is the one-day job hiring platform that connects job seekers with employers who need short-term or urgent workers.
                     </p>
                     <div className="flex gap-4 pt-4">
-                        <button className="bg-(--accent) text-white px-6 py-2.5 rounded-lg font-medium hover:opacity-90 transition-opacity">
+                        <Link href="/jobseeker/browse" className="bg-(--accent) text-white px-6 py-2.5 rounded-lg font-medium hover:opacity-90 transition-opacity inline-flex items-center justify-center">
                             Find a job
-                        </button>
-                        <button className="bg-white border border-gray-200 text-[#111827] px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                        </Link>
+                        <Link href="/auth/login/recruiter" className="bg-white border border-gray-200 text-[#111827] px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors inline-flex items-center justify-center">
                             Post a job
-                        </button>
+                        </Link>
                     </div>
                 </div>
                 <div className="flex-1 w-full">
@@ -153,12 +154,12 @@ const AboutPage = () => {
                         Join the Workzup community today and experience the future of on-demand hiring.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <button className="bg-transparent border border-white text-white px-8 py-3 rounded-xl hover:bg-white/10 transition-colors w-full sm:w-auto">
+                        <Link href="/jobseeker/browse" className="bg-transparent border border-white text-white px-8 py-3 rounded-xl hover:bg-white/10 transition-colors w-full sm:w-auto inline-flex items-center justify-center">
                             Find a job
-                        </button>
-                        <button className="bg-white text-(--accent) px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity w-full sm:w-auto shadow-sm">
+                        </Link>
+                        <Link href="/auth/login/recruiter" className="bg-white text-(--accent) px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity w-full sm:w-auto shadow-sm inline-flex items-center justify-center">
                             Post a job
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </section>
