@@ -128,7 +128,7 @@ export default function FindGigPage() {
                 </section>
 
                 <div className="grid gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
-                    <aside className="xl:sticky xl:top-24 xl:self-start">
+                    <aside className="xl:self-start">
                         <GigFilters
                             location={location}
                             setLocation={setLocation}
