@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import InboxSidebar from "@/components/chat/InboxSidebar";
 import ChatArea from "@/components/chat/ChatArea";
@@ -35,6 +36,8 @@ function getUserIdFromToken(): string | null {
 }
 
 export default function ApplicationMessagingScreen({ audience }: Props) {
+	const searchParams = useSearchParams();
+	const requestedConversationId = searchParams.get("conversationId");
 	const [selectedConversation, setSelectedConversation] = useState<any>(null);
 	const [socket, setSocket] = useState<Socket | null>(null);
 	const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
@@ -93,6 +96,23 @@ export default function ApplicationMessagingScreen({ audience }: Props) {
 			setOnlineUsers([]);
 		};
 	}, [currentUserId]);
+
+	useEffect(() => {
+		if (!currentUserId || !requestedConversationId) return;
+
+		const preselectConversation = async () => {
+			try {
+				const payload = await apiFetch(`/conversations/${requestedConversationId}`);
+				if (payload?.success && payload?.data) {
+					setSelectedConversation(payload.data);
+				}
+			} catch {
+				// Ignore invalid or inaccessible conversation IDs.
+			}
+		};
+
+		void preselectConversation();
+	}, [currentUserId, requestedConversationId]);
 
 	if (loadingIdentity) {
 		return (

@@ -3,6 +3,34 @@ const prisma = require("../prismaClient");
 const { authenticateToken } = require("../middleware/auth");
 const router = express.Router();
 
+const ensureApplicationConversation = async ({ applicantId, employerId }) => {
+    if (!applicantId || !employerId || applicantId === employerId) {
+        return null;
+    }
+
+    const existingConversation = await prisma.conversation.findFirst({
+        where: {
+            participantIds: {
+                hasEvery: [applicantId, employerId]
+            }
+        },
+        orderBy: { updatedAt: "desc" }
+    });
+
+    if (existingConversation) {
+        return existingConversation;
+    }
+
+    return prisma.conversation.create({
+        data: {
+            participantIds: [applicantId, employerId],
+            lastMessage: "",
+            lastMessageTime: "",
+            unreadCount: 0
+        }
+    });
+};
+
 const normalizeApplicationStatus = (application) => {
     if (!application) return application;
     return {
@@ -52,7 +80,16 @@ router.post("/", authenticateToken, async (req, res) => {
             }
         });
 
-        res.status(201).json({ message: "Application submitted successfully", application: normalizeApplicationStatus(application) });
+        const conversation = await ensureApplicationConversation({
+            applicantId,
+            employerId: job.employerId
+        });
+
+        res.status(201).json({
+            message: "Application submitted successfully",
+            application: normalizeApplicationStatus(application),
+            conversationId: conversation?.id || null
+        });
 
     } catch (error) {
         console.error("Apply Error:", error);

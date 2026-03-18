@@ -22,6 +22,14 @@ export default function InboxSidebar({ onSelectConversation, selectedId, onlineU
     };
     
     void fetchConversations();
+
+    const interval = window.setInterval(() => {
+      void fetchConversations();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
   }, []);
 
   return (

@@ -117,9 +117,9 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   const res = await executeFetch(path, { ...options, headers });
 
   if (!res.ok) {
-    const errorData: { message?: string } = await res.json().catch(() => ({}));
+    const errorData: { message?: string; error?: string } = await res.json().catch(() => ({}));
     const errorMsg =
-      errorData.message || `Request failed with status: ${res.status}`;
+      errorData.message || errorData.error || `Request failed with status: ${res.status}`;
     if (res.status >= 500) {
       console.error(`[API Error] ${res.status}: ${errorMsg}`);
     } else {

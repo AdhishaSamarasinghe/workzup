@@ -3,7 +3,17 @@ const prisma = require('../prismaClient');
 // GET /api/conversations
 const getAllConversations = async (req, res) => {
     try {
+        const currentUserId = req.user?.userId;
+        if (!currentUserId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
         const conversations = await prisma.conversation.findMany({
+            where: {
+                participantIds: {
+                    has: currentUserId
+                }
+            },
             orderBy: { updatedAt: 'desc' }
         });
 
@@ -31,12 +41,22 @@ const getAllConversations = async (req, res) => {
 const getConversationById = async (req, res) => {
     try {
         const { id } = req.params;
+        const currentUserId = req.user?.userId;
+
+        if (!currentUserId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
         const conversation = await prisma.conversation.findUnique({
             where: { id }
         });
 
         if (!conversation) {
             return res.status(404).json({ success: false, error: 'Conversation not found' });
+        }
+
+        if (!conversation.participantIds?.includes(currentUserId)) {
+            return res.status(403).json({ success: false, error: 'Forbidden' });
         }
 
         res.status(200).json({ success: true, data: { ...conversation, participants: conversation.participantIds } });
@@ -49,10 +69,38 @@ const getConversationById = async (req, res) => {
 const createConversation = async (req, res) => {
     try {
         const { participantIds, type, jobId, initialMessage } = req.body;
+        const currentUserId = req.user?.userId;
+
+        if (!currentUserId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
+        const rawParticipants = Array.isArray(participantIds) ? participantIds : [];
+        const normalizedParticipants = [...new Set([currentUserId, ...rawParticipants].filter(Boolean))];
+
+        if (normalizedParticipants.length < 2) {
+            return res.status(400).json({ success: false, error: 'At least two participants are required', message: 'At least two participants are required' });
+        }
+
+        const existingConversation = await prisma.conversation.findFirst({
+            where: {
+                participantIds: {
+                    hasEvery: normalizedParticipants
+                }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+
+        if (existingConversation) {
+            return res.status(200).json({
+                success: true,
+                data: { ...existingConversation, participants: existingConversation.participantIds }
+            });
+        }
 
         const newConversation = await prisma.conversation.create({
             data: {
-                participantIds: participantIds || [],
+                participantIds: normalizedParticipants,
                 lastMessage: initialMessage || "",
                 lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 unreadCount: 0
@@ -70,6 +118,19 @@ const updateConversation = async (req, res) => {
     try {
         const { id } = req.params;
         const { action, isPinned } = req.body;
+        const currentUserId = req.user?.userId;
+
+        if (!currentUserId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
+        const existingConversation = await prisma.conversation.findUnique({ where: { id } });
+        if (!existingConversation) {
+            return res.status(404).json({ success: false, error: 'Conversation not found' });
+        }
+        if (!existingConversation.participantIds?.includes(currentUserId)) {
+            return res.status(403).json({ success: false, error: 'Forbidden' });
+        }
 
         let updateData = {};
         if (action === 'markRead') {
@@ -100,8 +161,18 @@ const updateTypingStatus = (req, res) => {
 // GET /api/conversations/unread-count
 const getUnreadCount = async (req, res) => {
     try {
+        const currentUserId = req.user?.userId;
+        if (!currentUserId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
         const conversations = await prisma.conversation.findMany({
-            where: { unreadCount: { gt: 0 } }
+            where: {
+                unreadCount: { gt: 0 },
+                participantIds: {
+                    has: currentUserId
+                }
+            }
         });
         
         let totalUnread = 0;
