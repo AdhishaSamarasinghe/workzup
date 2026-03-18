@@ -139,7 +139,7 @@ function CompleteJobContent() {
                         </div>
                     </div>
 
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Confirm Job Completion</h1>
+                    <h1 className="text-[32px] font-black text-[#111827] mb-2 leading-tight">Confirm Job Completion</h1>
                     <p className="text-gray-500 text-center mb-8">
                         Please review details below to firm this job is complete.
                     </p>
@@ -149,23 +149,23 @@ function CompleteJobContent() {
                     <div className="w-full space-y-4 mb-8">
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-500">Job Title</span>
-                            <span className="text-gray-900 font-semibold">{summary.jobTitle}</span>
+                            <span className="text-[#111827] font-black">{summary.jobTitle}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-500">Worker</span>
-                            <span className="text-gray-900 font-semibold italic">{summary.workerName}</span>
+                            <span className="text-[#111827] font-black italic">{summary.workerName}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-500">Date of Completion</span>
-                            <span className="text-gray-900 font-semibold">{formatDate(summary.completionDate)}</span>
+                            <span className="text-[#111827] font-black">{formatDate(summary.completionDate)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-500">Hours Worked</span>
-                            <span className="text-gray-900 font-semibold">{summary.hoursWorked} hours</span>
+                            <span className="text-[#111827] font-black">{summary.hoursWorked} hours</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-500">Final payment</span>
-                            <span className="text-gray-900 font-bold">$ {summary.finalPayment.toFixed(2)}</span>
+                            <span className="text-[#111827] font-black text-lg">$ {summary.finalPayment.toFixed(2)}</span>
                         </div>
                     </div>
 

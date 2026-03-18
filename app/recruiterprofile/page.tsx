@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, User, Hammer, Home, Truck, Star, CheckCircle } from "lucide-react";
-import { fetchRecruiter, fetchRecruiterJobs, fetchRecruiterReviews, contactRecruiter } from "@/lib/api";
+import { fetchRecruiter, fetchRecruiterJobs, fetchRecruiterReviews, fetchApi } from "@/lib/api";
 
 // --- Types ---
 

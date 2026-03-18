@@ -151,8 +151,8 @@ export default function RecruiterJobsPage() {
         <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-semibold text-[#111827]">My Jobs</h1>
-              <p className="mt-2 text-sm text-[#6B7280]">Manage openings, review applicants, and track progress from one place.</p>
+              <h1 className="text-[34px] font-extrabold tracking-tight text-[#111827]">My Jobs</h1>
+              <p className="mt-2 text-lg font-medium text-slate-500">Manage openings, review applicants, and track progress from one place.</p>
             </div>
             <button
               type="button"
@@ -165,16 +165,16 @@ export default function RecruiterJobsPage() {
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-[#6B7280]">Total Jobs</p>
-              <p className="mt-1 text-2xl font-semibold text-[#111827]">{jobs.length}</p>
+              <p className="text-xs uppercase tracking-[0.2em] font-black text-slate-400">Total Jobs</p>
+              <p className="mt-1 text-3xl font-black text-[#111827]">{jobs.length}</p>
             </div>
             <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-[#6B7280]">Active Jobs</p>
-              <p className="mt-1 text-2xl font-semibold text-[#111827]">{summary.active}</p>
+              <p className="text-xs uppercase tracking-[0.2em] font-black text-slate-400">Active Jobs</p>
+              <p className="mt-1 text-3xl font-black text-[#111827]">{summary.active}</p>
             </div>
             <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-[#6B7280]">Total Applicants</p>
-              <p className="mt-1 text-2xl font-semibold text-[#111827]">{summary.totalApplicants}</p>
+              <p className="text-xs uppercase tracking-[0.2em] font-black text-slate-400">Total Applicants</p>
+              <p className="mt-1 text-3xl font-black text-[#111827]">{summary.totalApplicants}</p>
             </div>
           </div>
 
@@ -206,7 +206,7 @@ export default function RecruiterJobsPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-            <div className="hidden grid-cols-[1.8fr_0.9fr_0.9fr_1.4fr] bg-[#F9FAFB] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#6B7280] md:grid">
+            <div className="hidden grid-cols-[1.8fr_0.9fr_0.9fr_1.4fr] bg-[#F9FAFB] px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400 md:grid">
               <span>Job</span>
               <span>Status</span>
               <span>Applicants</span>
@@ -224,7 +224,7 @@ export default function RecruiterJobsPage() {
                 {paginatedJobs.map((job) => (
                   <div key={job.id} className="grid gap-3 px-5 py-4 md:grid-cols-[1.8fr_0.9fr_0.9fr_1.4fr] md:items-center">
                     <div>
-                      <p className="text-sm font-semibold text-[#111827]">{job.title}</p>
+                      <p className="text-[15px] font-black text-[#111827]">{job.title}</p>
                       <p className="mt-1 text-xs text-[#6B7280]">Posted {formatDate(job.postedAt)}</p>
                     </div>
                     <div>

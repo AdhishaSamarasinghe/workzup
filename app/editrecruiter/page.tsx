@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { fetchRecruiter } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
 import type { ChangeEvent, FormEvent } from "react";
 
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -49,7 +49,7 @@ export default function EditRecruiterPage() {
     const load = async () => {
       try {
         console.log("[EditRecruiter] Loading profile from backend...");
-        const json = await fetchRecruiter("default");
+        const json = await fetchApi("/api/auth/recruiter-profile");
 
         if (!json.success) throw new Error(json.error || "Failed to load");
 

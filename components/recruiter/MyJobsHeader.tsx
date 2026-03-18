@@ -18,7 +18,7 @@ const MyJobsHeader: React.FC<MyJobsHeaderProps> = ({
 }) => {
     return (
         <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-8">My Job Postings</h1>
+            <h1 className="text-[34px] font-extrabold tracking-tight text-[#111827] mb-8">My Job Postings</h1>
 
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 {/* Search Bar */}

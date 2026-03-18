@@ -174,7 +174,7 @@ export default function MyPostedJobs() {
     <div className="min-h-screen bg-[#f7fafc] p-8 font-sans">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">My Posted Jobs</h1>
+        <h1 className="text-[34px] font-extrabold tracking-tight text-[#111827] mb-8">My Posted Jobs</h1>
 
         {/* Controls Panel */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -256,8 +256,8 @@ export default function MyPostedJobs() {
               >
                 {/* Left Side: Info */}
                 <div className="flex-1 mb-4 md:mb-0 w-full">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{job.title}</h3>
-                  <div className="flex items-center space-x-6 text-gray-400 text-sm font-medium">
+                  <h3 className="text-[19px] font-black text-[#111827] mb-2">{job.title}</h3>
+                  <div className="flex items-center space-x-6 text-slate-500 font-bold text-[15px]">
                     <div className="flex items-center">
                       <svg className="w-5 h-5 mr-2 text-gray-800" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />

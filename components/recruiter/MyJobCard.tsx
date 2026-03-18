@@ -66,7 +66,7 @@ const MyJobCard: React.FC<MyJobCardProps> = ({
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                 <div>
                     <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                        <h3 className="text-[19px] font-black text-[#111827]">{title}</h3>
                         <div className="relative" ref={dropdownRef}>
                             <button
                                 onClick={(e) => {
@@ -116,17 +116,17 @@ const MyJobCard: React.FC<MyJobCardProps> = ({
                             )}
                         </div>
                     </div>
-                    <p className="text-sm text-gray-500">{location}</p>
+                    <p className="text-[15px] font-bold text-slate-500">{location}</p>
                 </div>
 
                 <div className="text-sm mt-2 md:mt-0">
-                    <span className="text-blue-600 font-bold">{newApplicants} new</span>
-                    <span className="text-gray-400"> / Total {totalApplicants} Applicants</span>
+                    <span className="text-blue-600 font-black">{newApplicants} new</span>
+                    <span className="text-slate-500 font-bold"> / Total {totalApplicants} Applicants</span>
                 </div>
             </div>
 
             <div className="flex flex-col md:flex-row justify-between items-end gap-4">
-                <div className="flex flex-wrap gap-6 text-sm text-gray-500">
+                <div className="flex flex-wrap gap-6 text-[15px] font-bold text-slate-500">
                     <div className="flex items-center gap-2">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -150,13 +150,13 @@ const MyJobCard: React.FC<MyJobCardProps> = ({
                 <div className="flex gap-3 w-full md:w-auto">
                     <button
                         onClick={onEdit}
-                        className="flex-1 md:flex-none px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
+                        className="flex-1 md:flex-none px-4 py-2 bg-white border border-gray-300 text-gray-700 font-black rounded-xl hover:bg-gray-50 transition-colors"
                     >
                         Edit job
                     </button>
                     <button
                         onClick={onViewApplicants}
-                        className="flex-1 md:flex-none px-4 py-2 bg-[#6b8bff] text-white font-medium rounded-xl hover:bg-[#5a7ae0] transition-colors shadow-sm shadow-blue-200"
+                        className="flex-1 md:flex-none px-4 py-2 bg-[#6b8bff] text-white font-black rounded-xl hover:bg-[#5a7ae0] transition-colors shadow-sm shadow-blue-200"
                     >
                         View Applicants
                     </button>
