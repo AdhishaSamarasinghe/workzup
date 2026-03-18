@@ -5,20 +5,28 @@ import { useState } from "react";
 import { useEffect } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import dynamic from "next/dynamic";
 
 import Logo from "@/components/Logo";
 import SuccessModal from "@/components/SuccessModal";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
+
+const LocationMap = dynamic(() => import("@/components/LocationMap"), {
+  ssr: false,
+  loading: () => <div className="w-full rounded-md border-0 bg-[#E0E0E0] flex items-center justify-center text-gray-500 h-[250px]">Loading Map...</div>
+});
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const REQUIRED_FIELD_LABELS: Record<string, string> = {
+    companyName: "Company",
     firstName: "First Name",
     lastName: "Last Name",
     email: "Email",
     password: "Password",
     confirmPassword: "Confirm Password",
     gender: "Gender",
-    homeTown: "Home Town",
+    companyAddress: "Company Location",
 };
 
 export default function RecruiterRegisterPage() {
@@ -35,16 +43,21 @@ export default function RecruiterRegisterPage() {
     const [otpLoading, setOtpLoading] = useState(false);
     const [resendCountdown, setResendCountdown] = useState(0);
     const [formData, setFormData] = useState({
+        companyName: "",
         firstName: "",
         lastName: "",
+        phone: "",
         email: "",
         password: "",
         confirmPassword: "",
         gender: "",
-        homeTown: "",
+        companyAddress: "",
         termsAccepted: false,
         emailNotifications: false,
     });
+    const [companyLogo, setCompanyLogo] = useState<File | null>(null);
+
+    const [selectedLocation, setSelectedLocation] = useState({ lat: 6.9271, lng: 79.8612 });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
@@ -217,19 +230,40 @@ export default function RecruiterRegisterPage() {
 
         setLoading(true);
         try {
-            // Temporary test-only behavior: log payload instead of sending to DB/API.
-            console.log("[Recruiter Register - Temporary]", {
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                email: formData.email,
-                password: formData.password,
-                confirmPassword: formData.confirmPassword,
-                gender: formData.gender,
-                homeTown: formData.homeTown,
-                termsAccepted: formData.termsAccepted,
-                emailNotifications: formData.emailNotifications,
-                role: "EMPLOYER",
+            const submitData = new FormData();
+            submitData.append("companyName", formData.companyName.trim());
+            submitData.append("firstName", formData.firstName.trim());
+            submitData.append("lastName", formData.lastName.trim());
+            submitData.append("email", formData.email.trim());
+            submitData.append("password", formData.password);
+            submitData.append("role", "EMPLOYER");
+            submitData.append("gender", formData.gender);
+            submitData.append("companyAddress", formData.companyAddress.trim());
+            submitData.append("termsAccepted", String(formData.termsAccepted));
+            submitData.append("emailNotifications", String(formData.emailNotifications));
+            if (formData.phone) submitData.append("phone", formData.phone.trim());
+
+            if (companyLogo) {
+                submitData.append("companyLogo", companyLogo);
+            }
+
+            const res = await fetch("/api/auth/register", {
+                method: "POST",
+                body: submitData,
             });
+
+            const textData = await res.text();
+            let data;
+            try {
+                data = JSON.parse(textData);
+            } catch (err) {
+                console.error("Non-JSON API response:", textData);
+                throw new Error("Server returned an unexpected response. Please try again.");
+            }
+
+            if (!res.ok) {
+                throw new Error(data.message || "Registration failed");
+            }
 
             setSuccessMsg("Registration completed successfully");
             setShowSuccessModal(true);
@@ -289,10 +323,47 @@ export default function RecruiterRegisterPage() {
                         </h2>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Company Name */}
                             <div>
+                                <div className="relative rounded-md shadow-sm">
+                                    <input
+                                        type="text"
+                                        name="companyName"
+                                        required
+                                        placeholder="Company *"
+                                        className="block w-full rounded-md border-0 bg-[#E0E0E0] py-3.5 pl-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 transition-all"
+                                        value={formData.companyName}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Company Logo */}
+                            <div>
+                                <div className="flex items-center space-x-4">
+                                    <label className="cursor-pointer">
+                                        <span className="inline-flex items-center px-6 py-2 border border-gray-300 rounded-md text-[13px] font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#6B8BFF] transition-colors">
+                                            CHOOSE LOGO
+                                        </span>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    setCompanyLogo(e.target.files[0]);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                    <span className="text-gray-500 text-[14px]">
+                                        {companyLogo ? companyLogo.name : "No file chosen"}
+                                    </span>
+                                </div>
+                            </div>
 
-
-                                {/* Name Fields */}
+                            {/* Name Fields */}
+                            <div>
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                     <div>
                                         <div className="relative rounded-md shadow-sm">
@@ -320,6 +391,20 @@ export default function RecruiterRegisterPage() {
                                             />
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                            
+                            {/* Phone Number */}
+                            <div>
+                                <div className="relative rounded-md shadow-sm">
+                                    <input
+                                        type="tel"
+                                        name="phone"
+                                        placeholder="Phone Number"
+                                        className="block w-full rounded-md border-0 bg-[#E0E0E0] py-3.5 pl-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 transition-all"
+                                        value={formData.phone}
+                                        onChange={handleChange}
+                                    />
                                 </div>
                             </div>
 
@@ -442,9 +527,9 @@ export default function RecruiterRegisterPage() {
                                 </div>
                             </div>
 
-                            {/* Gender and Hometown */}
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 items-center">
-                                <div className="flex items-center space-x-4 rounded-md border border-gray-200 px-4 py-3.5 bg-[#ffffff]">
+                            {/* Gender */}
+                            <div>
+                                <div className="flex items-center space-x-4 rounded-md border border-gray-200 px-4 py-3.5 bg-[#ffffff] w-full md:w-1/2">
                                     <span className="text-sm font-semibold text-gray-900">Your Gender</span>
                                     <label className="flex items-center space-x-2 cursor-pointer group">
                                         <input
@@ -469,15 +554,28 @@ export default function RecruiterRegisterPage() {
                                         <span className="text-sm text-gray-700 group-hover:text-black">Female</span>
                                     </label>
                                 </div>
-                                <div>
-                                    <input
-                                        type="text"
-                                        name="homeTown"
-                                        required
-                                        placeholder="Home Town *"
-                                        className="block w-full rounded-md border-0 bg-[#E0E0E0] py-3.5 pl-4 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#6B8BFF] sm:text-[15px] sm:leading-6 transition-all"
-                                        value={formData.homeTown}
-                                        onChange={handleChange}
+                            </div>
+
+                            {/* Company Location with Map */}
+                            <div className="space-y-3 relative z-10 w-full mb-6">
+                                <LocationAutocomplete
+                                  value={formData.companyAddress}
+                                  onChange={(val) => setFormData(p => ({...p, companyAddress: val}))}
+                                  onSelect={(lat, lng, address) => {
+                                      setSelectedLocation({ lat, lng });
+                                      setFormData(p => ({...p, companyAddress: address}));
+                                  }}
+                                />
+                                
+                                <div className="w-full rounded-md overflow-hidden border border-gray-200 shadow-sm mt-3 relative z-0">
+                                    <LocationMap 
+                                        position={selectedLocation} 
+                                        onLocationSelect={(lat, lng, address) => {
+                                            setSelectedLocation({ lat, lng });
+                                            if (address) {
+                                                setFormData(p => ({...p, companyAddress: address}));
+                                            }
+                                        }} 
                                     />
                                 </div>
                             </div>

@@ -131,7 +131,16 @@ router.patch("/role", authenticateToken, async (req, res) => {
 });
 
 // POST /api/auth/register
-router.post("/register", upload.single("cv"), async (req, res) => {
+const registerUpload = upload.fields([{ name: 'cv', maxCount: 1 }, { name: 'companyLogo', maxCount: 1 }]);
+
+router.post("/register", (req, res, next) => {
+  registerUpload(req, res, function (err) {
+    if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
     const {
       email,
@@ -141,6 +150,9 @@ router.post("/register", upload.single("cv"), async (req, res) => {
       lastName,
       gender,
       homeTown,
+      phone,
+      companyName,
+      companyAddress,
       termsAccepted,
       emailNotifications,
     } = req.body;
@@ -157,8 +169,9 @@ router.post("/register", upload.single("cv"), async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Get CV path if file uploaded
-    const cvPath = req.file ? req.file.path : null;
+    // Get file paths if uploaded
+    const cvPath = req.files && req.files['cv'] ? req.files['cv'][0].path.replace(/\\/g, "/") : null;
+    const companyLogoPath = req.files && req.files['companyLogo'] ? req.files['companyLogo'][0].path.replace(/\\/g, "/") : null;
 
     const user = await prisma.user.create({
       data: {
@@ -169,11 +182,24 @@ router.post("/register", upload.single("cv"), async (req, res) => {
         lastName,
         gender,
         homeTown,
+        phone,
         cv: cvPath,
         termsAccepted: termsAccepted === "true" || termsAccepted === true, // Multipart sends strings
         emailNotifications: emailNotifications === "true" || emailNotifications === true,
       }
     });
+
+    // Create Company if role is EMPLOYER/RECRUITER and companyName is provided
+    if ((role === "EMPLOYER" || role === "RECRUITER") && companyName) {
+      await prisma.company.create({
+        data: {
+          recruiterId: user.id,
+          name: companyName,
+          logoUrl: companyLogoPath,
+          address: companyAddress || null
+        }
+      });
+    }
 
     const token = jwt.sign(
       { userId: user.id, role: user.role },

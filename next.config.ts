@@ -29,6 +29,20 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return {
+      beforeFiles: [
+        {
+          source: '/api/auth/:path(register|login|role|profile|upload-avatar|upload-docs|forgot-password)',
+          destination: 'http://localhost:5000/api/auth/:path',
+        },
+        {
+          source: '/api/auth/profile/:path*',
+          destination: 'http://localhost:5000/api/auth/profile/:path*',
+        },
+        {
+          source: '/api/auth/forgot-password/:path*',
+          destination: 'http://localhost:5000/api/auth/forgot-password/:path*',
+        }
+      ],
       fallback: [
         {
           source: '/api/:path*',
