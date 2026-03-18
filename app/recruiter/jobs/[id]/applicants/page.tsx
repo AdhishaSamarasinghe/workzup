@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import { apiFetch } from "@/lib/api";
 
 // [DATA] Types based on API responses
@@ -278,16 +277,7 @@ export default function JobApplicantsPage() {
                                             : 'border-transparent hover:border-slate-200 hover:translate-x-1'
                                             }`}
                                     >
-                                        <div className="flex items-center gap-5">
-                                            <div className="relative h-16 w-16 rounded-3xl overflow-hidden bg-slate-100 flex-shrink-0 shadow-inner">
-                                                {app.avatarUrl ? (
-                                                    <Image src={app.avatarUrl} alt={app.name} layout="fill" objectFit="cover" />
-                                                ) : (
-                                                    <div className="h-full w-full flex items-center justify-center text-2xl text-slate-400 font-black">
-                                                        {app.name.charAt(0)}
-                                                    </div>
-                                                )}
-                                            </div>
+                                        <div className="flex items-center">
                                             <div>
                                                 <h3 className="text-[19px] font-black text-[#111827]">{app.name}</h3>
                                                 <p className="text-slate-500 font-bold mt-0.5 text-[15px]">
@@ -325,17 +315,8 @@ export default function JobApplicantsPage() {
                                 </div>
                             ) : (
                                 <>
-                                    {/* Avatar & Info */}
+                                    {/* Info */}
                                     <div className="flex flex-col items-center text-center mb-10">
-                                        <div className="relative h-32 w-32 rounded-[40px] overflow-hidden mb-5 bg-slate-100 shadow-lg p-1 border-4 border-white">
-                                            {applicantProfile.avatarUrl ? (
-                                                <Image src={applicantProfile.avatarUrl} alt={applicantProfile.name} layout="fill" objectFit="cover" className="rounded-[40px]" />
-                                            ) : (
-                                                <div className="h-full w-full flex items-center justify-center text-4xl text-slate-400 font-black">
-                                                    {applicantProfile.name.charAt(0)}
-                                                </div>
-                                            )}
-                                        </div>
                                         <h2 className="text-2xl font-black text-[#111827] leading-tight">{applicantProfile.name}</h2>
                                         <p className="text-lg text-slate-500 font-bold mt-1">{applicantProfile.title}</p>
                                     </div>

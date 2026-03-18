@@ -40,28 +40,35 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
 
   useEffect(() => {
     if (!conversation?.id) return;
+    let isActive = true;
     
-    const fetchMessages = async () => {
-      setLoading(true);
+    const fetchMessages = async (showLoader: boolean) => {
+      if (showLoader && isActive) {
+        setLoading(true);
+      }
+
       try {
         const data = await apiFetch(`/conversations/${conversation.id}/messages`);
-        if (data.success) {
+        if (data.success && isActive) {
           setMessages(dedupeMessages(data.data));
         }
       } catch (error) {
         console.error("Failed to fetch messages", error);
       } finally {
-        setLoading(false);
+        if (showLoader && isActive) {
+          setLoading(false);
+        }
       }
     };
 
-    void fetchMessages();
+    void fetchMessages(true);
 
     const pollInterval = window.setInterval(() => {
-      void fetchMessages();
+      void fetchMessages(false);
     }, 3000);
 
     return () => {
+      isActive = false;
       window.clearInterval(pollInterval);
     };
   }, [conversation?.id]);
@@ -176,7 +183,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
           </span>
         </div>
 
-        {loading ? (
+        {loading && messages.length === 0 ? (
           <div className="text-center text-gray-500 mt-4">Loading messages...</div>
         ) : messages.length === 0 ? (
           <div className="text-center text-gray-500 mt-4">No messages yet. Send a hello!</div>
