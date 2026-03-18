@@ -6,6 +6,23 @@ import MessageInput from './MessageInput';
 import MessageBubble from './MessageBubble';
 import { apiFetch } from '@/lib/api';
 
+const dedupeMessages = (list: any[]) => {
+  const seen = new Set<string>();
+  const output: any[] = [];
+
+  for (const msg of Array.isArray(list) ? list : []) {
+    const key = msg?.id
+      ? `id:${msg.id}`
+      : `fallback:${msg?.timestamp || msg?.createdAt || ""}:${msg?.content || msg?.text || ""}`;
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(msg);
+  }
+
+  return output;
+};
+
 export default function ChatArea({ conversation, currentUserId, socket, onlineUsers = [] }: { conversation: any, currentUserId: string, socket: Socket, onlineUsers?: string[] }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +46,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
       try {
         const data = await apiFetch(`/conversations/${conversation.id}/messages`);
         if (data.success) {
-          setMessages(data.data);
+          setMessages(dedupeMessages(data.data));
         }
       } catch (error) {
         console.error("Failed to fetch messages", error);
@@ -78,10 +95,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
     socket.on('connect', handleConnect);
 
     socket.on('receive_message', (newMsg: any) => {
-      setMessages((prev) => {
-        if (prev.find((m) => m.id === newMsg.id || m.timestamp === newMsg.timestamp && m.content === newMsg.content)) return prev;
-        return [...prev, newMsg];
-      });
+      setMessages((prev) => dedupeMessages([...prev, newMsg]));
       setTypingUsers((prev) => prev.filter(uid => uid !== newMsg.senderId));
     });
 
@@ -117,7 +131,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
   const isOnline = onlineUsers.includes(otherParticipant);
 
   const handleMessageSent = (newMsg: any) => {
-    setMessages((prev) => [...prev, newMsg]);
+    setMessages((prev) => dedupeMessages([...prev, newMsg]));
   };
 
   return (
@@ -173,7 +187,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
             const showNewMessageDivider = messages.length > 2 && index === messages.length - 1;
 
             return (
-              <React.Fragment key={msg.id}>
+              <React.Fragment key={`${msg.id || msg.timestamp || msg.createdAt || "msg"}-${index}`}>
                 {showNewMessageDivider && (
                   <div className="flex items-center gap-4 my-6">
                     <div className="flex-1 h-px bg-red-200"></div>
