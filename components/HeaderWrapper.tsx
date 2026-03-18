@@ -25,8 +25,8 @@ export default function HeaderWrapper() {
         return <AuthHeader />;
     }
 
-    // Marketing page uses the public navigation bar.
-    if (pathname === "/about") {
+    // Marketing pages use the public navigation bar.
+    if (pathname === "/about" || pathname === "/help") {
         return <PublicHeader alwaysSolid={true} />;
     }
 

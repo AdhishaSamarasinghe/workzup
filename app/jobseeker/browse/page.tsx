@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import SearchBar from "@/components/jobs/SearchBar";
 import StatsSection from "@/components/jobs/StatsSection";
 import ReviewSection from "@/components/jobs/ReviewSection";
+import ChatWidget from "@/components/ChatWidget";
 import {
   FeaturedJobsSection,
   JobCategoriesSection,
@@ -322,6 +323,7 @@ export default function BrowseJobsPage() {
 
       <StatsSection stats={browseData.stats} />
       <ReviewSection />
+      <ChatWidget />
     </div>
   );
 }
