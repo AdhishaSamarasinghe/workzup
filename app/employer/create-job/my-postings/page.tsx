@@ -94,7 +94,7 @@ export default function MyJobPostingsPage() {
           </div>
           <Link
             href="/employer/create-job"
-            className="btn-primary min-w-[156px] w-fit px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 whitespace-nowrap text-center"
+            className="btn-primary min-w-[156px] w-fit px-6 h-[44px] whitespace-nowrap text-center"
           >
             Post a new job
           </Link>
