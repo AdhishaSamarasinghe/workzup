@@ -130,7 +130,7 @@ export default function JobSeekerRegisterPage() {
             setIsCodeVerified(false);
             setVerificationMsg("Verification code sent");
         } catch (error: any) {
-            console.error("Failed to send OTP:", error);
+            console.warn("Failed to send OTP:", error);
             setError(error.message || "Failed to send verification code.");
         } finally {
             setOtpLoading(false);
@@ -167,7 +167,7 @@ export default function JobSeekerRegisterPage() {
             setIsCodeVerified(true);
             setVerificationMsg("Verification code verified successfully");
         } catch (error: any) {
-            console.error("Verification failed:", error);
+            console.warn("Verification failed:", error);
             setIsCodeVerified(false);
             setError(error.message || "Failed to verify code.");
         } finally {
@@ -249,7 +249,7 @@ export default function JobSeekerRegisterPage() {
             setShowSuccessModal(true);
 
         } catch (error: any) {
-            console.error("Registration failed:", error);
+            console.warn("Registration failed:", error);
             setError(error.message || "Registration failed. Please try again.");
         } finally {
             setLoading(false);

@@ -120,7 +120,11 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     const errorData: { message?: string } = await res.json().catch(() => ({}));
     const errorMsg =
       errorData.message || `Request failed with status: ${res.status}`;
-    console.error(`[API Error] ${res.status}: ${errorMsg}`);
+    if (res.status >= 500) {
+      console.error(`[API Error] ${res.status}: ${errorMsg}`);
+    } else {
+      console.warn(`[API Error] ${res.status}: ${errorMsg}`);
+    }
     throw new Error(errorMsg);
   }
 
