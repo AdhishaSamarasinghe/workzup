@@ -1,9 +1,27 @@
 const prisma = require('../prismaClient');
+const { getIo } = require('../socket');
 
 // GET /api/messages?conversationId=...
 const getMessages = async (req, res) => {
     try {
+        const currentUserId = req.user?.userId;
+        if (!currentUserId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
         const { conversationId } = req.query;
+
+        if (!conversationId) {
+            return res.status(400).json({ success: false, error: 'conversationId is required' });
+        }
+
+        const conversation = await prisma.conversation.findUnique({ where: { id: conversationId } });
+        if (!conversation) {
+            return res.status(404).json({ success: false, error: 'Conversation not found' });
+        }
+        if (!conversation.participantIds?.includes(currentUserId)) {
+            return res.status(403).json({ success: false, error: 'Forbidden' });
+        }
 
         let whereClause = { isDeleted: false };
         if (conversationId) whereClause.conversationId = conversationId;
@@ -24,7 +42,12 @@ const getMessages = async (req, res) => {
 // POST /api/messages
 const sendMessage = async (req, res) => {
     try {
-        const { senderId, conversationId, content, replyToId, text, receiverId } = req.body;
+        const currentUserId = req.user?.userId;
+        if (!currentUserId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
+        const { conversationId, content, replyToId, text, receiverId } = req.body;
         const msgContent = content || text;
 
         if (!msgContent) {
@@ -37,16 +60,22 @@ const sendMessage = async (req, res) => {
         // Ensure conversation exists or create it
         let conv = await prisma.conversation.findUnique({ where: { id: targetConvId } });
         if (!conv) {
+            if (!receiverId) {
+                return res.status(400).json({ success: false, error: 'receiverId is required to start a new conversation' });
+            }
             conv = await prisma.conversation.create({
                 data: {
                     id: targetConvId,
-                    participantIds: receiverId ? [senderId, receiverId] : [senderId],
+                    participantIds: [currentUserId, receiverId],
                     lastMessage: msgContent,
                     lastMessageTime: timestampString,
                     unreadCount: 1
                 }
             });
         } else {
+            if (!conv.participantIds?.includes(currentUserId)) {
+                return res.status(403).json({ success: false, error: 'Forbidden' });
+            }
             // Update conversation last message
             await prisma.conversation.update({
                 where: { id: targetConvId },
@@ -61,13 +90,20 @@ const sendMessage = async (req, res) => {
         const newMessage = await prisma.message.create({
             data: {
                 conversationId: targetConvId,
-                senderId: senderId || 'user-1',
-                receiverId,
+                senderId: currentUserId,
+                receiverId: receiverId || conv.participantIds?.find((id) => id !== currentUserId) || null,
                 content: msgContent,
                 replyToId,
                 timestamp: timestampString
             }
         });
+
+        try {
+            const io = getIo();
+            io.to(targetConvId).emit("receive_message", { ...newMessage, text: newMessage.content });
+        } catch (_) {
+            // Ignore socket emission failures so REST flow still succeeds.
+        }
 
         res.status(201).json({ success: true, data: { ...newMessage, text: newMessage.content } });
     } catch (error) {
@@ -79,8 +115,24 @@ const sendMessage = async (req, res) => {
 // PATCH /api/messages/:id
 const updateMessage = async (req, res) => {
     try {
+        const currentUserId = req.user?.userId;
+        if (!currentUserId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
         const { id } = req.params;
         const { content, action } = req.body;
+
+        const existing = await prisma.message.findUnique({
+            where: { id },
+            include: { conversation: true }
+        });
+        if (!existing) {
+            return res.status(404).json({ success: false, error: 'Message not found' });
+        }
+        if (!existing.conversation?.participantIds?.includes(currentUserId)) {
+            return res.status(403).json({ success: false, error: 'Forbidden' });
+        }
 
         let updateData = {};
         if (action === 'markRead') updateData.isRead = true;
@@ -103,7 +155,23 @@ const updateMessage = async (req, res) => {
 // DELETE /api/messages/:id
 const deleteMessage = async (req, res) => {
     try {
+        const currentUserId = req.user?.userId;
+        if (!currentUserId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
         const { id } = req.params;
+
+        const existing = await prisma.message.findUnique({
+            where: { id },
+            include: { conversation: true }
+        });
+        if (!existing) {
+            return res.status(404).json({ success: false, error: 'Message not found' });
+        }
+        if (!existing.conversation?.participantIds?.includes(currentUserId)) {
+            return res.status(403).json({ success: false, error: 'Forbidden' });
+        }
 
         await prisma.message.update({
             where: { id },
@@ -122,7 +190,22 @@ const deleteMessage = async (req, res) => {
 // GET /api/messages/search?q=...
 const searchMessages = async (req, res) => {
     try {
+        const currentUserId = req.user?.userId;
+        if (!currentUserId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
         const { q, conversationId } = req.query;
+
+        if (conversationId) {
+            const conversation = await prisma.conversation.findUnique({ where: { id: conversationId } });
+            if (!conversation) {
+                return res.status(404).json({ success: false, error: 'Conversation not found' });
+            }
+            if (!conversation.participantIds?.includes(currentUserId)) {
+                return res.status(403).json({ success: false, error: 'Forbidden' });
+            }
+        }
 
         let whereClause = {
             isDeleted: false,

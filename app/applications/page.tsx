@@ -13,6 +13,7 @@ type ApplicationListItem = {
   relevantSkillsCount?: number | null;
   job: {
     id: string;
+    employerId?: string | null;
     title: string;
     category?: string | null;
     locations?: string[] | null;
@@ -47,6 +48,8 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState<ApplicationListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [messageActionError, setMessageActionError] = useState<string | null>(null);
+  const [messagingApplicationId, setMessagingApplicationId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -78,6 +81,42 @@ export default function ApplicationsPage() {
     fetchApplications();
   }, []);
 
+  const handleMessageRecruiter = async (application: ApplicationListItem) => {
+    setMessageActionError(null);
+
+    try {
+      setMessagingApplicationId(application.id);
+      let recruiterId = String(application.job?.employerId || "").trim();
+
+      if (!recruiterId) {
+        const details = await apiFetch(`/api/applications/${application.id}`);
+        recruiterId = String(details?.application?.job?.employerId || "").trim();
+      }
+
+      if (!recruiterId) {
+        throw new Error("Recruiter profile is unavailable for this job right now.");
+      }
+
+      const payload = await apiFetch("/conversations", {
+        method: "POST",
+        body: JSON.stringify({ participantIds: [recruiterId] }),
+      });
+
+      const conversationId = payload?.data?.id;
+      if (!conversationId) {
+        throw new Error("Unable to open recruiter chat.");
+      }
+
+      router.push(`/jobseeker/messages?conversationId=${encodeURIComponent(conversationId)}`);
+    } catch (messageError) {
+      const message =
+        messageError instanceof Error ? messageError.message : "Unable to open recruiter chat.";
+      setMessageActionError(message);
+    } finally {
+      setMessagingApplicationId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F8FC]">
       <section className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
@@ -102,6 +141,12 @@ export default function ApplicationsPage() {
           </div>
         )}
 
+        {messageActionError && !loading && !error && (
+          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+            <p className="text-sm font-medium text-amber-800">{messageActionError}</p>
+          </div>
+        )}
+
         {!loading && !error && applications.length === 0 && (
           <div className="rounded-2xl border border-[#E5E7EB] bg-white p-8 text-center shadow-sm">
             <h2 className="text-2xl font-semibold text-[#111827]">No applications yet</h2>
@@ -121,9 +166,8 @@ export default function ApplicationsPage() {
         {!loading && !error && applications.length > 0 && (
           <div className="grid gap-4">
             {applications.map((application) => (
-              <Link
+              <article
                 key={application.id}
-                href={`/applications/${application.id}`}
                 className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#CBD5F5] hover:shadow-md"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -131,9 +175,9 @@ export default function ApplicationsPage() {
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#6B7280]">
                       {formatStatus(application.status)}
                     </p>
-                    <h2 className="mt-2 text-xl font-semibold text-[#111827]">
+                    <Link href={`/applications/${application.id}`} className="mt-2 inline-block text-xl font-semibold text-[#111827] hover:text-[#4B63D3]">
                       {application.job?.title || "Untitled Job"}
-                    </h2>
+                    </Link>
                     <div className="mt-2 flex flex-wrap gap-3 text-sm text-[#6B7280]">
                       {application.job?.company?.name ? <span>{application.job.company.name}</span> : null}
                       {application.job?.category ? <span>{application.job.category}</span> : null}
@@ -149,7 +193,24 @@ export default function ApplicationsPage() {
                     ) : null}
                   </div>
                 </div>
-              </Link>
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleMessageRecruiter(application)}
+                    disabled={messagingApplicationId === application.id}
+                    className="rounded-xl bg-[#6D83F2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5B73F1] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {messagingApplicationId === application.id ? "Opening chat..." : "Message Recruiter"}
+                  </button>
+                  <Link
+                    href={`/applications/${application.id}`}
+                    className="rounded-xl border border-[#D1D5DB] px-4 py-2 text-sm font-semibold text-[#111827] transition hover:bg-[#F3F4F6]"
+                  >
+                    View Application
+                  </Link>
+                </div>
+              </article>
             ))}
           </div>
         )}

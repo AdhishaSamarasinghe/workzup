@@ -52,7 +52,7 @@ export default function JobRecruiterLoginPage() {
                 router.push("/employer/create-job/my-postings");
             }
         } catch (error: any) {
-            console.error("Login failed:", error);
+            console.warn("Login failed:", error);
             setError(error.message || "Login failed. Please check your credentials.");
         } finally {
             setLoading(false);

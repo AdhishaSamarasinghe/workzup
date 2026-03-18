@@ -64,7 +64,20 @@ export default function CreateJobPage() {
         setShowSuccess(true);
       }
     } catch (error: any) {
-      if (!msg.text) setMsg({ type: "error", text: error.message || "Backend not reachable." });
+      const rawMessage = String(error?.message || "");
+      const isRoleError =
+        rawMessage.includes("Forbidden: Requires one of") ||
+        rawMessage.includes("cannot sign in here") ||
+        rawMessage.includes("No role assigned");
+
+      if (isRoleError) {
+        setMsg({
+          type: "error",
+          text: "Please sign in with a recruiter/employer account to post jobs.",
+        });
+      } else if (!msg.text) {
+        setMsg({ type: "error", text: rawMessage || "Backend not reachable." });
+      }
       throw error;
     } finally {
       setLoading(false);

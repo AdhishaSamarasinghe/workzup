@@ -1,7 +1,35 @@
 const express = require("express");
 const prisma = require("../prismaClient");
-const { authenticateToken, requireRole } = require("../middleware/auth");
+const { authenticateToken } = require("../middleware/auth");
 const router = express.Router();
+
+const ensureApplicationConversation = async ({ applicantId, employerId }) => {
+    if (!applicantId || !employerId || applicantId === employerId) {
+        return null;
+    }
+
+    const existingConversation = await prisma.conversation.findFirst({
+        where: {
+            participantIds: {
+                hasEvery: [applicantId, employerId]
+            }
+        },
+        orderBy: { updatedAt: "desc" }
+    });
+
+    if (existingConversation) {
+        return existingConversation;
+    }
+
+    return prisma.conversation.create({
+        data: {
+            participantIds: [applicantId, employerId],
+            lastMessage: "",
+            lastMessageTime: "",
+            unreadCount: 0
+        }
+    });
+};
 
 const normalizeApplicationStatus = (application) => {
     if (!application) return application;
@@ -12,7 +40,7 @@ const normalizeApplicationStatus = (application) => {
 };
 
 // POST /api/applications - Apply to a job
-router.post("/", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res) => {
+router.post("/", authenticateToken, async (req, res) => {
     try {
         const { jobId } = req.body;
         const applicantId = req.user.userId;
@@ -52,7 +80,16 @@ router.post("/", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res
             }
         });
 
-        res.status(201).json({ message: "Application submitted successfully", application: normalizeApplicationStatus(application) });
+        const conversation = await ensureApplicationConversation({
+            applicantId,
+            employerId: job.employerId
+        });
+
+        res.status(201).json({
+            message: "Application submitted successfully",
+            application: normalizeApplicationStatus(application),
+            conversationId: conversation?.id || null
+        });
 
     } catch (error) {
         console.error("Apply Error:", error);
@@ -61,7 +98,7 @@ router.post("/", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res
 });
 
 // GET /api/applications/my-applications - View my own applications
-router.get("/my-applications", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res) => {
+router.get("/my-applications", authenticateToken, async (req, res) => {
     try {
         const applications = await prisma.application.findMany({
             where: { applicantId: req.user.userId },
@@ -83,7 +120,7 @@ router.get("/my-applications", authenticateToken, requireRole(["JOB_SEEKER"]), a
 });
 
 // GET /api/applications/:id - View one of my applications
-router.get("/:id", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res) => {
+router.get("/:id", authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -119,7 +156,7 @@ router.get("/:id", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, r
 });
 
 // DELETE /api/applications/:id - Withdraw application
-router.delete("/:id", authenticateToken, requireRole(["JOB_SEEKER"]), async (req, res) => {
+router.delete("/:id", authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const application = await prisma.application.findUnique({ where: { id } });
