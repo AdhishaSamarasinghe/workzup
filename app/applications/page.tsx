@@ -86,25 +86,29 @@ export default function ApplicationsPage() {
 
     try {
       setMessagingApplicationId(application.id);
-      let recruiterId = String(application.job?.employerId || "").trim();
-
-      if (!recruiterId) {
-        const details = await apiFetch(`/api/applications/${application.id}`);
-        recruiterId = String(details?.application?.job?.employerId || "").trim();
+      let conversations: Array<{ id?: string; applicationId?: string }> = [];
+      try {
+        const payload = await apiFetch("/conversations");
+        conversations = Array.isArray(payload?.data) ? payload.data : [];
+      } catch {
+        conversations = [];
       }
 
-      if (!recruiterId) {
-        throw new Error("Recruiter profile is unavailable for this job right now.");
-      }
+      const targetConversation = conversations.find(
+        (item: { applicationId?: string }) => item?.applicationId === application.id,
+      );
 
-      const payload = await apiFetch("/conversations", {
-        method: "POST",
-        body: JSON.stringify({ participantIds: [recruiterId] }),
-      });
+      let conversationId = targetConversation?.id;
 
-      const conversationId = payload?.data?.id;
       if (!conversationId) {
-        throw new Error("Unable to open recruiter chat.");
+        const created = await apiFetch(`/api/applications/${application.id}/conversation`, {
+          method: "POST",
+        });
+        conversationId = created?.conversationId;
+      }
+
+      if (!conversationId) {
+        throw new Error("Chat is not ready for this application yet. Please try again in a moment.");
       }
 
       router.push(`/jobseeker/messages?conversationId=${encodeURIComponent(conversationId)}`);

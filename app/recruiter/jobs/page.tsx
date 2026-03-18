@@ -146,36 +146,35 @@ export default function RecruiterJobsPage() {
   }, [jobs]);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#eef3ff,_#f8fbff_60%)] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_12px_38px_rgba(52,87,213,0.08)] sm:p-8">
+    <div className="min-h-screen bg-[#F5F8FC]">
+      <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+        <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#60708e]">Recruiter Workspace</p>
-              <h1 className="mt-2 text-3xl font-semibold text-[#0f172a]">My Jobs</h1>
-              <p className="mt-2 text-sm text-slate-500">Manage openings, review applicants, and track progress from one place.</p>
+              <h1 className="text-3xl font-semibold text-[#111827]">My Jobs</h1>
+              <p className="mt-2 text-sm text-[#6B7280]">Manage openings, review applicants, and track progress from one place.</p>
             </div>
             <button
               type="button"
               onClick={() => router.push("/employer/create-job")}
-              className="rounded-xl bg-[#3457d5] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2d4dbf]"
+              className="rounded-xl bg-[#6D83F2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5B73F1]"
             >
               Post New Job
             </button>
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-[#f8faff] p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Total Jobs</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">{jobs.length}</p>
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+              <p className="text-xs uppercase tracking-wide text-[#6B7280]">Total Jobs</p>
+              <p className="mt-1 text-2xl font-semibold text-[#111827]">{jobs.length}</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-[#f8faff] p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Active Jobs</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">{summary.active}</p>
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+              <p className="text-xs uppercase tracking-wide text-[#6B7280]">Active Jobs</p>
+              <p className="mt-1 text-2xl font-semibold text-[#111827]">{summary.active}</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-[#f8faff] p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Total Applicants</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">{summary.totalApplicants}</p>
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+              <p className="text-xs uppercase tracking-wide text-[#6B7280]">Total Applicants</p>
+              <p className="mt-1 text-2xl font-semibold text-[#111827]">{summary.totalApplicants}</p>
             </div>
           </div>
 
@@ -188,7 +187,7 @@ export default function RecruiterJobsPage() {
                   setSearch(event.target.value);
                 }}
                 placeholder="Search jobs by title"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3457d5] focus:ring-2 focus:ring-[#d7e0ff]"
+                className="w-full rounded-xl border border-[#D1D5DB] bg-white px-4 py-2.5 text-sm text-[#111827] outline-none transition focus:border-[#6D83F2] focus:ring-2 focus:ring-[#D8E0FF]"
               />
             </div>
             <select
@@ -197,7 +196,7 @@ export default function RecruiterJobsPage() {
                 setCurrentPage(1);
                 setStatusFilter(event.target.value);
               }}
-              className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#3457d5] focus:ring-2 focus:ring-[#d7e0ff]"
+              className="rounded-xl border border-[#D1D5DB] bg-white px-3 py-2.5 text-sm text-[#111827] outline-none transition focus:border-[#6D83F2] focus:ring-2 focus:ring-[#D8E0FF]"
             >
               <option value="ALL">All Statuses</option>
               <option value="ACTIVE">Active</option>
@@ -206,8 +205,8 @@ export default function RecruiterJobsPage() {
             </select>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
-            <div className="hidden grid-cols-[1.8fr_0.9fr_0.9fr_1.4fr] bg-[#f5f8ff] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid">
+          <div className="mt-6 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+            <div className="hidden grid-cols-[1.8fr_0.9fr_0.9fr_1.4fr] bg-[#F9FAFB] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#6B7280] md:grid">
               <span>Job</span>
               <span>Status</span>
               <span>Applicants</span>
@@ -215,37 +214,37 @@ export default function RecruiterJobsPage() {
             </div>
 
             {loading ? (
-              <div className="p-8 text-center text-sm text-slate-500">Loading jobs...</div>
+              <div className="p-8 text-center text-sm text-[#6B7280]">Loading jobs...</div>
             ) : error ? (
               <div className="p-8 text-center text-sm font-medium text-red-600">{error}</div>
             ) : paginatedJobs.length === 0 ? (
-              <div className="p-8 text-center text-sm text-slate-500">No jobs found for the current filters.</div>
+              <div className="p-8 text-center text-sm text-[#6B7280]">No jobs found for the current filters.</div>
             ) : (
-              <div className="divide-y divide-slate-200">
+              <div className="divide-y divide-[#E5E7EB]">
                 {paginatedJobs.map((job) => (
                   <div key={job.id} className="grid gap-3 px-5 py-4 md:grid-cols-[1.8fr_0.9fr_0.9fr_1.4fr] md:items-center">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{job.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">Posted {formatDate(job.postedAt)}</p>
+                      <p className="text-sm font-semibold text-[#111827]">{job.title}</p>
+                      <p className="mt-1 text-xs text-[#6B7280]">Posted {formatDate(job.postedAt)}</p>
                     </div>
                     <div>
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusClassName(job.status)}`}>
                         {formatStatus(job.status)}
                       </span>
                     </div>
-                    <div className="text-sm font-medium text-slate-700">{job.applicantsCount}</div>
+                    <div className="text-sm font-medium text-[#111827]">{job.applicantsCount}</div>
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => router.push(`/recruiter/jobs/${job.id}/applicants`)}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                        className="rounded-xl bg-[#6D83F2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5B73F1]"
                       >
                         View Applicants
                       </button>
                       <button
                         type="button"
                         onClick={() => router.push(`/employer/create-job/my-postings`)}
-                        className="rounded-lg border border-[#3457d5] px-3 py-1.5 text-xs font-semibold text-[#3457d5] transition hover:bg-[#eef3ff]"
+                        className="rounded-xl border border-[#D1D5DB] px-4 py-2 text-sm font-semibold text-[#111827] transition hover:bg-[#F3F4F6]"
                       >
                         Manage Post
                       </button>
@@ -256,7 +255,7 @@ export default function RecruiterJobsPage() {
             )}
           </div>
 
-          <div className="mt-5 flex items-center justify-between text-sm text-slate-600">
+          <div className="mt-5 flex items-center justify-between text-sm text-[#6B7280]">
             <p>
               Showing {paginatedJobs.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
               {" - "}
@@ -267,16 +266,16 @@ export default function RecruiterJobsPage() {
                 type="button"
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-[#D1D5DB] px-4 py-2 text-sm font-semibold text-[#111827] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Prev
               </button>
-              <span className="text-xs font-semibold text-slate-500">Page {currentPage} / {totalPages}</span>
+              <span className="text-sm font-medium text-[#6B7280]">Page {currentPage} / {totalPages}</span>
               <button
                 type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-[#D1D5DB] px-4 py-2 text-sm font-semibold text-[#111827] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Next
               </button>

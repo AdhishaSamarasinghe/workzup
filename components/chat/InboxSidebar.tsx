@@ -74,7 +74,9 @@ export default function InboxSidebar({ onSelectConversation, selectedId, onlineU
           <div className="p-4 text-center text-gray-500">No conversations yet</div>
         ) : (
           conversations.map((conv) => {
-            const partnerId = conv.participants?.find((p: string) => p !== currentUserId) || conv.participants?.[1] || conv.participants?.[0] || 'Unknown User';
+            const partnerId = conv.otherUserId || conv.participants?.find((p: string) => p !== currentUserId) || conv.participants?.[1] || conv.participants?.[0] || 'Unknown User';
+            const partnerName = conv.otherUserName || partnerId;
+            const jobTitle = conv.jobTitle || "Untitled job";
             const isOnline = onlineUsers.includes(partnerId);
             const isSelected = selectedId === conv.id;
 
@@ -105,7 +107,7 @@ export default function InboxSidebar({ onSelectConversation, selectedId, onlineU
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-0.5">
                     <h3 className={`text-[15px] truncate pr-2 ${isSelected ? 'font-semibold text-gray-900' : 'font-medium text-gray-900'}`}>
-                      {partnerId}
+                      {partnerName}
                     </h3>
                     <span className={`text-xs whitespace-nowrap ${isSelected ? 'text-blue-600 font-medium' : 'text-gray-400'}`}>
                       {conv.lastMessageTime || 'Just now'}
@@ -113,9 +115,12 @@ export default function InboxSidebar({ onSelectConversation, selectedId, onlineU
                   </div>
                   
                   <div className="flex justify-between items-center gap-2">
-                    <p className={`text-sm truncate ${isSelected ? 'text-gray-700' : 'text-gray-500'}`}>
-                      {conv.lastMessage || 'Start a conversation'}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs text-gray-400">{jobTitle}</p>
+                      <p className={`text-sm truncate ${isSelected ? 'text-gray-700' : 'text-gray-500'}`}>
+                        {conv.lastMessage || 'Start a conversation'}
+                      </p>
+                    </div>
                     {conv.unreadCount > 0 && (
                       <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>
                     )}

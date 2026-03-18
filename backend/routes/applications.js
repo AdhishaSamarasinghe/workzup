@@ -1,35 +1,8 @@
 const express = require("express");
 const prisma = require("../prismaClient");
 const { authenticateToken } = require("../middleware/auth");
+const { ensureConversationForApplication } = require("../models/conversationModel");
 const router = express.Router();
-
-const ensureApplicationConversation = async ({ applicantId, employerId }) => {
-    if (!applicantId || !employerId || applicantId === employerId) {
-        return null;
-    }
-
-    const existingConversation = await prisma.conversation.findFirst({
-        where: {
-            participantIds: {
-                hasEvery: [applicantId, employerId]
-            }
-        },
-        orderBy: { updatedAt: "desc" }
-    });
-
-    if (existingConversation) {
-        return existingConversation;
-    }
-
-    return prisma.conversation.create({
-        data: {
-            participantIds: [applicantId, employerId],
-            lastMessage: "",
-            lastMessageTime: "",
-            unreadCount: 0
-        }
-    });
-};
 
 const normalizeApplicationStatus = (application) => {
     if (!application) return application;
@@ -80,9 +53,11 @@ router.post("/", authenticateToken, async (req, res) => {
             }
         });
 
-        const conversation = await ensureApplicationConversation({
-            applicantId,
-            employerId: job.employerId
+        const conversation = await ensureConversationForApplication({
+            applicationId: application.id,
+            jobId: job.id,
+            recruiterId: job.employerId,
+            jobseekerId: applicantId,
         });
 
         res.status(201).json({
@@ -152,6 +127,54 @@ router.get("/:id", authenticateToken, async (req, res) => {
     } catch (error) {
         console.error("Application Details Error:", error);
         res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// POST /api/applications/:id/conversation - Create/retrieve chat conversation for an application
+router.post("/:id/conversation", authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const currentUserId = req.user.userId;
+
+        const application = await prisma.application.findUnique({
+            where: { id },
+            include: {
+                job: {
+                    select: {
+                        id: true,
+                        employerId: true
+                    }
+                }
+            }
+        });
+
+        if (!application) {
+            return res.status(404).json({ message: "Application not found" });
+        }
+
+        const canAccess =
+            application.applicantId === currentUserId ||
+            application.job?.employerId === currentUserId;
+
+        if (!canAccess) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+
+        const conversation = await ensureConversationForApplication({
+            applicationId: application.id,
+            jobId: application.job.id,
+            recruiterId: application.job.employerId,
+            jobseekerId: application.applicantId,
+        });
+
+        if (!conversation?.id) {
+            return res.status(500).json({ message: "Failed to create conversation" });
+        }
+
+        return res.status(200).json({ success: true, conversationId: conversation.id });
+    } catch (error) {
+        console.error("Create application conversation error:", error);
+        return res.status(500).json({ message: "Server Error" });
     }
 });
 

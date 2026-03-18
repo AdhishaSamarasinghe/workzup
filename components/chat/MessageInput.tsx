@@ -19,12 +19,10 @@ export default function MessageInput({ conversationId, currentUserId, onMessageS
     setIsSending(true);
     try {
       const payload = {
-        conversationId,
-        senderId: currentUserId,
-        content: text,
+        messageText: text,
       };
 
-      const data = await apiFetch('/messages', {
+      const data = await apiFetch(`/conversations/${conversationId}/messages`, {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -56,12 +54,10 @@ export default function MessageInput({ conversationId, currentUserId, onMessageS
       
       if (uploadData.success && uploadData.url) {
         const payload = {
-          conversationId,
-          senderId: currentUserId,
-          content: `[IMAGE]${uploadData.url}`,
+          messageText: `[IMAGE]${uploadData.url}`,
         };
 
-        const data = await apiFetch('/messages', {
+        const data = await apiFetch(`/conversations/${conversationId}/messages`, {
           method: 'POST',
           body: JSON.stringify(payload)
         });
@@ -86,12 +82,10 @@ export default function MessageInput({ conversationId, currentUserId, onMessageS
       try {
         const { latitude, longitude } = position.coords;
         const payload = {
-          conversationId,
-          senderId: currentUserId,
-          content: `[LOCATION]${latitude},${longitude}`,
+          messageText: `[LOCATION]${latitude},${longitude}`,
         };
 
-        const data = await apiFetch('/messages', {
+        const data = await apiFetch(`/conversations/${conversationId}/messages`, {
           method: 'POST',
           body: JSON.stringify(payload)
         });

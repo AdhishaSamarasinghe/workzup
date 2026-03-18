@@ -3,6 +3,42 @@ const prisma = require("../prismaClient");
 const { authenticateToken, requireRole } = require("../middleware/auth");
 const router = express.Router();
 
+const buildPublicFileUrl = (req, storedPath) => {
+    const normalizedPath = String(storedPath || "").trim().replace(/\\/g, "/").replace(/^\/+/, "");
+    if (!normalizedPath) return "";
+
+    if (normalizedPath.startsWith("http://") || normalizedPath.startsWith("https://")) {
+        return normalizedPath;
+    }
+
+    return `${req.protocol}://${req.get("host")}/${normalizedPath}`;
+};
+
+const resolvePortfolioUrl = (socialLinks) => {
+    if (!socialLinks) return "";
+
+    if (typeof socialLinks === "string") {
+        return socialLinks.trim();
+    }
+
+    if (typeof socialLinks === "object") {
+        const candidates = [
+            socialLinks.portfolio,
+            socialLinks.website,
+            socialLinks.linkedin,
+            socialLinks.github,
+        ];
+
+        for (const url of candidates) {
+            if (typeof url === "string" && url.trim()) {
+                return url.trim();
+            }
+        }
+    }
+
+    return "";
+};
+
 // GET /api/recruiter/jobs/:jobId/applicants
 router.get("/jobs/:jobId/applicants", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
     try {
@@ -77,14 +113,14 @@ router.get("/applicants/:applicantId", authenticateToken, requireRole(["EMPLOYER
         res.json({
             _id: user.id,
             name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Anonymous",
-            title: "Job Seeker",
+            title: user.seekerProfile?.title || "Job Seeker",
             avatarUrl: `https://i.pravatar.cc/150?u=${user.id}`,
             summary: user.seekerProfile?.bio || "No bio provided.",
             skills: user.seekerProfile?.skills || [],
             email: user.email,
-            phone: "+94 77 000 0000", // placeholder as phone not in schema
-            resumeUrl: user.cv || "#",
-            portfolioUrl: "#"
+            phone: user.phone || "",
+            resumeUrl: buildPublicFileUrl(req, user.cv),
+            portfolioUrl: resolvePortfolioUrl(user.seekerProfile?.socialLinks)
         });
     } catch (error) {
         console.error("Error fetching profile", error);
@@ -128,7 +164,7 @@ router.get("/applications/:applicationId", authenticateToken, requireRole(["EMPL
             applicant: {
                 _id: application.applicant.id,
                 name: `${application.applicant.firstName || ""} ${application.applicant.lastName || ""}`.trim() || "Anonymous",
-                title: "Candidate",
+                title: application.applicant.seekerProfile?.title || "Candidate",
                 avatarUrl: `https://i.pravatar.cc/150?u=${application.applicant.id}`,
                 rating: 5,
                 about: application.applicant.seekerProfile?.bio || "No summary provided.",
@@ -136,9 +172,9 @@ router.get("/applications/:applicationId", authenticateToken, requireRole(["EMPL
                 skills: application.applicant.seekerProfile?.skills || [],
                 recentExperience: [], // Schema doesn't support structured experience yet
                 email: application.applicant.email,
-                phone: "+94 77 000 0000",
-                resumeUrl: application.applicant.cv || "#",
-                portfolioUrl: "#"
+                phone: application.applicant.phone || "",
+                resumeUrl: buildPublicFileUrl(req, application.applicant.cv),
+                portfolioUrl: resolvePortfolioUrl(application.applicant.seekerProfile?.socialLinks)
             }
         });
     } catch (error) {

@@ -65,9 +65,7 @@ async function executeFetch(path: string, options: RequestInit = {}) {
     const message = getErrorMessage(error);
 
     if (message === "REACHABILITY_ERROR") {
-      const isDev = process.env.NODE_ENV === "development";
-
-      if (isDev && API_BASE.includes("localhost:5000")) {
+      if (API_BASE.includes("localhost:5000")) {
         const fallbackUrl = API_BASE.replace("5000", "5001");
         console.warn(
           "[API] Localhost:5000 unreachable. Detecting if backend is on 5001..."
@@ -198,9 +196,8 @@ export async function pinConversation(
 export async function markConversationAsRead(
   conversationId: string
 ): Promise<ApiResponse<Conversation>> {
-  return fetchApi<Conversation>(`/conversations/${conversationId}`, {
+  return fetchApi<Conversation>(`/conversations/${conversationId}/read`, {
     method: "PATCH",
-    body: JSON.stringify({ action: "markRead" }),
   });
 }
 
@@ -210,16 +207,16 @@ export async function markConversationAsRead(
 export async function getMessages(
   conversationId: string
 ): Promise<ApiResponse<Message[]>> {
-  return fetchApi<Message[]>(`/messages?conversationId=${conversationId}`);
+  return fetchApi<Message[]>(`/conversations/${conversationId}/messages`);
 }
 
 export async function sendMessage(
   conversationId: string,
   data: SendMessageRequest
 ): Promise<ApiResponse<Message>> {
-  return fetchApi<Message>("/messages", {
+  return fetchApi<Message>(`/conversations/${conversationId}/messages`, {
     method: "POST",
-    body: JSON.stringify({ ...data, conversationId }),
+    body: JSON.stringify(data),
   });
 }
 
