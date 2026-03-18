@@ -39,6 +39,18 @@ const toLegacyMessageShape = (row) => ({
   timestamp: row.created_at,
 });
 
+const toLegacyPrismaMessageShape = (row) => ({
+  id: row.id,
+  conversationId: row.conversationId,
+  senderId: row.senderId,
+  messageText: row.content,
+  content: row.content,
+  text: row.content,
+  isRead: Boolean(row.isRead),
+  createdAt: row.createdAt,
+  timestamp: row.timestamp || row.createdAt,
+});
+
 const getAllConversations = async (req, res) => {
   try {
     const userId = req.user?.userId;
@@ -69,15 +81,24 @@ const getAllConversations = async (req, res) => {
         : [];
       const userMap = new Map(users.map((u) => [u.id, u]));
 
-      const conversations = prismaConversations.map((c) => {
-        const participants = Array.isArray(c.participantIds) ? c.participantIds : [];
+      const conversations = prismaConversations
+      .map((c) => {
+        const participants = [...new Set(Array.isArray(c.participantIds) ? c.participantIds.filter(Boolean) : [])];
+        if (participants.length < 2 || !participants.includes(userId)) {
+          return null;
+        }
+
         const otherUserId = participants.find((id) => id !== userId) || participants[0] || null;
+        if (!otherUserId || otherUserId === userId) {
+          return null;
+        }
+
         return {
           id: c.id,
           applicationId: null,
           jobId: null,
-          recruiterId: participants[0] || null,
-          jobseekerId: participants[1] || null,
+          recruiterId: participants[0],
+          jobseekerId: participants[1],
           participants,
           otherUserId,
           otherUserName: toName(userMap.get(otherUserId), "User"),
@@ -87,7 +108,8 @@ const getAllConversations = async (req, res) => {
           createdAt: c.createdAt,
           currentUserId: userId,
         };
-      });
+      })
+      .filter(Boolean);
 
       return res.status(200).json({ success: true, data: conversations });
     }
@@ -154,7 +176,10 @@ const getConversationById = async (req, res) => {
       return res.status(200).json({ success: true, data });
     } catch (_) {
       const convo = await prisma.conversation.findUnique({ where: { id } });
-      if (!convo || !convo.participantIds?.includes(userId)) {
+      const participants = [...new Set(Array.isArray(convo?.participantIds) ? convo.participantIds.filter(Boolean) : [])];
+      const otherUserId = participants.find((id) => id !== userId) || null;
+
+      if (!convo || !participants.includes(userId) || participants.length < 2 || !otherUserId) {
         return res.status(403).json({ success: false, error: "Unauthorized" });
       }
 
@@ -194,7 +219,9 @@ const getConversationMessages = async (req, res) => {
       return res.status(200).json({ success: true, data: messages });
     } catch (_) {
       const convo = await prisma.conversation.findUnique({ where: { id } });
-      if (!convo || !convo.participantIds?.includes(userId)) {
+      const participants = [...new Set(Array.isArray(convo?.participantIds) ? convo.participantIds.filter(Boolean) : [])];
+      const otherUserId = participants.find((pid) => pid !== userId) || null;
+      if (!convo || !participants.includes(userId) || participants.length < 2 || !otherUserId) {
         return res.status(403).json({ success: false, error: "Unauthorized" });
       }
 
@@ -202,17 +229,7 @@ const getConversationMessages = async (req, res) => {
         where: { conversationId: id, isDeleted: false },
         orderBy: { createdAt: "asc" },
       });
-      const messages = rows.map((row) => ({
-        id: row.id,
-        conversationId: row.conversationId,
-        senderId: row.senderId,
-        messageText: row.content,
-        content: row.content,
-        text: row.content,
-        isRead: Boolean(row.isRead),
-        createdAt: row.createdAt,
-        timestamp: row.timestamp || row.createdAt,
-      }));
+      const messages = rows.map(toLegacyPrismaMessageShape);
       return res.status(200).json({ success: true, data: messages });
     }
   } catch (error) {
@@ -251,16 +268,18 @@ const sendConversationMessage = async (req, res) => {
       shaped = toLegacyMessageShape(saved);
     } catch (_) {
       const convo = await prisma.conversation.findUnique({ where: { id } });
-      if (!convo || !convo.participantIds?.includes(userId)) {
+      const participants = [...new Set(Array.isArray(convo?.participantIds) ? convo.participantIds.filter(Boolean) : [])];
+      const resolvedReceiverId = participants.find((pid) => pid !== userId) || null;
+
+      if (!convo || !participants.includes(userId) || participants.length < 2 || !resolvedReceiverId) {
         return res.status(403).json({ success: false, error: "Unauthorized" });
       }
 
-      const receiverId = convo.participantIds.find((pid) => pid !== userId) || null;
       const saved = await prisma.message.create({
         data: {
           conversationId: id,
           senderId: userId,
-          receiverId,
+          receiverId: resolvedReceiverId,
           content: messageText,
           timestamp: new Date().toISOString(),
         },
@@ -275,17 +294,7 @@ const sendConversationMessage = async (req, res) => {
         },
       });
 
-      shaped = {
-        id: saved.id,
-        conversationId: saved.conversationId,
-        senderId: saved.senderId,
-        messageText: saved.content,
-        content: saved.content,
-        text: saved.content,
-        isRead: Boolean(saved.isRead),
-        createdAt: saved.createdAt,
-        timestamp: saved.timestamp || saved.createdAt,
-      };
+      shaped = toLegacyPrismaMessageShape(saved);
     }
 
     try {
@@ -325,7 +334,9 @@ const markConversationRead = async (req, res) => {
       return res.status(200).json({ success: true, updatedCount });
     } catch (_) {
       const convo = await prisma.conversation.findUnique({ where: { id } });
-      if (!convo || !convo.participantIds?.includes(userId)) {
+      const participants = [...new Set(Array.isArray(convo?.participantIds) ? convo.participantIds.filter(Boolean) : [])];
+      const otherUserId = participants.find((pid) => pid !== userId) || null;
+      if (!convo || !participants.includes(userId) || participants.length < 2 || !otherUserId) {
         return res.status(403).json({ success: false, error: "Unauthorized" });
       }
 

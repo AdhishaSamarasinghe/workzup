@@ -23,6 +23,14 @@ async function ensureConversationForApplication({
   recruiterId,
   jobseekerId,
 }) {
+  if (!applicationId || !jobId || !recruiterId || !jobseekerId) {
+    throw new Error("Invalid conversation participants");
+  }
+
+  if (recruiterId === jobseekerId) {
+    throw new Error("Cannot create self conversation");
+  }
+
   try {
     const insertSql = `
       INSERT INTO conversations (

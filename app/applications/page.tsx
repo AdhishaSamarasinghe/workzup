@@ -86,25 +86,18 @@ export default function ApplicationsPage() {
 
     try {
       setMessagingApplicationId(application.id);
-      let conversations: Array<{ id?: string; applicationId?: string }> = [];
-      try {
-        const payload = await apiFetch("/conversations");
-        conversations = Array.isArray(payload?.data) ? payload.data : [];
-      } catch {
-        conversations = [];
-      }
-
-      const targetConversation = conversations.find(
-        (item: { applicationId?: string }) => item?.applicationId === application.id,
-      );
-
-      let conversationId = targetConversation?.id;
+      const created = await apiFetch(`/api/applications/${application.id}/conversation`, {
+        method: "POST",
+      });
+      let conversationId = created?.conversationId;
 
       if (!conversationId) {
-        const created = await apiFetch(`/api/applications/${application.id}/conversation`, {
-          method: "POST",
-        });
-        conversationId = created?.conversationId;
+        const payload = await apiFetch("/conversations");
+        const conversations = Array.isArray(payload?.data) ? payload.data : [];
+        const targetConversation = conversations.find(
+          (item: { applicationId?: string }) => item?.applicationId === application.id,
+        );
+        conversationId = targetConversation?.id;
       }
 
       if (!conversationId) {

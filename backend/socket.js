@@ -37,43 +37,45 @@ const initSocket = (server) => {
         socket.on("send_message", async (data) => {
             try {
                 const { senderId, conversationId, content, text, receiverId, replyToId } = data;
-                const msgContent = content || text;
+                const msgContent = (content || text || "").trim();
 
-                if (!msgContent) return;
+                if (!senderId || !conversationId || !msgContent) return;
 
-                const timestampString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const targetConvId = conversationId || 'default';
+                const timestampIso = new Date().toISOString();
+                const targetConvId = conversationId;
 
                 let conv = await prisma.conversation.findUnique({ where: { id: targetConvId } });
-                if (!conv) {
-                    await prisma.conversation.create({
-                        data: {
-                            id: targetConvId,
-                            participantIds: receiverId ? [senderId, receiverId] : [senderId],
-                            lastMessage: msgContent,
-                            lastMessageTime: timestampString,
-                            unreadCount: 1
-                        }
-                    });
-                } else {
-                    await prisma.conversation.update({
-                        where: { id: targetConvId },
-                        data: {
-                            lastMessage: msgContent,
-                            lastMessageTime: timestampString,
-                            unreadCount: { increment: 1 }
-                        }
-                    });
+                if (!conv) return;
+
+                const participants = Array.isArray(conv.participantIds) ? conv.participantIds : [];
+                const uniqueParticipants = [...new Set(participants.filter(Boolean))];
+
+                if (!uniqueParticipants.includes(senderId) || uniqueParticipants.length < 2) {
+                    return;
                 }
+
+                const resolvedReceiverId = receiverId || uniqueParticipants.find((id) => id !== senderId) || null;
+                if (!resolvedReceiverId || resolvedReceiverId === senderId) {
+                    return;
+                }
+
+                await prisma.conversation.update({
+                    where: { id: targetConvId },
+                    data: {
+                        lastMessage: msgContent,
+                        lastMessageTime: timestampIso,
+                        unreadCount: { increment: 1 }
+                    }
+                });
 
                 const newMessage = await prisma.message.create({
                     data: {
                         conversationId: targetConvId,
-                        senderId: senderId || 'user-1',
-                        receiverId,
+                        senderId,
+                        receiverId: resolvedReceiverId,
                         content: msgContent,
                         replyToId,
-                        timestamp: timestampString
+                        timestamp: timestampIso
                     }
                 });
 
