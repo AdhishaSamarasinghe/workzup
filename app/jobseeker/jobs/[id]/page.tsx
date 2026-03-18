@@ -7,6 +7,33 @@ import { apiFetch } from "@/lib/api";
 import { BrowseJob, formatPay, formatDateLabel } from "@/lib/browse";
 import { MapPin, Calendar, DollarSign, Building2, BriefcaseBusiness } from "lucide-react";
 
+type TokenPayload = {
+  role?: string;
+};
+
+const normalizeRole = (role?: string) =>
+  String(role || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_");
+
+const getTokenRole = (): string | null => {
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem("token");
+  if (!token) return null;
+
+  try {
+    const base64 = token.split(".")[1];
+    if (!base64) return null;
+    const normalized = base64.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const decoded = JSON.parse(atob(padded)) as TokenPayload;
+    return normalizeRole(decoded.role);
+  } catch {
+    return null;
+  }
+};
+
 export default function JobApplyPage() {
   const params = useParams();
   const router = useRouter();
@@ -43,11 +70,22 @@ export default function JobApplyPage() {
   useEffect(() => {
     if (!id || typeof window === "undefined" || !localStorage.getItem("token")) return;
 
+    const tokenRole = getTokenRole();
+    if (tokenRole && tokenRole !== "JOB_SEEKER") {
+      setIsSaved(false);
+      return;
+    }
+
     const fetchSavedStatus = async () => {
       try {
         const data = await apiFetch(`/api/saved-jobs/${id}/status`);
         setIsSaved(Boolean(data.saved));
       } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes("Requires one of [JOB_SEEKER]")) {
+          // Ignore role-mismatch noise for users browsing with non-seeker tokens.
+          return;
+        }
         console.error("Failed to load saved job status:", err);
       }
     };

@@ -211,18 +211,13 @@ router.post("/login", async (req, res) => {
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(currentRole)) {
       // If a job seeker (or no-role account) signs in via employer/recruiter login,
-      // upgrade role automatically so posting flows work immediately.
+      // use portal role in token for this session without mutating DB role.
       if (isEmployerPortal && (currentRole === "JOB_SEEKER" || !currentRole)) {
         const preferredRole = allowedRoles.includes("RECRUITER")
           ? "RECRUITER"
           : "EMPLOYER";
 
-        const updatedUser = await prisma.user.update({
-          where: { id: user.id },
-          data: { role: preferredRole },
-        });
-
-        tokenRole = updatedUser.role;
+        tokenRole = preferredRole;
         currentRole = normalizeRole(tokenRole);
       }
     }
