@@ -23,6 +23,10 @@ router.post("/", authenticateToken, async (req, res) => {
         const job = await prisma.job.findUnique({ where: { id: jobId } });
         if (!job) return res.status(404).json({ message: "Job not found" });
 
+        if (job.employerId === applicantId) {
+            return res.status(400).json({ message: "You cannot apply to your own job" });
+        }
+
         // Check for existing application
         const existing = await prisma.application.findUnique({
             where: { jobId_applicantId: { jobId, applicantId } }
@@ -158,6 +162,10 @@ router.post("/:id/conversation", authenticateToken, async (req, res) => {
 
         if (!canAccess) {
             return res.status(403).json({ message: "Forbidden" });
+        }
+
+        if (application.applicantId === application.job?.employerId) {
+            return res.status(400).json({ message: "Invalid application participants" });
         }
 
         const conversation = await ensureConversationForApplication({

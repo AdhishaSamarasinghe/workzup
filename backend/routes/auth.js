@@ -201,31 +201,16 @@ router.post("/login", async (req, res) => {
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
-  let tokenRole = user.role;
+  const tokenRole = user.role;
 
   if (expectedRole) {
-    let currentRole = normalizeRole(tokenRole);
+    const currentRole = normalizeRole(tokenRole);
     const allowedRoles = buildAllowedRoles(expectedRole);
-    const isEmployerPortal =
-      allowedRoles.includes("EMPLOYER") || allowedRoles.includes("RECRUITER");
-
-    if (allowedRoles.length > 0 && !allowedRoles.includes(currentRole)) {
-      // If a job seeker (or no-role account) signs in via employer/recruiter login,
-      // use portal role in token for this session without mutating DB role.
-      if (isEmployerPortal && (currentRole === "JOB_SEEKER" || !currentRole)) {
-        const preferredRole = allowedRoles.includes("RECRUITER")
-          ? "RECRUITER"
-          : "EMPLOYER";
-
-        tokenRole = preferredRole;
-        currentRole = normalizeRole(tokenRole);
-      }
-    }
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(currentRole)) {
       const displayRoles = allowedRoles.join(", ");
       return res.status(403).json({
-        message: `This account cannot sign in here. Required role: ${displayRoles}`,
+        message: `This account cannot sign in here. Required role: ${displayRoles}. Please use the correct account for this portal.`,
       });
     }
   }

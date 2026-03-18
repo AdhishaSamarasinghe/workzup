@@ -8,11 +8,17 @@ export default function MessagesBadge() {
 
   useEffect(() => {
     const fetchUnread = async () => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token) {
+        setUnread(0);
+        return;
+      }
+
       try {
         const data = await apiFetch('/conversations/unread-count');
         if (data.success) setUnread(data.count);
       } catch (error) {
-        console.error("Failed to fetch unread count", error);
+        console.warn("Failed to fetch unread count", error);
       }
     };
 
