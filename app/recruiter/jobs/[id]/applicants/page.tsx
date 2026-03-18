@@ -185,12 +185,6 @@ export default function JobApplicantsPage() {
                             {statusFilter !== "ALL" && <span className="inline-block h-4 w-1 bg-blue-400 rounded-full"></span>}
                         </p>
                     </div>
-                    <button
-                        onClick={() => console.log("Add applicant clicked")}
-                        className="bg-[#6b8bff] hover:bg-[#5a78f0] text-white px-6 py-3 rounded-xl font-bold transition-all shadow-sm hover:translate-y-[-1px]"
-                    >
-                        + Add applicant
-                    </button>
                 </div>
 
                 {errorMsg && (
