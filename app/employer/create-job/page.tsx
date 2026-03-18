@@ -100,11 +100,6 @@ export default function CreateJobPage() {
               onSubmit={handleFormSubmit}
               onCancel={() => router.push("/employer/create-job/my-postings")}
             />
-            {msg.text && msg.type === "error" && (
-              <div className="mt-4 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
-                {msg.text}
-              </div>
-            )}
           </div>
         )}
       </main>

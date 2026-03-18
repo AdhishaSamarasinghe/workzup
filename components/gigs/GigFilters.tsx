@@ -103,7 +103,7 @@ const GigFilters: React.FC<GigFiltersProps> = ({
                                 const val = Math.min(Number(e.target.value), safeMax - 1);
                                 setPayRange([val, safeMax]);
                             }}
-                            className="range-slider absolute left-0 top-1/2 z-20 h-4 w-full -translate-y-1/2 appearance-none bg-transparent"
+                            className="range-slider absolute left-0 top-1/2 z-20 h-8 w-full -translate-y-1/2 appearance-none bg-transparent"
                         />
                         <input
                             type="range"
@@ -114,7 +114,7 @@ const GigFilters: React.FC<GigFiltersProps> = ({
                                 const val = Math.max(Number(e.target.value), safeMin + 1);
                                 setPayRange([safeMin, val]);
                             }}
-                            className="range-slider absolute left-0 top-1/2 z-30 h-4 w-full -translate-y-1/2 appearance-none bg-transparent"
+                            className="range-slider absolute left-0 top-1/2 z-30 h-8 w-full -translate-y-1/2 appearance-none bg-transparent"
                         />
 
                     </div>
@@ -158,12 +158,14 @@ const GigFilters: React.FC<GigFiltersProps> = ({
             <style jsx>{`
                 .range-slider {
                     pointer-events: none;
+                    overflow: visible;
                 }
 
                 .range-slider::-webkit-slider-thumb {
                     appearance: none;
                     height: 18px;
                     width: 18px;
+                    margin-top: -5px;
                     border-radius: 9999px;
                     background: #6b8bff;
                     border: 3px solid #ffffff;
@@ -181,6 +183,7 @@ const GigFilters: React.FC<GigFiltersProps> = ({
                     box-shadow: 0 4px 10px rgba(107, 139, 255, 0.28);
                     cursor: pointer;
                     pointer-events: auto;
+                    transform: translateY(-5px);
                 }
 
                 .range-slider::-webkit-slider-runnable-track {

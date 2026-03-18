@@ -10,7 +10,8 @@
     "dev:frontend": "kill-port 3000 && next dev -p 3000",
     "dev:backend": "npm --prefix backend run dev",
     "dev:ai": "cd ai-service && .\\venv\\Scripts\\python app.py",
-    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:ai\""
+    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:ai\"",
+    "install:all": "npm install && cd backend && npm install && npx prisma generate && cd ../ai-service && python -m venv venv && .\\venv\\Scripts\\pip install -r requirements.txt && .\\venv\\Scripts\\python -m spacy download en_core_web_sm"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.34",
@@ -26,7 +27,8 @@
     "nodemailer": "^7.0.13",
     "react": "19.2.3",
     "react-day-picker": "^9.13.0",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import MessagesBadge from '@/components/chat/MessagesBadge';
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { LogOut } from "lucide-react";
@@ -64,8 +66,7 @@ export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?:
                         <Link href="/jobseeker/gigs" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Find Jobs</Link>
                         <Link href="/jobseeker/matches" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">AI Matches</Link>
                         <Link href="/applications" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">My Applications</Link>
-                        <Link href="/jobseeker/saved" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Saved Jobs</Link>
-                        <Link href="/messages" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors">Messages</Link>
+                        <Link href="/messages" className="opacity-90 hover:opacity-100 hover:text-[#6b8cff] transition-colors"><MessagesBadge /></Link>
                     </nav>
 
                     {/* Profile Dropdown Area */}

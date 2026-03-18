@@ -2,24 +2,47 @@ import { API_BASE } from "@/lib/api";
 
 export function resolveUploadUrl(pathValue?: string | null) {
   if (!pathValue) return null;
+
+  const normalizeRelativeUploadPath = (value: string) => {
+    const normalized = value.replace(/\\/g, "/").trim();
+    const noLeadingSlash = normalized.replace(/^\/+/, "");
+
+    if (noLeadingSlash.startsWith("api/uploads/")) {
+      return `/${noLeadingSlash}`;
+    }
+
+    if (noLeadingSlash.startsWith("uploads/")) {
+      return `/api/${noLeadingSlash}`;
+    }
+
+    const uploadsToken = "/uploads/";
+    const tokenIndex = noLeadingSlash.indexOf(uploadsToken);
+    if (tokenIndex >= 0) {
+      const uploadRelative = noLeadingSlash.slice(tokenIndex + 1);
+      return `/api/${uploadRelative}`;
+    }
+
+    if (!noLeadingSlash.includes("/")) {
+      return `/api/uploads/${noLeadingSlash}`;
+    }
+
+    return `${API_BASE}/${noLeadingSlash}`;
+  };
+
   if (/^https?:\/\//i.test(pathValue)) {
     try {
       const parsed = new URL(pathValue);
-      const normalizedPath = parsed.pathname.replace(/\\/g, "/").replace(/^\/+/, "");
-      if (normalizedPath.startsWith("uploads/")) {
-        return `/api/${normalizedPath}`;
-      }
+      return normalizeRelativeUploadPath(parsed.pathname);
     } catch {
       return pathValue;
     }
-    return pathValue;
   }
-  if (pathValue.startsWith("/")) return pathValue;
-  const normalized = pathValue.replace(/\\/g, "/").replace(/^\/+/, "");
-  if (normalized.startsWith("uploads/")) {
-    return `/api/${normalized}`;
+
+  if (pathValue.startsWith("/")) {
+    return normalizeRelativeUploadPath(pathValue);
   }
-  return `${API_BASE}/${normalized}`;
+
+  return normalizeRelativeUploadPath(pathValue);
 }
 
 export function isGeneratedAvatar(pathValue?: string | null) {

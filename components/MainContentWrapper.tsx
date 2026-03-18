@@ -10,7 +10,13 @@ export default function MainContentWrapper({ children }: { children: ReactNode }
     // so the transparent PublicHeader can overlay the hero video.
     const isBrowseHero = pathname === "/jobseeker/browse";
     const isAuthRoute = pathname.includes("/auth/");
-    const isFixedHeaderRoute = isAuthRoute || (pathname.startsWith("/jobseeker") && !isBrowseHero) || pathname.startsWith("/apply-form") || pathname.startsWith("/applications") || pathname.startsWith("/messages");
+    const isFixedHeaderRoute =
+        isAuthRoute ||
+        pathname === "/about" ||
+        (pathname.startsWith("/jobseeker") && !isBrowseHero) ||
+        pathname.startsWith("/apply-form") ||
+        pathname.startsWith("/applications") ||
+        pathname.startsWith("/messages");
 
     return (
         <main className={`flex-1 ${isFixedHeaderRoute ? "pt-20" : ""}`}>

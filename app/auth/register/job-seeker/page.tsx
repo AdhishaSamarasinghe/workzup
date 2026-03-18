@@ -219,25 +219,31 @@ export default function JobSeekerRegisterPage() {
 
         setLoading(true);
         try {
-            // Temporary test-only behavior: log payload instead of sending to DB/API.
-            console.log("[Job Seeker Register - Temporary]", {
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                email: formData.email,
-                password: formData.password,
-                confirmPassword: formData.confirmPassword,
-                gender: formData.gender,
-                homeTown: formData.homeTown,
-                cv: formData.cv
-                    ? {
-                        name: formData.cv.name,
-                        size: formData.cv.size,
-                        type: formData.cv.type,
-                    }
-                    : null,
-                termsAccepted: formData.termsAccepted,
-                emailNotifications: formData.emailNotifications,
+            const formDataToSend = new FormData();
+            formDataToSend.append("firstName", formData.firstName.trim());
+            formDataToSend.append("lastName", formData.lastName.trim());
+            formDataToSend.append("email", formData.email.trim().toLowerCase());
+            formDataToSend.append("password", formData.password);
+            formDataToSend.append("role", "JOB_SEEKER");
+            formDataToSend.append("gender", formData.gender);
+            formDataToSend.append("homeTown", formData.homeTown.trim());
+            formDataToSend.append("termsAccepted", String(formData.termsAccepted));
+            formDataToSend.append("emailNotifications", String(formData.emailNotifications));
+
+            if (formData.cv) {
+                formDataToSend.append("cv", formData.cv);
+            }
+
+            const res = await fetch("http://localhost:5000/api/auth/register", {
+                method: "POST",
+                body: formDataToSend,
             });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Registration failed.");
+            }
 
             setSuccessMsg("Registration completed successfully");
             setShowSuccessModal(true);

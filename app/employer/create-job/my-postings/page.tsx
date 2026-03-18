@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 // Safe mock Job type
 type EmployerJob = {
@@ -22,12 +23,21 @@ export default function MyJobPostingsPage() {
   const [jobs, setJobs] = useState<EmployerJob[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [hasToken, setHasToken] = useState<boolean>(false);
+  const [checkedToken, setCheckedToken] = useState<boolean>(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   // Custom simple debounce hook to avoid needing to install new packages
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    setHasToken(!!token);
+    setCheckedToken(true);
+  }, []);
 
   useEffect(() => {
     const timerId = setTimeout(() => {
@@ -37,8 +47,17 @@ export default function MyJobPostingsPage() {
   }, [searchTerm]);
 
   const fetchJobs = useCallback(async () => {
+    if (!checkedToken) return;
+
     setLoading(true);
     setError("");
+
+    if (!hasToken) {
+      setJobs([]);
+      setError("Please sign in as recruiter or employer to view your job postings.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const queryParams = new URLSearchParams();
@@ -52,7 +71,7 @@ export default function MyJobPostingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchTerm, statusFilter]);
+  }, [debouncedSearchTerm, statusFilter, hasToken, checkedToken]);
 
   useEffect(() => {
     fetchJobs();
@@ -90,16 +109,16 @@ export default function MyJobPostingsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full sm:w-auto flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm outline-none focus:border-blue-500"
           />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full sm:w-auto rounded-lg border border-slate-300 px-4 py-2 text-sm outline-none focus:border-blue-500 bg-white"
-          >
-            <option value="ALL">All Status</option>
-            <option value="PUBLIC">Public</option>
-            <option value="PRIVATE">Private</option>
-            <option value="DRAFT">Draft</option>
-          </select>
+          <div className="w-full sm:w-[190px]">
+            <CustomSelect
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val || "ALL")}
+              options={["ALL", "PUBLIC", "PRIVATE", "DRAFT"]}
+              placeholder="All Status"
+              searchable={false}
+              showAllOption={false}
+            />
+          </div>
           <button
             onClick={fetchJobs}
             className="w-full sm:w-auto rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
@@ -117,7 +136,17 @@ export default function MyJobPostingsPage() {
 
         {error && !loading && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700">
-            {error}
+            <div className="space-y-3">
+              <p>{error}</p>
+              {!hasToken && (
+                <Link
+                  href="/auth/login/recruiter"
+                  className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                >
+                  Go to Recruiter Login
+                </Link>
+              )}
+            </div>
           </div>
         )}
 

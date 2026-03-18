@@ -128,7 +128,7 @@ export default function FindGigPage() {
                 </section>
 
                 <div className="grid gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
-                    <aside className="xl:sticky xl:top-24 xl:self-start">
+                    <aside className="xl:self-start">
                         <GigFilters
                             location={location}
                             setLocation={setLocation}
@@ -167,7 +167,7 @@ export default function FindGigPage() {
                             ))}
 
                             {filteredJobs.length === 0 && (
-                                <div className="animate-fade-in rounded-[28px] border border-dashed border-slate-300 bg-slate-50/70 py-20 text-center text-gray-500">
+                                <div className="animate-fade-in rounded-[28px] border border-dashed border-slate-300 bg-slate-50/70 py-20 text-center text-gray-500 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
                                     No gigs found matching your criteria.
                                 </div>
                             )}
