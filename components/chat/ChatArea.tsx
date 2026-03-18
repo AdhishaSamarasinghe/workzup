@@ -27,7 +27,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        const data = await apiFetch(`/messages?conversationId=${conversation.id}`);
+        const data = await apiFetch(`/conversations/${conversation.id}/messages`);
         if (data.success) {
           setMessages(data.data);
         }
@@ -39,6 +39,30 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
     };
 
     void fetchMessages();
+
+    const pollInterval = window.setInterval(() => {
+      void fetchMessages();
+    }, 3000);
+
+    return () => {
+      window.clearInterval(pollInterval);
+    };
+  }, [conversation?.id]);
+
+  useEffect(() => {
+    if (!conversation?.id) return;
+
+    const markAsRead = async () => {
+      try {
+        await apiFetch(`/conversations/${conversation.id}/read`, {
+          method: "PATCH",
+        });
+      } catch (error) {
+        console.error("Failed to mark conversation as read", error);
+      }
+    };
+
+    void markAsRead();
   }, [conversation?.id]);
 
   useEffect(() => {
@@ -89,7 +113,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
     }
   };
 
-  const otherParticipant = conversation.participants?.find((p: string) => p !== currentUserId) || 'Unknown User';
+  const otherParticipant = conversation.otherUserName || conversation.participants?.find((p: string) => p !== currentUserId) || 'Unknown User';
   const isOnline = onlineUsers.includes(otherParticipant);
 
   const handleMessageSent = (newMsg: any) => {
