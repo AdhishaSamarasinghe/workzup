@@ -33,16 +33,16 @@ export default function PublicHeader({ alwaysSolid = false }: { alwaysSolid?: bo
                 : "bg-transparent py-5"
                 }`}
         >
-            <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto grid w-full max-w-7xl grid-cols-[auto_1fr] items-center gap-3 px-4 sm:px-6 md:grid-cols-[1fr_auto_1fr] md:gap-0 lg:px-8">
                 {/* Logo */}
-                <Link href="/" className="flex items-center">
+                <Link href="/" className="flex items-center justify-self-start">
                     <div className={`transition-all duration-500 ${!isScrolled ? 'brightness-0 invert drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]' : ''}`}>
                         <Image src="/logo_main.png" alt="WorkzUp" width={140} height={32} priority className="h-auto w-auto max-w-[120px] md:max-w-[140px]" />
                     </div>
                 </Link>
 
                 {/* Navigation */}
-                <nav className={`hidden md:flex items-center gap-8 text-sm font-medium transition-colors ${!isScrolled ? "text-white" : "text-slate-700"}`}>
+                <nav className={`hidden md:flex items-center justify-center gap-8 text-sm font-medium transition-colors md:justify-self-center ${!isScrolled ? "text-white" : "text-slate-700"}`}>
                     <Link href="/" className={`transition-colors hover:text-[#6b8cff] ${pathname === "/" ? "font-semibold" : "opacity-90 hover:opacity-100"}`}>
                         Home
                     </Link>
@@ -56,7 +56,7 @@ export default function PublicHeader({ alwaysSolid = false }: { alwaysSolid?: bo
 
 
                 {/* Auth Buttons */}
-                <div className="flex items-center gap-3 md:gap-4">
+                <div className="col-start-2 flex items-center justify-end gap-3 md:col-start-3 md:gap-4 md:justify-self-end">
                     <Link
                         href="/auth/login/recruiter"
                         className={`px-5 py-2 md:px-6 md:py-2.5 rounded-md font-semibold text-xs md:text-sm tracking-wide transition-all duration-300 ${isScrolled
