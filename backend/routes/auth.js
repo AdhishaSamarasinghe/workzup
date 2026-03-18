@@ -10,6 +10,34 @@ const { sendOTP } = require("../lib/emailService");
 
 const router = express.Router();
 
+function normalizeRole(role) {
+  const key = String(role || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_");
+
+  if (key === "JOBSEEKER" || key === "JOB_SEEKER") return "JOB_SEEKER";
+  if (key === "RECRUITER") return "RECRUITER";
+  if (key === "EMPLOYER") return "EMPLOYER";
+  if (key === "ADMIN") return "ADMIN";
+
+  return key;
+}
+
+function buildAllowedRoles(expectedRole) {
+  const expected = Array.isArray(expectedRole) ? expectedRole : [expectedRole];
+  const normalized = expected
+    .map(normalizeRole)
+    .filter(Boolean);
+
+  if (normalized.includes("EMPLOYER") || normalized.includes("RECRUITER")) {
+    if (!normalized.includes("EMPLOYER")) normalized.push("EMPLOYER");
+    if (!normalized.includes("RECRUITER")) normalized.push("RECRUITER");
+  }
+
+  return normalized;
+}
+
 const ensureUploadDir = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
@@ -162,7 +190,7 @@ router.post("/register", upload.single("cv"), async (req, res) => {
 
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, expectedRole } = req.body;
 
   if (!email || !password)
     return res.status(400).json({ message: "email and password required" });
@@ -173,13 +201,47 @@ router.post("/login", async (req, res) => {
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
+  let tokenRole = user.role;
+
+  if (expectedRole) {
+    let currentRole = normalizeRole(tokenRole);
+    const allowedRoles = buildAllowedRoles(expectedRole);
+    const isEmployerPortal =
+      allowedRoles.includes("EMPLOYER") || allowedRoles.includes("RECRUITER");
+
+    if (allowedRoles.length > 0 && !allowedRoles.includes(currentRole)) {
+      // If a job seeker (or no-role account) signs in via employer/recruiter login,
+      // upgrade role automatically so posting flows work immediately.
+      if (isEmployerPortal && (currentRole === "JOB_SEEKER" || !currentRole)) {
+        const preferredRole = allowedRoles.includes("RECRUITER")
+          ? "RECRUITER"
+          : "EMPLOYER";
+
+        const updatedUser = await prisma.user.update({
+          where: { id: user.id },
+          data: { role: preferredRole },
+        });
+
+        tokenRole = updatedUser.role;
+        currentRole = normalizeRole(tokenRole);
+      }
+    }
+
+    if (allowedRoles.length > 0 && !allowedRoles.includes(currentRole)) {
+      const displayRoles = allowedRoles.join(", ");
+      return res.status(403).json({
+        message: `This account cannot sign in here. Required role: ${displayRoles}`,
+      });
+    }
+  }
+
   const token = jwt.sign(
-    { userId: user.id, role: user.role },
+    { userId: user.id, role: tokenRole },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
 
-  res.json({ token });
+  res.json({ token, role: tokenRole });
 });
 
 // GET /api/auth/profile
