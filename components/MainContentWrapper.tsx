@@ -16,7 +16,7 @@ export default function MainContentWrapper({ children }: { children: ReactNode }
         (pathname.startsWith("/jobseeker") && !isBrowseHero) ||
         pathname.startsWith("/apply-form") ||
         pathname.startsWith("/applications") ||
-        pathname.startsWith("/messages");
+        pathname.startsWith("/messages") && !pathname.startsWith("/admin");
 
     return (
         <main className={`flex-1 ${isFixedHeaderRoute ? "pt-20" : ""}`}>
