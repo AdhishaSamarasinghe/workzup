@@ -231,19 +231,21 @@ export default function BrowseJobsPage() {
 
   return (
     <div className="min-h-screen bg-[#f7fafc]">
-      <section className="relative h-[560px] w-full overflow-visible">
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover"
-        >
-          <source src="/hero-video.mp4" type="video/mp4" />
-        </video>
+      <section className="relative h-[560px] w-full overflow-hidden">
+        <div className="absolute inset-0">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover"
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+          </video>
 
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,15,25,0.35),rgba(10,15,25,0.72))]" />
-        <div className="absolute inset-x-0 bottom-0 h-36 bg-[linear-gradient(180deg,rgba(247,250,252,0),rgba(247,250,252,1))]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,15,25,0.35),rgba(10,15,25,0.72))]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(180deg,rgba(10,15,25,0)_0%,rgba(247,250,252,0.18)_38%,rgba(247,250,252,0.72)_74%,rgba(247,250,252,1)_100%)]" />
+        </div>
 
         <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-6 text-center">
           <h1 className="mx-auto max-w-3xl text-4xl font-bold text-white md:text-6xl">

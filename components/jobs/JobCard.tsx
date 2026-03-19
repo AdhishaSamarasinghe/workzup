@@ -8,6 +8,12 @@ type JobCardProps = {
   onViewDetails?: () => void;
 };
 
+function shortenDescription(text: string, maxLength = 150) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength).trimEnd()}...`;
+}
+
 export default function JobCard({
   title,
   company,
@@ -17,8 +23,10 @@ export default function JobCard({
   date,
   onViewDetails,
 }: JobCardProps) {
+  const previewDescription = shortenDescription(description);
+
   return (
-    <div className="flex min-h-[460px] cursor-default flex-col rounded-[26px] bg-white p-8 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
+    <div className="flex h-[460px] cursor-default flex-col overflow-hidden rounded-[26px] bg-white p-8 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
       <div className="flex-1">
         <div className="flex items-start justify-between">
           <h2 className="max-w-[72%] text-[1.45rem] font-semibold leading-snug text-slate-900">
@@ -32,7 +40,16 @@ export default function JobCard({
 
         <p className="mt-2 text-[1.02rem] text-gray-500">{company}</p>
 
-        <p className="mt-5 text-base leading-8 text-gray-600">{description}</p>
+        <p
+          className="mt-5 overflow-hidden text-base leading-8 text-gray-600"
+          style={{
+            display: "-webkit-box",
+            WebkitLineClamp: 4,
+            WebkitBoxOrient: "vertical",
+          }}
+        >
+          {previewDescription}
+        </p>
       </div>
 
       <div className="my-7 border-t border-gray-200"></div>
@@ -43,7 +60,7 @@ export default function JobCard({
         <p>{date}</p>
       </div>
 
-      <div className="mt-8 flex justify-center pb-1">
+      <div className="mt-auto flex justify-center pt-8 pb-1">
         <button
           onClick={onViewDetails}
           className="rounded-full bg-[#6b8bff] px-10 py-3 text-base text-white transition hover:opacity-90"
