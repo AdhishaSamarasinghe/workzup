@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "dev:frontend": "kill-port 3000 && next dev -p 3000",
-    "dev:backend": "npm --prefix backend run dev",
+    "dev:backend": "kill-port 5000 5001 && npm --prefix backend run dev",
     "dev:ai": "cd ai-service && .\\venv\\Scripts\\python app.py",
     "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:ai\"",
     "install:all": "npm install && cd backend && npm install && npx prisma generate && cd ../ai-service && python -m venv venv && .\\venv\\Scripts\\pip install -r requirements.txt && .\\venv\\Scripts\\python -m spacy download en_core_web_sm"
