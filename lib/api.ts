@@ -70,12 +70,13 @@ export async function getCurrentUserRole() {
     if (error || !data.user) return null;
 
     const role =
-      data.user.app_metadata?.role ||
-      data.user.user_metadata?.role ||
-      null;
+      data.user.app_metadata?.role || data.user.user_metadata?.role || null;
 
     return role
-      ? String(role).trim().toUpperCase().replace(/[\s-]+/g, "_")
+      ? String(role)
+          .trim()
+          .toUpperCase()
+          .replace(/[\s-]+/g, "_")
       : null;
   } catch {
     return null;
@@ -124,14 +125,14 @@ async function executeFetch(path: string, options: RequestInit = {}) {
       if (API_BASE.includes("localhost:5000")) {
         const fallbackUrl = API_BASE.replace("5000", "5001");
         console.warn(
-          "[API] Localhost:5000 unreachable. Detecting if backend is on 5001..."
+          "[API] Localhost:5000 unreachable. Detecting if backend is on 5001...",
         );
 
         try {
           const healthRes = await fetch(`${fallbackUrl}/health`);
           if (healthRes.ok) {
             console.log(
-              `[API] Backend detected on ${fallbackUrl}. Caching for future calls.`
+              `[API] Backend detected on ${fallbackUrl}. Caching for future calls.`,
             );
             detectedBaseUrl = fallbackUrl;
             return await performFetch(fallbackUrl);
@@ -142,7 +143,7 @@ async function executeFetch(path: string, options: RequestInit = {}) {
       }
 
       throw new Error(
-        "Backend not reachable. Check if server is running on port 5000 or 5001."
+        "Backend not reachable. Check if server is running on port 5000 or 5001.",
       );
     }
 
@@ -170,9 +171,13 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   const res = await executeFetch(path, { ...options, headers });
 
   if (!res.ok) {
-    const errorData: { message?: string; error?: string } = await res.json().catch(() => ({}));
+    const errorData: { message?: string; error?: string } = await res
+      .json()
+      .catch(() => ({}));
     const errorMsg =
-      errorData.message || errorData.error || `Request failed with status: ${res.status}`;
+      errorData.message ||
+      errorData.error ||
+      `Request failed with status: ${res.status}`;
     if (res.status >= 500) {
       console.error(`[API Error] ${res.status}: ${errorMsg}`);
     } else {
@@ -194,7 +199,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
  */
 export async function fetchApi<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<ApiResponse<T>> {
   try {
     const data = await apiFetch(endpoint, options);
@@ -215,13 +220,13 @@ export async function getConversations(): Promise<ApiResponse<Conversation[]>> {
 }
 
 export async function getConversation(
-  conversationId: string
+  conversationId: string,
 ): Promise<ApiResponse<Conversation>> {
   return fetchApi<Conversation>(`/conversations/${conversationId}`);
 }
 
 export async function createConversation(
-  data: CreateConversationRequest
+  data: CreateConversationRequest,
 ): Promise<ApiResponse<Conversation>> {
   return fetchApi<Conversation>("/conversations", {
     method: "POST",
@@ -230,7 +235,7 @@ export async function createConversation(
 }
 
 export async function archiveConversation(
-  conversationId: string
+  conversationId: string,
 ): Promise<ApiResponse<Conversation>> {
   return fetchApi<Conversation>(`/conversations/${conversationId}`, {
     method: "PATCH",
@@ -240,7 +245,7 @@ export async function archiveConversation(
 
 export async function pinConversation(
   conversationId: string,
-  isPinned: boolean
+  isPinned: boolean,
 ): Promise<ApiResponse<Conversation>> {
   return fetchApi<Conversation>(`/conversations/${conversationId}`, {
     method: "PATCH",
@@ -249,7 +254,7 @@ export async function pinConversation(
 }
 
 export async function markConversationAsRead(
-  conversationId: string
+  conversationId: string,
 ): Promise<ApiResponse<Conversation>> {
   return fetchApi<Conversation>(`/conversations/${conversationId}/read`, {
     method: "PATCH",
@@ -260,14 +265,14 @@ export async function markConversationAsRead(
 // MESSAGE API
 // ============================================
 export async function getMessages(
-  conversationId: string
+  conversationId: string,
 ): Promise<ApiResponse<Message[]>> {
   return fetchApi<Message[]>(`/conversations/${conversationId}/messages`);
 }
 
 export async function sendMessage(
   conversationId: string,
-  data: SendMessageRequest
+  data: SendMessageRequest,
 ): Promise<ApiResponse<Message>> {
   return fetchApi<Message>(`/conversations/${conversationId}/messages`, {
     method: "POST",
@@ -278,7 +283,7 @@ export async function sendMessage(
 export async function editMessage(
   conversationId: string,
   messageId: string,
-  data: UpdateMessageRequest
+  data: UpdateMessageRequest,
 ): Promise<ApiResponse<Message>> {
   return fetchApi<Message>(`/messages/${messageId}`, {
     method: "PATCH",
@@ -288,7 +293,7 @@ export async function editMessage(
 
 export async function deleteMessage(
   conversationId: string,
-  messageId: string
+  messageId: string,
 ): Promise<ApiResponse<null>> {
   return fetchApi<null>(`/messages/${messageId}`, {
     method: "DELETE",
@@ -298,7 +303,7 @@ export async function deleteMessage(
 
 export async function markMessageAsRead(
   conversationId: string,
-  messageId: string
+  messageId: string,
 ): Promise<ApiResponse<Message>> {
   return fetchApi<Message>(`/messages/${messageId}`, {
     method: "PATCH",
@@ -311,7 +316,7 @@ export async function markMessageAsRead(
 // ============================================
 export async function updateTypingStatus(
   conversationId: string,
-  isTyping: boolean
+  isTyping: boolean,
 ): Promise<ApiResponse<User[]>> {
   return fetchApi<User[]>(`/conversations/${conversationId}/typing`, {
     method: "POST",
@@ -320,7 +325,7 @@ export async function updateTypingStatus(
 }
 
 export async function getTypingUsers(
-  conversationId: string
+  conversationId: string,
 ): Promise<ApiResponse<User[]>> {
   return fetchApi<User[]>(`/conversations/${conversationId}/typing`);
 }
@@ -329,14 +334,14 @@ export async function getTypingUsers(
 // JOB API
 // ============================================
 export async function getJobDetails(
-  jobId: string
+  jobId: string,
 ): Promise<ApiResponse<JobDetails>> {
   return fetchApi<JobDetails>(`/jobs/${jobId}`);
 }
 
 export async function updateJobDetails(
   jobId: string,
-  data: UpdateJobDetailsRequest
+  data: UpdateJobDetailsRequest,
 ): Promise<ApiResponse<JobDetails>> {
   return fetchApi<JobDetails>(`/jobs/${jobId}`, {
     method: "PATCH",
@@ -349,7 +354,7 @@ export async function updateJobDetails(
 // ============================================
 export async function updatePreferences(
   userId: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
 ): Promise<ApiResponse<Record<string, unknown>>> {
   void userId;
 
@@ -363,21 +368,23 @@ export async function updatePreferences(
 // RECRUITER PROFILE API
 // ============================================
 export async function fetchRecruiter(
-  recruiterId: string
+  recruiterId: string,
 ): Promise<ApiResponse<Record<string, unknown>>> {
   return fetchApi<Record<string, unknown>>(`/recruiters/${recruiterId}`);
 }
 
 export async function fetchRecruiterJobs(
-  recruiterId: string
+  recruiterId: string,
 ): Promise<ApiResponse<Record<string, unknown>[]>> {
   return fetchApi<Record<string, unknown>[]>(`/recruiters/${recruiterId}/jobs`);
 }
 
 export async function fetchRecruiterReviews(
-  recruiterId: string
+  recruiterId: string,
 ): Promise<ApiResponse<Record<string, unknown>[]>> {
-  return fetchApi<Record<string, unknown>[]>(`/recruiters/${recruiterId}/reviews`);
+  return fetchApi<Record<string, unknown>[]>(
+    `/recruiters/${recruiterId}/reviews`,
+  );
 }
 
 // ============================================
@@ -385,7 +392,7 @@ export async function fetchRecruiterReviews(
 // ============================================
 export async function searchMessages(
   query: string,
-  conversationId?: string
+  conversationId?: string,
 ): Promise<ApiResponse<Message[]>> {
   const params = new URLSearchParams({ q: query });
   if (conversationId) {

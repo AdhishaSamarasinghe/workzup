@@ -32,7 +32,10 @@ export async function migrateLegacyUserToSupabase(
   });
 }
 
-export async function signInWithSupabasePassword(email: string, password: string) {
+export async function signInWithSupabasePassword(
+  email: string,
+  password: string,
+) {
   const supabase = requireSupabaseClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -46,7 +49,10 @@ export async function signInWithSupabasePassword(email: string, password: string
   return data;
 }
 
-export async function startSupabaseOAuth(role: string, provider: "google" | "facebook" | "linkedin_oidc") {
+export async function startSupabaseOAuth(
+  role: string,
+  provider: "google" | "facebook" | "linkedin_oidc",
+) {
   if (typeof window !== "undefined") {
     localStorage.setItem("workzup:oauth-role", role);
   }

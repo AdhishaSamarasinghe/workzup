@@ -26,7 +26,9 @@ import { useWorkzupAuth } from "@/lib/auth/useWorkzupAuth";
 const JOBS_PER_PAGE = 4;
 const CATEGORIES_PER_PAGE = 10;
 
-function pickTextFilters(searchParams: URLSearchParams | ReturnType<typeof useSearchParams>): BrowseFilters {
+function pickTextFilters(
+  searchParams: URLSearchParams | ReturnType<typeof useSearchParams>,
+): BrowseFilters {
   return {
     keyword: searchParams.get("keyword") || "",
     district: searchParams.get("district") || "",
@@ -55,20 +57,40 @@ function filterJobs(
     const matchesDistrict =
       !district ||
       normalizeText(job.location).includes(district) ||
-      job.locations.some((location) => normalizeText(location).includes(district));
+      job.locations.some((location) =>
+        normalizeText(location).includes(district),
+      );
 
-    const matchesDate = !filters.date || job.jobDates.includes(filters.date) || job.date === filters.date;
+    const matchesDate =
+      !filters.date ||
+      job.jobDates.includes(filters.date) ||
+      job.date === filters.date;
     const matchesPay = matchesPayRange(job.pay, filters.pay);
     const matchesCategory =
-      options.ignoreCategory || !filters.category || slugify(job.derivedCategory) === filters.category;
+      options.ignoreCategory ||
+      !filters.category ||
+      slugify(job.derivedCategory) === filters.category;
     const matchesCompany =
-      options.ignoreCompany || !filters.company || slugify(job.companyName) === filters.company;
+      options.ignoreCompany ||
+      !filters.company ||
+      slugify(job.companyName) === filters.company;
 
-    return matchesKeyword && matchesDistrict && matchesDate && matchesPay && matchesCategory && matchesCompany;
+    return (
+      matchesKeyword &&
+      matchesDistrict &&
+      matchesDate &&
+      matchesPay &&
+      matchesCategory &&
+      matchesCompany
+    );
   });
 }
 
-function applyFilterToUrl(filters: BrowseFilters, pathname: string, router: ReturnType<typeof useRouter>) {
+function applyFilterToUrl(
+  filters: BrowseFilters,
+  pathname: string,
+  router: ReturnType<typeof useRouter>,
+) {
   const params = new URLSearchParams();
 
   Object.entries(filters).forEach(([key, value]) => {
@@ -89,10 +111,18 @@ export default function BrowseJobsPage() {
     jobs: [],
     categories: [],
     topCompanies: [],
-    stats: { totalJobs: 0, totalCategories: 0, totalCompanies: 0, totalSeekers: 0, totalApplications: 0 },
+    stats: {
+      totalJobs: 0,
+      totalCategories: 0,
+      totalCompanies: 0,
+      totalSeekers: 0,
+      totalApplications: 0,
+    },
   });
   const [filters, setFilters] = useState<BrowseFilters>(DEFAULT_BROWSE_FILTERS);
-  const [draftFilters, setDraftFilters] = useState<BrowseFilters>(DEFAULT_BROWSE_FILTERS);
+  const [draftFilters, setDraftFilters] = useState<BrowseFilters>(
+    DEFAULT_BROWSE_FILTERS,
+  );
   const [page, setPage] = useState(1);
   const [categoryPage, setCategoryPage] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
@@ -116,13 +146,25 @@ export default function BrowseJobsPage() {
         setBrowseData({
           jobs: Array.isArray(data.jobs) ? data.jobs : [],
           categories: Array.isArray(data.categories) ? data.categories : [],
-          topCompanies: Array.isArray(data.topCompanies) ? data.topCompanies : [],
-          stats: data.stats || { totalJobs: 0, totalCategories: 0, totalCompanies: 0, totalSeekers: 0, totalApplications: 0 },
+          topCompanies: Array.isArray(data.topCompanies)
+            ? data.topCompanies
+            : [],
+          stats: data.stats || {
+            totalJobs: 0,
+            totalCategories: 0,
+            totalCompanies: 0,
+            totalSeekers: 0,
+            totalApplications: 0,
+          },
         });
         setLoadError("");
       } catch (error) {
         if (!isMounted) return;
-        setLoadError(error instanceof Error ? error.message : "Failed to load browse homepage data");
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load browse homepage data",
+        );
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -136,27 +178,43 @@ export default function BrowseJobsPage() {
   }, []);
 
   const featuredJobs = filterJobs(browseData.jobs, filters);
-  const categoryScopedJobs = filterJobs(browseData.jobs, filters, { ignoreCategory: true });
-  const companyScopedJobs = filterJobs(browseData.jobs, filters, { ignoreCompany: true });
+  const categoryScopedJobs = filterJobs(browseData.jobs, filters, {
+    ignoreCategory: true,
+  });
+  const companyScopedJobs = filterJobs(browseData.jobs, filters, {
+    ignoreCompany: true,
+  });
 
   const dynamicCategories = browseData.categories
     .map((category) => ({
       ...category,
-      count: categoryScopedJobs.filter((job) => slugify(job.derivedCategory) === category.slug).length,
+      count: categoryScopedJobs.filter(
+        (job) => slugify(job.derivedCategory) === category.slug,
+      ).length,
     }))
     .filter((category) => category.count > 0);
 
   const dynamicCompanies = browseData.topCompanies
     .map((company) => ({
       ...company,
-      jobCount: companyScopedJobs.filter((job) => slugify(job.companyName) === company.slug).length,
+      jobCount: companyScopedJobs.filter(
+        (job) => slugify(job.companyName) === company.slug,
+      ).length,
     }))
     .filter((company) => company.jobCount > 0);
 
-  const totalPages = Math.max(1, Math.ceil(featuredJobs.length / JOBS_PER_PAGE));
-  const totalCategoryPages = Math.max(1, Math.ceil(dynamicCategories.length / CATEGORIES_PER_PAGE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(featuredJobs.length / JOBS_PER_PAGE),
+  );
+  const totalCategoryPages = Math.max(
+    1,
+    Math.ceil(dynamicCategories.length / CATEGORIES_PER_PAGE),
+  );
   const hasActiveFilters = Object.values(filters).some(Boolean);
-  const keywords = Array.from(new Set(browseData.jobs.map((job) => job.title))).sort();
+  const keywords = Array.from(
+    new Set(browseData.jobs.map((job) => job.title)),
+  ).sort();
 
   useEffect(() => {
     setPage(1);
@@ -275,8 +333,12 @@ export default function BrowseJobsPage() {
       {loadError ? (
         <section className="max-w-6xl mx-auto px-6 py-16">
           <div className="rounded-[28px] border border-red-100 bg-white px-8 py-14 text-center shadow-sm">
-            <h2 className="text-2xl font-semibold text-slate-900">Browse homepage data could not be loaded</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">{loadError}</p>
+            <h2 className="text-2xl font-semibold text-slate-900">
+              Browse homepage data could not be loaded
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+              {loadError}
+            </p>
           </div>
         </section>
       ) : isLoading ? (

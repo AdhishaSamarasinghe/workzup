@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useState, startTransition } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState,
+  startTransition,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 import {
@@ -30,7 +36,9 @@ function upsertMessage(list: MessageRow[], incoming: MessageRow) {
 
   if (existingIndex === -1) {
     return [...list, incoming].sort((a, b) => {
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return (
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
     });
   }
 
@@ -50,16 +58,17 @@ function sortConversations(list: ConversationSummary[]) {
 export default function ChatLayout({ audience }: ChatLayoutProps) {
   const searchParams = useSearchParams();
   const requestedConversationId = searchParams.get("conversationId");
-  const requestedRecipientId = searchParams.get("recipientId") || searchParams.get("userId");
+  const requestedRecipientId =
+    searchParams.get("recipientId") || searchParams.get("userId");
   const requestedRecipientName = searchParams.get("recipientName");
 
   const [currentUser, setCurrentUser] = useState<MessagingUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(true);
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
-    requestedConversationId,
-  );
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(requestedConversationId);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -67,7 +76,11 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
   const [screenError, setScreenError] = useState<string | null>(null);
 
   const selectedConversation = useMemo(() => {
-    return conversations.find((conversation) => conversation.id === selectedConversationId) || null;
+    return (
+      conversations.find(
+        (conversation) => conversation.id === selectedConversationId,
+      ) || null
+    );
   }, [conversations, selectedConversationId]);
 
   const fallbackConversation = useMemo<ConversationSummary | null>(() => {
@@ -100,33 +113,38 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     selectedConversationId,
   ]);
 
-  const loadConversations = useEffectEvent(async (preferredConversationId?: string | null) => {
-    setConversationsLoading(true);
+  const loadConversations = useEffectEvent(
+    async (preferredConversationId?: string | null) => {
+      setConversationsLoading(true);
 
-    try {
-      const nextConversations = await listConversations();
-      setScreenError(null);
-      setConversations(nextConversations);
+      try {
+        const nextConversations = await listConversations();
+        setScreenError(null);
+        setConversations(nextConversations);
 
-      if (preferredConversationId) {
-        const hasPreferredConversation = nextConversations.some(
-          (conversation: ConversationSummary) => conversation.id === preferredConversationId,
-        );
+        if (preferredConversationId) {
+          const hasPreferredConversation = nextConversations.some(
+            (conversation: ConversationSummary) =>
+              conversation.id === preferredConversationId,
+          );
 
-        if (hasPreferredConversation) {
-          setSelectedConversationId(preferredConversationId);
-        } else if (selectedConversationId === preferredConversationId) {
-          setSelectedConversationId(null);
+          if (hasPreferredConversation) {
+            setSelectedConversationId(preferredConversationId);
+          } else if (selectedConversationId === preferredConversationId) {
+            setSelectedConversationId(null);
+          }
         }
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to load your conversations.";
+        setScreenError(message);
+      } finally {
+        setConversationsLoading(false);
       }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unable to load your conversations.";
-      setScreenError(message);
-    } finally {
-      setConversationsLoading(false);
-    }
-  });
+    },
+  );
 
   const loadMessages = useEffectEvent(async (conversationId: string) => {
     setMessagesLoading(true);
@@ -147,7 +165,8 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
         );
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to load messages.";
+      const message =
+        error instanceof Error ? error.message : "Unable to load messages.";
       setScreenError(message);
     } finally {
       setMessagesLoading(false);
@@ -161,8 +180,10 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
         return;
       }
 
-      const isActiveConversation = incomingMessage.conversation_id === selectedConversationId;
-      const isIncomingFromOtherUser = incomingMessage.sender_id !== currentUser?.id;
+      const isActiveConversation =
+        incomingMessage.conversation_id === selectedConversationId;
+      const isIncomingFromOtherUser =
+        incomingMessage.sender_id !== currentUser?.id;
       const hasConversation = conversations.some(
         (conversation) => conversation.id === incomingMessage.conversation_id,
       );
@@ -192,7 +213,9 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
       });
 
       if (isActiveConversation) {
-        setMessages((currentMessages) => upsertMessage(currentMessages, incomingMessage));
+        setMessages((currentMessages) =>
+          upsertMessage(currentMessages, incomingMessage),
+        );
 
         if (isIncomingFromOtherUser && currentUser?.id) {
           try {
@@ -221,7 +244,9 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
       } catch (error) {
         if (!cancelled) {
           const message =
-            error instanceof Error ? error.message : "Unable to read your Supabase session.";
+            error instanceof Error
+              ? error.message
+              : "Unable to read your Supabase session.";
           setScreenError(message);
         }
       } finally {
@@ -247,7 +272,11 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
   }, [currentUser?.id, requestedConversationId]);
 
   useEffect(() => {
-    if (!currentUser?.id || !requestedRecipientId || requestedRecipientId === currentUser.id) {
+    if (
+      !currentUser?.id ||
+      !requestedRecipientId ||
+      requestedRecipientId === currentUser.id
+    ) {
       return;
     }
 
@@ -255,7 +284,10 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
 
     const ensureConversation = async () => {
       try {
-        const conversation = await getOrCreateConversation(currentUser.id, requestedRecipientId);
+        const conversation = await getOrCreateConversation(
+          currentUser.id,
+          requestedRecipientId,
+        );
         if (cancelled) {
           return;
         }
@@ -265,7 +297,9 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
       } catch (error) {
         if (!cancelled) {
           const message =
-            error instanceof Error ? error.message : "Unable to open that conversation.";
+            error instanceof Error
+              ? error.message
+              : "Unable to open that conversation.";
           setScreenError(message);
         }
       }
@@ -307,7 +341,9 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
           table: "messages",
         },
         (payload) => {
-          void applyIncomingMessage(payload as RealtimePostgresInsertPayload<MessageRow>);
+          void applyIncomingMessage(
+            payload as RealtimePostgresInsertPayload<MessageRow>,
+          );
         },
       )
       .subscribe();
@@ -326,8 +362,14 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     setScreenError(null);
 
     try {
-      const insertedMessage = await sendMessage(selectedConversationId, currentUser.id, content);
-      setMessages((currentMessages) => upsertMessage(currentMessages, insertedMessage));
+      const insertedMessage = await sendMessage(
+        selectedConversationId,
+        currentUser.id,
+        content,
+      );
+      setMessages((currentMessages) =>
+        upsertMessage(currentMessages, insertedMessage),
+      );
       setConversations((currentConversations) =>
         sortConversations(
           currentConversations.map((conversation) =>
@@ -342,7 +384,8 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
         ),
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to send your message.";
+      const message =
+        error instanceof Error ? error.message : "Unable to send your message.";
       setScreenError(message);
       throw error;
     } finally {
@@ -350,7 +393,8 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     }
   };
 
-  const pageTitle = audience === "JOB_SEEKER" ? "Job Seeker Messages" : "Recruiter Messages";
+  const pageTitle =
+    audience === "JOB_SEEKER" ? "Job Seeker Messages" : "Recruiter Messages";
 
   if (authLoading) {
     return (
@@ -364,7 +408,9 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     return (
       <div className="mt-[80px] flex h-[calc(100vh-80px)] items-center justify-center bg-[#f8fafc] px-6 text-center">
         <div>
-          <p className="text-lg font-semibold text-slate-900">Supabase session required</p>
+          <p className="text-lg font-semibold text-slate-900">
+            Supabase session required
+          </p>
           <p className="mt-2 text-sm text-slate-500">
             Sign in with your current WorkzUp account to access messaging.
           </p>
@@ -380,7 +426,9 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
             WorkzUp realtime chat
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-900">{pageTitle}</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-900">
+            {pageTitle}
+          </h1>
         </div>
 
         <div className="grid min-h-0 flex-1 grid-rows-[320px_1fr] md:grid-cols-[360px_1fr] md:grid-rows-1">

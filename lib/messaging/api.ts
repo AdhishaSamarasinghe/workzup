@@ -2,9 +2,16 @@
 
 import { apiFetch } from "@/lib/api";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { ConversationRow, ConversationSummary, MessageRow, MessagingUser } from "./types";
+import type {
+  ConversationRow,
+  ConversationSummary,
+  MessageRow,
+  MessagingUser,
+} from "./types";
 
-function normalizeConversationSummary(row: Record<string, unknown>): ConversationSummary {
+function normalizeConversationSummary(
+  row: Record<string, unknown>,
+): ConversationSummary {
   return {
     id: String(row.id),
     user1_id: String(row.user1_id),
@@ -12,8 +19,12 @@ function normalizeConversationSummary(row: Record<string, unknown>): Conversatio
     created_at: String(row.created_at),
     other_user_id: String(row.other_user_id),
     other_user_name: String(row.other_user_name || "Unknown user"),
-    other_user_email: row.other_user_email ? String(row.other_user_email) : null,
-    other_user_avatar: row.other_user_avatar ? String(row.other_user_avatar) : null,
+    other_user_email: row.other_user_email
+      ? String(row.other_user_email)
+      : null,
+    other_user_avatar: row.other_user_avatar
+      ? String(row.other_user_avatar)
+      : null,
     last_message: row.last_message ? String(row.last_message) : null,
     last_message_at: row.last_message_at ? String(row.last_message_at) : null,
     unread_count: Number(row.unread_count || 0),
@@ -36,7 +47,13 @@ function normalizeUserMetadata(user: {
     id: user.id,
     name:
       fullName ||
-      String(metadata.full_name || metadata.name || metadata.company_name || user.email || "User"),
+      String(
+        metadata.full_name ||
+          metadata.name ||
+          metadata.company_name ||
+          user.email ||
+          "User",
+      ),
     email: user.email || null,
     avatarUrl: metadata.avatar_url
       ? String(metadata.avatar_url)
@@ -89,7 +106,11 @@ export async function getOrCreateConversation(userA: string, userB: string) {
   return data as ConversationRow;
 }
 
-export async function sendMessage(conversationId: string, senderId: string, content: string) {
+export async function sendMessage(
+  conversationId: string,
+  senderId: string,
+  content: string,
+) {
   const trimmedContent = content.trim();
 
   if (!trimmedContent) {
@@ -97,17 +118,22 @@ export async function sendMessage(conversationId: string, senderId: string, cont
   }
 
   void senderId;
-  const data = await apiFetch(`/api/messaging/conversations/${conversationId}/messages`, {
-    method: "POST",
-    body: JSON.stringify({
-      content: trimmedContent,
-    }),
-  });
+  const data = await apiFetch(
+    `/api/messaging/conversations/${conversationId}/messages`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        content: trimmedContent,
+      }),
+    },
+  );
   return data as MessageRow;
 }
 
 export async function fetchMessages(conversationId: string) {
-  const data = await apiFetch(`/api/messaging/conversations/${conversationId}/messages`);
+  const data = await apiFetch(
+    `/api/messaging/conversations/${conversationId}/messages`,
+  );
   return (Array.isArray(data) ? data : []) as MessageRow[];
 }
 
