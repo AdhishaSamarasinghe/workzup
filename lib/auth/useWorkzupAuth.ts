@@ -18,6 +18,14 @@ export function useWorkzupAuth(): WorkzupAuthState {
     let active = true;
     const supabase = getSupabaseBrowserClient();
 
+    if (!supabase) {
+      setState({
+        loading: false,
+        isAuthenticated: false,
+      });
+      return;
+    }
+
     const syncSession = async () => {
       try {
         const { data } = await supabase.auth.getSession();

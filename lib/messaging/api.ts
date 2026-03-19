@@ -53,6 +53,10 @@ function normalizeUserMetadata(user: {
 
 export async function getCurrentMessagingUser() {
   const supabase = getSupabaseBrowserClient();
+  if (!supabase) {
+    return null;
+  }
+
   const { data, error } = await supabase.auth.getUser();
 
   if (error) {

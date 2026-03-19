@@ -3,6 +3,17 @@
 import { apiFetch } from "@/lib/api";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
+function requireSupabaseClient() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) {
+    throw new Error(
+      "Supabase browser auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
+    );
+  }
+
+  return supabase;
+}
+
 export async function migrateLegacyUserToSupabase(
   email: string,
   password: string,
@@ -22,7 +33,7 @@ export async function migrateLegacyUserToSupabase(
 }
 
 export async function signInWithSupabasePassword(email: string, password: string) {
-  const supabase = getSupabaseBrowserClient();
+  const supabase = requireSupabaseClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -40,7 +51,7 @@ export async function startSupabaseOAuth(role: string, provider: "google" | "fac
     localStorage.setItem("workzup:oauth-role", role);
   }
 
-  const supabase = getSupabaseBrowserClient();
+  const supabase = requireSupabaseClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
@@ -56,7 +67,7 @@ export async function startSupabaseOAuth(role: string, provider: "google" | "fac
 }
 
 export async function syncOAuthSession(role: string) {
-  const supabase = getSupabaseBrowserClient();
+  const supabase = requireSupabaseClient();
   const { data, error } = await supabase.auth.getSession();
 
   if (error) {
@@ -87,6 +98,6 @@ export async function syncOAuthSession(role: string) {
 }
 
 export async function signOutWorkzupAuth() {
-  const supabase = getSupabaseBrowserClient();
+  const supabase = requireSupabaseClient();
   await supabase.auth.signOut();
 }

@@ -23,8 +23,7 @@ export default function ReviewSection() {
                 setReviewsData(Array.isArray(data) ? data : []);
                 setHasError(false);
             })
-            .catch((error) => {
-                console.error(error);
+            .catch(() => {
                 setReviewsData([]);
                 setHasError(true);
             });

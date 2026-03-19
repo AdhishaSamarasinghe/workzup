@@ -34,6 +34,10 @@ export async function getAuthToken() {
 
   try {
     const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      return null;
+    }
+
     const { data } = await supabase.auth.getSession();
     const supabaseToken = data.session?.access_token || null;
 
@@ -58,6 +62,10 @@ export async function getCurrentUserRole() {
 
   try {
     const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      return null;
+    }
+
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) return null;
 

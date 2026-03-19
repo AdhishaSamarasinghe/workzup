@@ -293,6 +293,10 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     }
 
     const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      return;
+    }
+
     const channel = supabase
       .channel(`messages-feed-${currentUser.id}`)
       .on(

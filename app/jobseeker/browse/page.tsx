@@ -121,7 +121,6 @@ export default function BrowseJobsPage() {
         });
         setLoadError("");
       } catch (error) {
-        console.error(error);
         if (!isMounted) return;
         setLoadError(error instanceof Error ? error.message : "Failed to load browse homepage data");
       } finally {

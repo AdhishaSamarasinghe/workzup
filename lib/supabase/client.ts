@@ -3,13 +3,24 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let browserClient: SupabaseClient | null = null;
+let hasWarnedMissingEnv = false;
 
-function getRequiredEnv(name: string, value: string | undefined) {
-  if (!value) {
-    throw new Error(`${name} is missing. Configure Supabase environment variables before using messaging.`);
+function getBrowserSupabaseEnv() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+  if (!url || !anonKey) {
+    if (!hasWarnedMissingEnv && typeof window !== "undefined") {
+      console.warn(
+        "Supabase browser auth is disabled. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.",
+      );
+      hasWarnedMissingEnv = true;
+    }
+
+    return null;
   }
 
-  return value;
+  return { url, anonKey };
 }
 
 export function getSupabaseBrowserClient() {
@@ -17,16 +28,12 @@ export function getSupabaseBrowserClient() {
     return browserClient;
   }
 
-  const supabaseUrl = getRequiredEnv(
-    "NEXT_PUBLIC_SUPABASE_URL",
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-  );
-  const supabaseAnonKey = getRequiredEnv(
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  );
+  const env = getBrowserSupabaseEnv();
+  if (!env) {
+    return null;
+  }
 
-  browserClient = createClient(supabaseUrl, supabaseAnonKey, {
+  browserClient = createClient(env.url, env.anonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -35,4 +42,8 @@ export function getSupabaseBrowserClient() {
   });
 
   return browserClient;
+}
+
+export function isSupabaseBrowserConfigured() {
+  return Boolean(getBrowserSupabaseEnv());
 }
