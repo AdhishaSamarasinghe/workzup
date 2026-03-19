@@ -13,6 +13,11 @@ export default function HeaderWrapper() {
     const pathname = usePathname();
     const { isAuthenticated } = useWorkzupAuth();
 
+    // Hide header for admin routes
+    if (pathname.startsWith("/admin")) {
+        return null;
+    }
+
     // Show minimal header on login and register pages
     if (pathname.includes("/auth/")) {
         return <AuthHeader />;
