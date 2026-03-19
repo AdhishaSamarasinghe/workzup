@@ -8,7 +8,7 @@ export default function Footer() {
 
   // Hide footer for Message and JobChat pages (case-insensitive)
   const path = pathname ? pathname.toLowerCase() : "";
-  if (path.startsWith("/message") || path.startsWith("/jobchat")) return null;
+  if (path.startsWith("/message") || path.startsWith("/jobchat") || path.startsWith("/admin")) return null;
 
   return (
     <footer className="border-t border-[#E5E7EB] bg-card">
