@@ -21,6 +21,7 @@
     "@react-google-maps/api": "^2.20.8",
     "@supabase/supabase-js": "^2.99.2",
     "ai": "^6.0.105",
+    "axios": "^1.13.6",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.33.0",
     "leaflet": "^1.9.4",

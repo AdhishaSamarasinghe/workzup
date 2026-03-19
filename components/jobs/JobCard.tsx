@@ -8,7 +8,7 @@ type JobCardProps = {
   onViewDetails?: () => void;
 };
 
-function shortenDescription(text: string, maxLength = 150) {
+function shortenDescription(text: string, maxLength = 90) {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (normalized.length <= maxLength) return normalized;
   return `${normalized.slice(0, maxLength).trimEnd()}...`;
@@ -26,7 +26,7 @@ export default function JobCard({
   const previewDescription = shortenDescription(description);
 
   return (
-    <div className="flex h-[460px] cursor-default flex-col overflow-hidden rounded-[26px] bg-white p-8 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
+    <div className="flex h-full min-h-[460px] cursor-default flex-col overflow-hidden rounded-[26px] bg-white p-6 md:p-8 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
       <div className="flex-1">
         <div className="flex items-start justify-between">
           <h2 className="max-w-[72%] text-[1.45rem] font-semibold leading-snug text-slate-900">
@@ -41,10 +41,10 @@ export default function JobCard({
         <p className="mt-2 text-[1.02rem] text-gray-500">{company}</p>
 
         <p
-          className="mt-5 overflow-hidden text-base leading-8 text-gray-600"
+          className="mt-5 overflow-hidden text-base leading-7 text-gray-600"
           style={{
             display: "-webkit-box",
-            WebkitLineClamp: 4,
+            WebkitLineClamp: 3,
             WebkitBoxOrient: "vertical",
           }}
         >
