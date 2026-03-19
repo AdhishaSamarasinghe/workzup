@@ -1,7 +1,10 @@
 const express = require("express");
 const prisma = require("../prismaClient");
 const { authenticateToken } = require("../middleware/auth");
-const { ensureConversationForApplication } = require("../models/conversationModel");
+const {
+    getOrCreateDirectConversation,
+    resolveSupabaseAuthUserIdForAppUser,
+} = require("../lib/supabaseAdmin");
 const router = express.Router();
 
 const normalizeApplicationStatus = (application) => {
@@ -57,17 +60,10 @@ router.post("/", authenticateToken, async (req, res) => {
             }
         });
 
-        const conversation = await ensureConversationForApplication({
-            applicationId: application.id,
-            jobId: job.id,
-            recruiterId: job.employerId,
-            jobseekerId: applicantId,
-        });
-
         res.status(201).json({
             message: "Application submitted successfully",
             application: normalizeApplicationStatus(application),
-            conversationId: conversation?.id || null
+            conversationId: null
         });
 
     } catch (error) {
@@ -83,9 +79,20 @@ router.get("/my-applications", authenticateToken, async (req, res) => {
             where: { applicantId: req.user.userId },
             include: {
                 job: {
-                    include: {
-                        company: true
-                    }
+                    select: {
+                        id: true,
+                        employerId: true,
+                        title: true,
+                        category: true,
+                        locations: true,
+                        company: {
+                            select: {
+                                id: true,
+                                name: true,
+                                recruiterId: true,
+                            }
+                        }
+                    },
                 }
             },
             orderBy: { appliedAt: "desc" }
@@ -146,9 +153,23 @@ router.post("/:id/conversation", authenticateToken, async (req, res) => {
                 job: {
                     select: {
                         id: true,
-                        employerId: true
+                        employerId: true,
+                        company: {
+                            select: {
+                                recruiterId: true,
+                                name: true,
+                            }
+                        }
                     }
-                }
+                },
+                applicant: {
+                    select: {
+                        id: true,
+                        email: true,
+                        firstName: true,
+                        lastName: true,
+                    }
+                },
             }
         });
 
@@ -164,25 +185,81 @@ router.post("/:id/conversation", authenticateToken, async (req, res) => {
             return res.status(403).json({ message: "Forbidden" });
         }
 
-        if (application.applicantId === application.job?.employerId) {
+        const recruiterPrismaUserId = application.job?.company?.recruiterId || application.job?.employerId;
+
+        if (application.applicantId === recruiterPrismaUserId) {
             return res.status(400).json({ message: "Invalid application participants" });
         }
 
-        const conversation = await ensureConversationForApplication({
-            applicationId: application.id,
-            jobId: application.job.id,
-            recruiterId: application.job.employerId,
-            jobseekerId: application.applicantId,
-        });
-
-        if (!conversation?.id) {
-            return res.status(500).json({ message: "Failed to create conversation" });
+        if (!recruiterPrismaUserId) {
+            return res.status(409).json({
+                message: "Recruiter messaging is not available for this application yet.",
+            });
         }
 
-        return res.status(200).json({ success: true, conversationId: conversation.id });
+        const recruiterUser = await prisma.user.findUnique({
+            where: { id: recruiterPrismaUserId },
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+            },
+        });
+
+        if (!recruiterUser) {
+            return res.status(404).json({ message: "Recruiter account not found" });
+        }
+
+        const requesterIsApplicant = application.applicantId === currentUserId;
+        const requesterIsRecruiter = recruiterPrismaUserId === currentUserId || application.job?.employerId === currentUserId;
+
+        let otherParticipantId = null;
+
+        if (requesterIsApplicant) {
+            otherParticipantId =
+                (await resolveSupabaseAuthUserIdForAppUser(recruiterUser)) ||
+                recruiterPrismaUserId;
+        } else if (requesterIsRecruiter) {
+            otherParticipantId =
+                (await resolveSupabaseAuthUserIdForAppUser(application.applicant)) ||
+                application.applicantId;
+        }
+
+        if (!otherParticipantId || otherParticipantId === currentUserId) {
+            return res.status(409).json({
+                message: "This recruiter conversation is not ready yet. Ask both users to sign in again.",
+            });
+        }
+
+        const conversation = await getOrCreateDirectConversation(
+            currentUserId,
+            otherParticipantId,
+        );
+
+        const otherParticipantName = requesterIsApplicant
+            ? application.job?.company?.name ||
+              [recruiterUser.firstName, recruiterUser.lastName].filter(Boolean).join(" ").trim() ||
+              recruiterUser.email ||
+              "Recruiter"
+            : [application.applicant?.firstName, application.applicant?.lastName]
+                .filter(Boolean)
+                .join(" ")
+                .trim() ||
+              application.applicant?.email ||
+              "Job Seeker";
+
+        return res.status(200).json({
+            success: true,
+            conversationId: conversation.id,
+            otherParticipantId,
+            otherParticipantName,
+        });
     } catch (error) {
         console.error("Create application conversation error:", error);
-        return res.status(500).json({ message: "Server Error" });
+        return res.status(500).json({
+            message: error?.message || "Server Error",
+        });
     }
 });
 

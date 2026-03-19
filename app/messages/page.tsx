@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { getCurrentMessagingUser } from "@/lib/messaging/api";
 
 const normalizeRole = (role?: string) =>
   String(role || "")
@@ -18,8 +19,16 @@ export default function MessagesPage() {
   useEffect(() => {
     const routeByRole = async () => {
       try {
-        const profile = await apiFetch("/api/auth/profile");
-        const role = normalizeRole(profile?.role);
+        let role = "";
+
+        try {
+          const profile = await apiFetch("/api/auth/profile");
+          role = normalizeRole(profile?.role || "");
+        } catch {
+          const user = await getCurrentMessagingUser();
+          role = normalizeRole(user?.role || "");
+        }
+
         const query = searchParams?.toString();
         const suffix = query ? `?${query}` : "";
 

@@ -70,6 +70,13 @@ try {
 } catch (_) { }
 
 try {
+  const messagingRoutes = require("./routes/messaging");
+  app.use("/api/messaging", messagingRoutes);
+} catch (err) {
+  console.error("Failed to load messaging routes:", err);
+}
+
+try {
   const savedJobsRoutes = require("./routes/savedJobs");
   app.use("/api/saved-jobs", savedJobsRoutes);
 } catch (_) { }

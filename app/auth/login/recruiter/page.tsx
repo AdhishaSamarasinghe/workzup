@@ -4,8 +4,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
-import { signIn } from "next-auth/react";
+import {
+    migrateLegacyUserToSupabase,
+    signInWithSupabasePassword,
+    signOutWorkzupAuth,
+    startSupabaseOAuth,
+} from "@/lib/auth/workzupAuth";
 
 import Logo from "@/components/Logo";
 
@@ -34,24 +38,18 @@ export default function JobRecruiterLoginPage() {
         setError("");
 
         try {
-            const res = await apiFetch("/api/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email: formData.email,
-                    password: formData.password,
-                    expectedRole: "EMPLOYER",
-                }),
-            });
+            const email = formData.email.trim().toLowerCase();
+            const password = formData.password;
 
-            if (res.token) {
-                localStorage.setItem("token", res.token);
-                // Redirect recruiters to recruiter dashboard or welcome page
-                router.push("/employer/create-job/my-postings");
+            try {
+                await signInWithSupabasePassword(email, password);
+            } catch {
+                await migrateLegacyUserToSupabase(email, password, "EMPLOYER");
+                await signInWithSupabasePassword(email, password);
             }
+            router.push("/employer/create-job/my-postings");
         } catch (error: any) {
+            await signOutWorkzupAuth();
             console.warn("Login failed:", error);
             setError(error.message || "Login failed. Please check your credentials.");
         } finally {
@@ -148,7 +146,7 @@ export default function JobRecruiterLoginPage() {
                             <div className="flex items-center justify-between pt-2">
                                 <span className="text-sm font-bold text-black tracking-tight">Forgot Password</span>
                                 <Link
-                                    href="#"
+                                    href="/auth/forgot-password"
                                     className="px-6 py-1.5 text-sm font-semibold text-[#6B8BFF] border-2 border-[#6B8BFF]/40 rounded hover:bg-blue-50 transition-colors"
                                 >
                                     RESET NOW
@@ -193,7 +191,7 @@ export default function JobRecruiterLoginPage() {
                                     {/* Google */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("google")}
+                                        onClick={() => void startSupabaseOAuth("EMPLOYER", "google")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px]" aria-hidden="true" viewBox="0 0 24 24">
@@ -207,7 +205,7 @@ export default function JobRecruiterLoginPage() {
                                     {/* Facebook */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("facebook")}
+                                        onClick={() => void startSupabaseOAuth("EMPLOYER", "facebook")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px] text-gray-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -218,7 +216,7 @@ export default function JobRecruiterLoginPage() {
                                     {/* LinkedIn */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("linkedin")}
+                                        onClick={() => void startSupabaseOAuth("EMPLOYER", "linkedin_oidc")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px] text-gray-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">

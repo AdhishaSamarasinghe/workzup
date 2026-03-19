@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import CustomSelect from "@/components/ui/CustomSelect";
+import { useWorkzupAuth } from "@/lib/auth/useWorkzupAuth";
 
 // Safe mock Job type
 type EmployerJob = {
@@ -19,25 +20,17 @@ type EmployerJob = {
 };
 
 export default function MyJobPostingsPage() {
+  const { loading: authLoading, isAuthenticated } = useWorkzupAuth();
 
   const [jobs, setJobs] = useState<EmployerJob[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [hasToken, setHasToken] = useState<boolean>(false);
-  const [checkedToken, setCheckedToken] = useState<boolean>(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   // Custom simple debounce hook to avoid needing to install new packages
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const token = localStorage.getItem("token");
-    setHasToken(!!token);
-    setCheckedToken(true);
-  }, []);
 
   useEffect(() => {
     const timerId = setTimeout(() => {
@@ -47,12 +40,12 @@ export default function MyJobPostingsPage() {
   }, [searchTerm]);
 
   const fetchJobs = useCallback(async () => {
-    if (!checkedToken) return;
+    if (authLoading) return;
 
     setLoading(true);
     setError("");
 
-    if (!hasToken) {
+    if (!isAuthenticated) {
       setJobs([]);
       setError("Please sign in as recruiter or employer to view your job postings.");
       setLoading(false);
@@ -66,12 +59,12 @@ export default function MyJobPostingsPage() {
 
       const data = await apiFetch(`/api/employer/my-postings?${queryParams.toString()}`);
       setJobs(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      setError(err.message || "Failed to load jobs. The backend might be unreachable.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load jobs. The backend might be unreachable.");
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchTerm, statusFilter, hasToken, checkedToken]);
+  }, [authLoading, debouncedSearchTerm, isAuthenticated, statusFilter]);
 
   useEffect(() => {
     fetchJobs();
@@ -138,7 +131,7 @@ export default function MyJobPostingsPage() {
           <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700">
             <div className="space-y-3">
               <p>{error}</p>
-              {!hasToken && (
+              {!isAuthenticated && (
                 <Link
                   href="/auth/login/recruiter"
                   className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"

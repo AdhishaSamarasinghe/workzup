@@ -4,9 +4,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
-import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
+import {
+    migrateLegacyUserToSupabase,
+    signInWithSupabasePassword,
+    signOutWorkzupAuth,
+    startSupabaseOAuth,
+} from "@/lib/auth/workzupAuth";
 
 import Logo from "@/components/Logo";
 
@@ -35,24 +39,18 @@ export default function JobSeekerLoginPage() {
         setError("");
 
         try {
-            const res = await apiFetch("/api/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email: formData.email,
-                    password: formData.password,
-                    expectedRole: "JOB_SEEKER",
-                }),
-            });
+            const email = formData.email.trim().toLowerCase();
+            const password = formData.password;
 
-            if (res.token) {
-                localStorage.setItem("token", res.token);
-                // Based on welcome page behavior
-                router.push("/jobseeker/browse");
+            try {
+                await signInWithSupabasePassword(email, password);
+            } catch {
+                await migrateLegacyUserToSupabase(email, password, "JOB_SEEKER");
+                await signInWithSupabasePassword(email, password);
             }
+            router.push("/jobseeker/browse");
         } catch (error: any) {
+            await signOutWorkzupAuth();
             setError(error.message || "Login failed. Please check your credentials.");
         } finally {
             setLoading(false);
@@ -198,7 +196,7 @@ export default function JobSeekerLoginPage() {
                                     {/* Google */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("google")}
+                                        onClick={() => void startSupabaseOAuth("JOB_SEEKER", "google")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px]" aria-hidden="true" viewBox="0 0 24 24">
@@ -212,7 +210,7 @@ export default function JobSeekerLoginPage() {
                                     {/* Facebook */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("facebook")}
+                                        onClick={() => void startSupabaseOAuth("JOB_SEEKER", "facebook")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px] text-gray-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -223,7 +221,7 @@ export default function JobSeekerLoginPage() {
                                     {/* LinkedIn */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("linkedin")}
+                                        onClick={() => void startSupabaseOAuth("JOB_SEEKER", "linkedin_oidc")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px] text-gray-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">

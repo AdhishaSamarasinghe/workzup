@@ -52,20 +52,13 @@ export default function SuccessModal({
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+                <div className="flex justify-center">
                     <Link
                         href="/auth/login"
-                        className="flex-1 rounded-2xl bg-[#f2f4f7] px-8 py-4 text-lg font-bold text-black transition-colors hover:bg-gray-200"
+                        className="w-full sm:w-2/3 rounded-2xl bg-[#6B8BFF] px-8 py-4 text-lg font-bold text-white transition-colors hover:bg-[#5A75D9]"
                         onClick={onClose}
                     >
                         Go to Login
-                    </Link>
-                    <Link
-                        href={title.includes("Recruiter") ? "/employer/create-job/my-postings" : "/jobseeker/browse"}
-                        className="flex-1 rounded-2xl bg-[#6B8BFF] px-8 py-4 text-lg font-bold text-white transition-colors hover:bg-[#5A75D9]"
-                        onClick={onClose}
-                    >
-                        {title.includes("Recruiter") ? "Post a Job" : "Explore Jobs"}
                     </Link>
                 </div>
             </div>

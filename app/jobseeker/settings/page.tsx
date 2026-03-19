@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Shield, Key, Mail, Trash2, CheckCircle2, AlertTriangle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { signOutWorkzupAuth } from "@/lib/auth/workzupAuth";
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState("security");
@@ -249,7 +250,7 @@ function TabDangerZone() {
                 method: "DELETE"
             });
             // Clear local storage and redirect to home
-            localStorage.removeItem("token");
+            await signOutWorkzupAuth();
             window.location.href = "/";
         } catch (err: any) {
             setError(err.message || "Failed to delete account. Try again later.");
@@ -296,4 +297,3 @@ function TabDangerZone() {
         </div>
     );
 }
-

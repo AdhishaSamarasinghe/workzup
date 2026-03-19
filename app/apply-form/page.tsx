@@ -4,7 +4,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ApplicationSuccessPopup from "@/components/ApplicationSuccessPopup";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getAuthToken } from "@/lib/api";
 import { BrowseJob, formatPay, formatDateLabel } from "@/lib/browse";
 import { CheckCircle2 } from "lucide-react";
 
@@ -54,8 +54,8 @@ function ApplicationFormContent() {
         const data = await apiFetch(`/api/jobs/${jobId}`);
         setJob(data.job || data);
 
-        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-        if (token) {
+        const isAuthenticated = await getAuthToken();
+        if (isAuthenticated) {
           try {
             const profile = await apiFetch("/api/auth/profile");
             setProfileDocs({
@@ -259,7 +259,7 @@ function ApplicationFormContent() {
     try {
       const formData = new FormData(form);
 
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const token = await getAuthToken();
 
       if (!hasProfileNic) {
         const idFront = formData.get("idFront");

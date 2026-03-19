@@ -1,5 +1,5 @@
-const jwt = require("jsonwebtoken");
 const prisma = require("../prismaClient");
+const { getSupabaseAdmin } = require("../lib/supabaseAdmin");
 
 function normalizeRole(role) {
   const key = String(role || "")
@@ -15,19 +15,41 @@ function normalizeRole(role) {
   return key;
 }
 
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
   const header = req.headers.authorization;
 
   if (!header || !header.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Missing token" });
   }
 
+  const token = header.replace("Bearer ", "");
+
   try {
-    const token = header.replace("Bearer ", "");
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload; // { userId: "...", role: "..." }
-    next();
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
+
+    if (!error && data?.user?.id) {
+      req.user = {
+        userId: data.user.id,
+        id: data.user.id,
+        sub: data.user.id,
+        role:
+          normalizeRole(data.user.app_metadata?.role) ||
+          normalizeRole(data.user.user_metadata?.role) ||
+          "JOB_SEEKER",
+        email: data.user.email || null,
+        firstName: data.user.user_metadata?.first_name || null,
+        lastName: data.user.user_metadata?.last_name || null,
+        companyName: data.user.user_metadata?.company_name || null,
+        phone: data.user.user_metadata?.phone || null,
+      };
+      return next();
+    }
   } catch (err) {
+    console.error("Supabase token verification failed:", err);
+  }
+
+  {
     return res.status(401).json({ message: "Invalid token" });
   }
 }

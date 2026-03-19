@@ -19,6 +19,7 @@
     "@ai-sdk/react": "^3.0.107",
     "@radix-ui/react-popover": "^1.1.15",
     "@react-google-maps/api": "^2.20.8",
+    "@supabase/supabase-js": "^2.99.2",
     "ai": "^6.0.105",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.33.0",

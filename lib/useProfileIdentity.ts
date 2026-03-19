@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useWorkzupAuth } from "@/lib/auth/useWorkzupAuth";
 import { resolveProfileAvatar } from "@/lib/profile";
 
 type ProfileIdentity = {
@@ -15,14 +16,14 @@ type ProfileUpdatedDetail = {
 };
 
 export function useProfileIdentity(fallbackName: string) {
+  const { isAuthenticated } = useWorkzupAuth();
   const [identity, setIdentity] = useState<ProfileIdentity>({
     name: fallbackName,
     avatarUrl: null,
   });
 
   useEffect(() => {
-    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
-    if (!hasToken) return;
+    if (!isAuthenticated) return;
 
     let isMounted = true;
 
@@ -58,7 +59,7 @@ export function useProfileIdentity(fallbackName: string) {
       isMounted = false;
       window.removeEventListener("profile-updated", handleProfileUpdated as EventListener);
     };
-  }, [fallbackName]);
+  }, [fallbackName, isAuthenticated]);
 
   return identity;
 }

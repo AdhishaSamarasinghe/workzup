@@ -1,22 +1,26 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { hasAuthenticatedUser } from '@/lib/api';
+import { listConversations } from '@/lib/messaging/api';
 
 export default function MessagesBadge() {
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     const fetchUnread = async () => {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      if (!token) {
+      if (!(await hasAuthenticatedUser())) {
         setUnread(0);
         return;
       }
 
       try {
-        const data = await apiFetch('/conversations/unread-count');
-        if (data.success) setUnread(data.count);
+        const conversations = await listConversations();
+        const totalUnread = conversations.reduce(
+          (count, conversation) => count + conversation.unread_count,
+          0,
+        );
+        setUnread(totalUnread);
       } catch (error) {
         console.warn("Failed to fetch unread count", error);
       }

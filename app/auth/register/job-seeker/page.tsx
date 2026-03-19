@@ -3,11 +3,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 
 import Logo from "@/components/Logo";
 import SuccessModal from "@/components/SuccessModal";
+import { startSupabaseOAuth } from "@/lib/auth/workzupAuth";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -234,7 +234,7 @@ export default function JobSeekerRegisterPage() {
                 formDataToSend.append("cv", formData.cv);
             }
 
-            const res = await fetch("http://localhost:5000/api/auth/register", {
+            const res = await fetch("/api/auth/register", {
                 method: "POST",
                 body: formDataToSend,
             });
@@ -577,7 +577,7 @@ export default function JobSeekerRegisterPage() {
                                     {/* Google */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("google")}
+                                        onClick={() => void startSupabaseOAuth("JOB_SEEKER", "google")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px]" aria-hidden="true" viewBox="0 0 24 24">
@@ -591,7 +591,7 @@ export default function JobSeekerRegisterPage() {
                                     {/* Facebook */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("facebook")}
+                                        onClick={() => void startSupabaseOAuth("JOB_SEEKER", "facebook")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px] text-gray-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -602,7 +602,7 @@ export default function JobSeekerRegisterPage() {
                                     {/* LinkedIn */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("linkedin")}
+                                        onClick={() => void startSupabaseOAuth("JOB_SEEKER", "linkedin_oidc")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px] text-gray-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">

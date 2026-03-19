@@ -4,12 +4,12 @@
 import { useState } from "react";
 import { useEffect } from "react";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
 import dynamic from "next/dynamic";
 
 import Logo from "@/components/Logo";
 import SuccessModal from "@/components/SuccessModal";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
+import { startSupabaseOAuth } from "@/lib/auth/workzupAuth";
 
 const LocationMap = dynamic(() => import("@/components/LocationMap"), {
   ssr: false,
@@ -648,7 +648,7 @@ export default function RecruiterRegisterPage() {
                                     {/* Google */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("google")}
+                                        onClick={() => void startSupabaseOAuth("EMPLOYER", "google")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px]" aria-hidden="true" viewBox="0 0 24 24">
@@ -662,7 +662,7 @@ export default function RecruiterRegisterPage() {
                                     {/* Facebook */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("facebook")}
+                                        onClick={() => void startSupabaseOAuth("EMPLOYER", "facebook")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px] text-gray-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -673,7 +673,7 @@ export default function RecruiterRegisterPage() {
                                     {/* LinkedIn */}
                                     <button
                                         type="button"
-                                        onClick={() => signIn("linkedin")}
+                                        onClick={() => void startSupabaseOAuth("EMPLOYER", "linkedin_oidc")}
                                         className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                                     >
                                         <svg className="h-[22px] w-[22px] text-gray-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">

@@ -13,6 +13,7 @@ import {
   UpdateJobDetailsRequest,
   User,
 } from "./types";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||
@@ -24,6 +25,53 @@ let detectedBaseUrl: string | null = null;
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return String(error);
+}
+
+export async function getAuthToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const supabase = getSupabaseBrowserClient();
+    const { data } = await supabase.auth.getSession();
+    const supabaseToken = data.session?.access_token || null;
+
+    if (supabaseToken) {
+      return supabaseToken;
+    }
+  } catch {
+    // Ignore transient session read failures and treat the user as signed out.
+  }
+
+  return null;
+}
+
+export async function hasAuthenticatedUser() {
+  return Boolean(await getAuthToken());
+}
+
+export async function getCurrentUserRole() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const supabase = getSupabaseBrowserClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) return null;
+
+    const role =
+      data.user.app_metadata?.role ||
+      data.user.user_metadata?.role ||
+      null;
+
+    return role
+      ? String(role).trim().toUpperCase().replace(/[\s-]+/g, "_")
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 // ============================================
@@ -98,8 +146,7 @@ async function executeFetch(path: string, options: RequestInit = {}) {
 // LOW-LEVEL FETCH HELPER (auth-aware)
 // ============================================
 export async function apiFetch(path: string, options: RequestInit = {}) {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = await getAuthToken();
 
   const isFormData =
     !!options.body &&
@@ -302,6 +349,27 @@ export async function updatePreferences(
     method: "PUT",
     body: JSON.stringify(data),
   });
+}
+
+// ============================================
+// RECRUITER PROFILE API
+// ============================================
+export async function fetchRecruiter(
+  recruiterId: string
+): Promise<ApiResponse<Record<string, unknown>>> {
+  return fetchApi<Record<string, unknown>>(`/recruiters/${recruiterId}`);
+}
+
+export async function fetchRecruiterJobs(
+  recruiterId: string
+): Promise<ApiResponse<Record<string, unknown>[]>> {
+  return fetchApi<Record<string, unknown>[]>(`/recruiters/${recruiterId}/jobs`);
+}
+
+export async function fetchRecruiterReviews(
+  recruiterId: string
+): Promise<ApiResponse<Record<string, unknown>[]>> {
+  return fetchApi<Record<string, unknown>[]>(`/recruiters/${recruiterId}/reviews`);
 }
 
 // ============================================

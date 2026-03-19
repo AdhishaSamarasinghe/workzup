@@ -3,36 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getCurrentUserRole, hasAuthenticatedUser } from "@/lib/api";
 import { BrowseJob, formatPay, formatDateLabel } from "@/lib/browse";
 import { MapPin, Calendar, DollarSign, Building2, BriefcaseBusiness } from "lucide-react";
-
-type TokenPayload = {
-  role?: string;
-};
 
 const normalizeRole = (role?: string) =>
   String(role || "")
     .trim()
     .toUpperCase()
     .replace(/[\s-]+/g, "_");
-
-const getTokenRole = (): string | null => {
-  if (typeof window === "undefined") return null;
-  const token = localStorage.getItem("token");
-  if (!token) return null;
-
-  try {
-    const base64 = token.split(".")[1];
-    if (!base64) return null;
-    const normalized = base64.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-    const decoded = JSON.parse(atob(padded)) as TokenPayload;
-    return normalizeRole(decoded.role);
-  } catch {
-    return null;
-  }
-};
 
 export default function JobApplyPage() {
   const params = useParams();
@@ -68,16 +47,22 @@ export default function JobApplyPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!id || typeof window === "undefined" || !localStorage.getItem("token")) return;
-
-    const tokenRole = getTokenRole();
-    if (tokenRole && tokenRole !== "JOB_SEEKER") {
-      setIsSaved(false);
-      return;
-    }
+    if (!id) return;
 
     const fetchSavedStatus = async () => {
       try {
+        const isAuthenticated = await hasAuthenticatedUser();
+        if (!isAuthenticated) {
+          setIsSaved(false);
+          return;
+        }
+
+        const tokenRole = normalizeRole(await getCurrentUserRole() || "");
+        if (tokenRole && tokenRole !== "JOB_SEEKER") {
+          setIsSaved(false);
+          return;
+        }
+
         const data = await apiFetch(`/api/saved-jobs/${id}/status`);
         setIsSaved(Boolean(data.saved));
       } catch (err) {
@@ -94,8 +79,7 @@ export default function JobApplyPage() {
   }, [id]);
 
   const handleSaveToggle = async () => {
-    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
-    if (!hasToken) {
+    if (!(await hasAuthenticatedUser())) {
       router.push(`/auth/login?redirectTo=/jobseeker/jobs/${id}`);
       return;
     }

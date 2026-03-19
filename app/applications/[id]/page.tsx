@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ExternalLink, FileText, X } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 import { resolveUploadUrl } from "@/lib/profile";
 
 type ApplicationRecord = {
@@ -162,15 +163,9 @@ export default function ApplicationDetailsPage() {
       try {
         setError(null);
         setIsLoading(true);
-        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-        const response = await fetch(`/api/applications/${applicationId}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        const payload = await apiFetch(`/api/applications/${applicationId}`, {
           cache: "no-store",
         });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(payload?.message || `Request failed (Status: ${response.status})`);
-        }
         setRecord(payload.application as ApplicationRecord);
 
         if (typeof window !== "undefined") {

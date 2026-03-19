@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
 import SearchBar from "@/components/jobs/SearchBar";
 import StatsSection from "@/components/jobs/StatsSection";
 import ReviewSection from "@/components/jobs/ReviewSection";
@@ -22,6 +21,7 @@ import {
   normalizeText,
   slugify,
 } from "@/lib/browse";
+import { useWorkzupAuth } from "@/lib/auth/useWorkzupAuth";
 
 const JOBS_PER_PAGE = 4;
 const CATEGORIES_PER_PAGE = 10;
@@ -83,7 +83,7 @@ export default function BrowseJobsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { status } = useSession();
+  const { isAuthenticated } = useWorkzupAuth();
 
   const [browseData, setBrowseData] = useState<BrowseHomeData>({
     jobs: [],
@@ -198,13 +198,8 @@ export default function BrowseJobsPage() {
     applyFilterToUrl(DEFAULT_BROWSE_FILTERS, pathname, router);
   };
 
-  const checkAuth = () => {
-    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
-    return status === "authenticated" || hasToken;
-  };
-
   const handleJobClick = (jobId: string) => {
-    if (!checkAuth()) {
+    if (!isAuthenticated) {
       router.push(`/auth/login?redirectTo=/jobseeker/jobs/${jobId}`);
       return;
     }
@@ -213,7 +208,7 @@ export default function BrowseJobsPage() {
 
   const openCategoryJobs = (categoryLabel: string) => {
     const targetUrl = `/jobseeker/gigs?category=${encodeURIComponent(categoryLabel)}`;
-    if (!checkAuth()) {
+    if (!isAuthenticated) {
       router.push(`/auth/login?redirectTo=${encodeURIComponent(targetUrl)}`);
       return;
     }
@@ -221,7 +216,7 @@ export default function BrowseJobsPage() {
   };
 
   const toggleCompany = (company: string) => {
-    if (!checkAuth()) {
+    if (!isAuthenticated) {
       router.push(`/auth/login?redirectTo=/jobseeker/browse`);
       return;
     }

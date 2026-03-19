@@ -3,19 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import MessagesBadge from '@/components/chat/MessagesBadge';
 import { motion } from "framer-motion";
-import { useSession, signOut } from "next-auth/react";
 import { LogOut } from "lucide-react";
 import ProfileAvatar from "./ProfileAvatar";
 import { useProfileIdentity } from "@/lib/useProfileIdentity";
+import { signOutWorkzupAuth } from "@/lib/auth/workzupAuth";
 
 export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?: boolean }) {
     const [scrolledDelta, setScrolledDelta] = useState(false);
     const isScrolled = alwaysSolid || scrolledDelta;
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const { data: session } = useSession();
 
     useEffect(() => {
         if (alwaysSolid) return;
@@ -29,16 +27,13 @@ export default function JobSeekerHeader({ alwaysSolid = false }: { alwaysSolid?:
     }, [alwaysSolid]);
 
     const handleLogout = async () => {
-        if (typeof window !== "undefined") {
-            localStorage.removeItem("token");
-        }
-        await signOut({ redirect: false });
+        await signOutWorkzupAuth();
         window.location.href = "/jobseeker/browse";
     };
 
-    const sessionName = session?.user?.name || "Job Seeker";
-    const { avatarUrl, name } = useProfileIdentity(sessionName);
-    const userName = name || sessionName;
+    const fallbackName = "Job Seeker";
+    const { avatarUrl, name } = useProfileIdentity(fallbackName);
+    const userName = name || fallbackName;
 
     return (
         <motion.header

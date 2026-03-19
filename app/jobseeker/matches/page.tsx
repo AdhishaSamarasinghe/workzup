@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { BrowseJob } from "@/lib/browse";
 import { RecommendedJobsSection } from "@/components/jobs/BrowseHomepageSections";
 import { Loader2, Sparkles, Cpu } from "lucide-react";
+import { useWorkzupAuth } from "@/lib/auth/useWorkzupAuth";
 
 export default function AIMatchesPage() {
-    const { status } = useSession();
+    const { loading: authLoading, isAuthenticated } = useWorkzupAuth();
     const router = useRouter();
     const [recommendedJobs, setRecommendedJobs] = useState<(BrowseJob & { matchScore?: number })[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -17,13 +17,11 @@ export default function AIMatchesPage() {
     useEffect(() => {
         let isMounted = true;
         const fetchRecommendations = async () => {
-            const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
-            if (status === "unauthenticated" && !hasToken) {
+            if (authLoading) return;
+            if (!isAuthenticated) {
                 router.push("/auth/login?redirectTo=/jobseeker/matches");
                 return;
             }
-            
-            if (status === "loading") return;
 
             try {
                 setIsLoading(true);
@@ -40,7 +38,7 @@ export default function AIMatchesPage() {
 
         fetchRecommendations();
         return () => { isMounted = false; };
-    }, [status, router]);
+    }, [authLoading, isAuthenticated, router]);
 
     const handleJobClick = (jobId: string) => {
         window.open(`/jobseeker/jobs/${jobId}`, "_blank");
@@ -60,7 +58,7 @@ export default function AIMatchesPage() {
                                 Your <span className="bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent">AI Matches</span>
                             </h1>
                             <p className="mt-3 text-lg leading-7 text-slate-500 max-w-2xl">
-                                We've analyzed your profile, skills, and CV to find the perfect gigs that align with your unique expertise.
+                                We&apos;ve analyzed your profile, skills, and CV to find the perfect gigs that align with your unique expertise.
                             </p>
                         </div>
                         <div className="hidden md:flex h-24 w-24 items-center justify-center rounded-full border border-indigo-100 bg-white shadow-sm">

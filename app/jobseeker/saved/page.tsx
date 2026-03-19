@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { useWorkzupAuth } from "@/lib/auth/useWorkzupAuth";
 import { BrowseJob, formatDateLabel, formatPay } from "@/lib/browse";
 import { Bookmark, BriefcaseBusiness, Building2, MapPin, Trash2 } from "lucide-react";
 
@@ -15,14 +16,18 @@ type SavedJobRecord = {
 
 export default function SavedJobsPage() {
   const router = useRouter();
+  const { loading: authLoading, isAuthenticated } = useWorkzupAuth();
   const [savedJobs, setSavedJobs] = useState<SavedJobRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [removingJobId, setRemovingJobId] = useState<string | null>(null);
 
   useEffect(() => {
-    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
-    if (!hasToken) {
+    if (authLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
       router.push("/auth/login?redirectTo=/jobseeker/saved");
       return;
     }
@@ -42,7 +47,7 @@ export default function SavedJobsPage() {
     };
 
     fetchSavedJobs();
-  }, [router]);
+  }, [authLoading, isAuthenticated, router]);
 
   const handleRemove = async (jobId: string) => {
     try {

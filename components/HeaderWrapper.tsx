@@ -1,24 +1,17 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
 import Header from "./Header";
 import PublicHeader from "./PublicHeader";
 import AuthHeader from "./AuthHeader";
 import JobSeekerHeader from "./JobSeekerHeader";
 import EditRecruiterHeader from "./editrecruiter/Header";
+import { useWorkzupAuth } from "@/lib/auth/useWorkzupAuth";
 
 
 export default function HeaderWrapper() {
     const pathname = usePathname();
-    const { status } = useSession();
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-    useEffect(() => {
-        const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
-        setIsAuthenticated(status === "authenticated" || hasToken);
-    }, [status, pathname]);
+    const { isAuthenticated } = useWorkzupAuth();
 
     // Show minimal header on login and register pages
     if (pathname.includes("/auth/")) {

@@ -18,7 +18,9 @@ type ApplicationListItem = {
     category?: string | null;
     locations?: string[] | null;
     company?: {
+      id?: string | null;
       name?: string | null;
+      recruiterId?: string | null;
     } | null;
   };
 };
@@ -86,25 +88,33 @@ export default function ApplicationsPage() {
 
     try {
       setMessagingApplicationId(application.id);
-      const created = await apiFetch(`/api/applications/${application.id}/conversation`, {
+      const response = await apiFetch(`/api/applications/${application.id}/conversation`, {
         method: "POST",
       });
-      let conversationId = created?.conversationId;
+      const conversationId = response?.conversationId;
+      const recipientId = response?.otherParticipantId;
+      const recipientName = response?.otherParticipantName;
 
       if (!conversationId) {
-        const payload = await apiFetch("/conversations");
-        const conversations = Array.isArray(payload?.data) ? payload.data : [];
-        const targetConversation = conversations.find(
-          (item: { applicationId?: string }) => item?.applicationId === application.id,
-        );
-        conversationId = targetConversation?.id;
+        throw new Error("Recruiter messaging is not available for this application yet.");
       }
 
-      if (!conversationId) {
-        throw new Error("Chat is not ready for this application yet. Please try again in a moment.");
+      const params = new URLSearchParams({
+        conversationId,
+        applicationId: application.id,
+      });
+
+      if (recipientId) {
+        params.set("recipientId", recipientId);
       }
 
-      router.push(`/jobseeker/messages?conversationId=${encodeURIComponent(conversationId)}`);
+      if (recipientName) {
+        params.set("recipientName", recipientName);
+      }
+
+      router.push(
+        `/jobseeker/messages?${params.toString()}`,
+      );
     } catch (messageError) {
       const message =
         messageError instanceof Error ? messageError.message : "Unable to open recruiter chat.";

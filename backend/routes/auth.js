@@ -1,12 +1,21 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const prisma = require("../prismaClient");
 const { authenticateToken } = require("../middleware/auth");
 const { sendOTP } = require("../lib/emailService");
+const {
+  buildSupabaseMetadata,
+  createSupabaseUser,
+  ensureSupabaseUserForLegacyUser,
+  getSupabaseAdmin,
+  getSupabaseUserByEmail,
+  migratePrismaUserId,
+  normalizeRole: normalizeSupabaseRole,
+  updateSupabaseUser,
+} = require("../lib/supabaseAdmin");
 
 const router = express.Router();
 
@@ -156,13 +165,22 @@ router.post("/register", (req, res, next) => {
       termsAccepted,
       emailNotifications,
     } = req.body;
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedRole = normalizeSupabaseRole(role || "JOB_SEEKER");
+    const userMetadata = buildSupabaseMetadata({
+      firstName,
+      lastName,
+      phone,
+      role: normalizedRole,
+      companyName,
+    });
 
     // Validate required fields
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({ message: "email and password required" });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       return res.status(409).json({ message: "Email already used" });
     }
@@ -172,12 +190,58 @@ router.post("/register", (req, res, next) => {
     // Get file paths if uploaded
     const cvPath = req.files && req.files['cv'] ? req.files['cv'][0].path.replace(/\\/g, "/") : null;
     const companyLogoPath = req.files && req.files['companyLogo'] ? req.files['companyLogo'][0].path.replace(/\\/g, "/") : null;
+    let supabaseUser;
+
+    try {
+      supabaseUser = await createSupabaseUser({
+        email: normalizedEmail,
+        password,
+        role: normalizedRole,
+        metadata: userMetadata,
+        emailConfirmed: true,
+      });
+    } catch (error) {
+      const message = String(error?.message || "");
+      const status = Number(error?.status || 0);
+      const looksLikeExistingSupabaseUser =
+        status === 422 ||
+        status === 409 ||
+        /already registered|already been registered|email.*exists|duplicate/i.test(message);
+
+      if (!looksLikeExistingSupabaseUser) {
+        throw error;
+      }
+
+      const existingSupabaseUser = await getSupabaseUserByEmail(normalizedEmail);
+      if (!existingSupabaseUser) {
+        throw error;
+      }
+
+      const prismaUserBySupabaseId = await prisma.user.findUnique({
+        where: { id: existingSupabaseUser.id },
+      });
+
+      if (prismaUserBySupabaseId) {
+        return res.status(409).json({
+          message: "Email already used. Please sign in instead.",
+        });
+      }
+
+      await updateSupabaseUser(existingSupabaseUser.id, {
+        password,
+        metadata: userMetadata,
+        role: normalizedRole,
+      });
+
+      supabaseUser = existingSupabaseUser;
+    }
 
     const user = await prisma.user.create({
       data: {
-        email,
+        id: supabaseUser.id,
+        email: normalizedEmail,
         passwordHash,
-        role: role || null,
+        role: normalizedRole || null,
         firstName,
         lastName,
         gender,
@@ -190,7 +254,7 @@ router.post("/register", (req, res, next) => {
     });
 
     // Create Company if role is EMPLOYER/RECRUITER and companyName is provided
-    if ((role === "EMPLOYER" || role === "RECRUITER") && companyName) {
+    if ((normalizedRole === "EMPLOYER" || normalizedRole === "RECRUITER") && companyName) {
       await prisma.company.create({
         data: {
           recruiterId: user.id,
@@ -201,13 +265,11 @@ router.post("/register", (req, res, next) => {
       });
     }
 
-    const token = jwt.sign(
-      { userId: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({ token });
+    res.json({
+      success: true,
+      userId: user.id,
+      role: user.role,
+    });
   } catch (error) {
     console.error("Register Error:", error);
     res.status(500).json({ message: "Internal Server Error", error: error.message });
@@ -241,13 +303,134 @@ router.post("/login", async (req, res) => {
     }
   }
 
-  const token = jwt.sign(
-    { userId: user.id, role: tokenRole },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
+  res.json({
+    success: true,
+    role: tokenRole,
+    userId: user.id,
+    requiresSupabaseSignIn: true,
+    message: "Credentials verified. Complete sign-in through Supabase Auth.",
+  });
+});
 
-  res.json({ token, role: tokenRole });
+// POST /api/auth/migrate-login
+router.post("/migrate-login", async (req, res) => {
+  const { email, password, expectedRole } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "email and password required" });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: String(email).trim().toLowerCase() },
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    if (expectedRole) {
+      const currentRole = normalizeRole(user.role);
+      const allowedRoles = buildAllowedRoles(expectedRole);
+
+      if (allowedRoles.length > 0 && !allowedRoles.includes(currentRole)) {
+        return res.status(403).json({
+          message: `This account cannot sign in here. Required role: ${allowedRoles.join(", ")}.`,
+        });
+      }
+    }
+
+    const supabaseUser = await ensureSupabaseUserForLegacyUser(user, password);
+
+    const refreshedUser = await prisma.user.findUnique({
+      where: { email: String(email).trim().toLowerCase() },
+      select: { id: true, role: true },
+    });
+
+    return res.json({
+      success: true,
+      migrated: true,
+      supabaseUserId: supabaseUser.id,
+      userId: refreshedUser?.id || supabaseUser.id,
+      role: refreshedUser?.role || user.role,
+    });
+  } catch (error) {
+    console.error("Migrate Login Error:", error);
+    return res.status(500).json({
+      message: error.message || "Failed to migrate user to Supabase auth.",
+    });
+  }
+});
+
+// POST /api/auth/oauth-sync
+router.post("/oauth-sync", authenticateToken, async (req, res) => {
+  const desiredRole = normalizeSupabaseRole(req.body?.role || req.user?.role || "JOB_SEEKER");
+
+  try {
+    let user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+    });
+
+    if (!user && req.user.email) {
+      const existingByEmail = await prisma.user.findUnique({
+        where: { email: req.user.email },
+      });
+
+      if (existingByEmail && existingByEmail.id !== req.user.userId) {
+        await migratePrismaUserId(existingByEmail.id, req.user.userId);
+      }
+
+      user = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+      });
+    }
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          id: req.user.userId,
+          email: req.user.email,
+          passwordHash: await bcrypt.hash(`${req.user.userId}:${Date.now()}`, 10),
+          role: desiredRole,
+          firstName: req.user.firstName || null,
+          lastName: req.user.lastName || null,
+          phone: req.user.phone || null,
+          termsAccepted: true,
+          emailNotifications: true,
+        },
+      });
+
+      if ((desiredRole === "EMPLOYER" || desiredRole === "RECRUITER") && req.user.companyName) {
+        await prisma.company.create({
+          data: {
+            recruiterId: user.id,
+            name: req.user.companyName,
+          },
+        });
+      }
+    } else if (user.role !== desiredRole) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { role: desiredRole },
+      });
+    }
+
+    return res.json({
+      success: true,
+      userId: user.id,
+      role: user.role,
+    });
+  } catch (error) {
+    console.error("OAuth Sync Error:", error);
+    return res.status(500).json({
+      message: error.message || "Failed to sync OAuth user.",
+    });
+  }
 });
 
 // GET /api/auth/profile
@@ -507,6 +690,7 @@ router.put("/password", authenticateToken, async (req, res) => {
       where: { id: req.user.userId },
       data: { passwordHash: newPasswordHash }
     });
+    await ensureSupabaseUserForLegacyUser(user, newPassword);
 
     res.json({ message: "Password updated successfully" });
   } catch (error) {
@@ -580,9 +764,19 @@ router.post("/profile/verify-email-otp", authenticateToken, async (req, res) => 
     }
 
     // Verify success, update the User
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: req.user.userId },
       data: { email: newEmail }
+    });
+    await updateSupabaseUser(req.user.userId, {
+      email: newEmail,
+      metadata: buildSupabaseMetadata({
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        phone: updatedUser.phone,
+        role: updatedUser.role,
+      }),
+      role: updatedUser.role,
     });
 
     // Clean up
@@ -598,6 +792,13 @@ router.post("/profile/verify-email-otp", authenticateToken, async (req, res) => 
 // DELETE /api/auth/profile
 router.delete("/profile", authenticateToken, async (req, res) => {
   try {
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      await supabaseAdmin.auth.admin.deleteUser(req.user.userId);
+    } catch (supabaseError) {
+      console.warn("Supabase delete user warning:", supabaseError?.message || supabaseError);
+    }
+
     // Prisma `onDelete: Cascade` handles related records (SeekerProfile, etc)
     // if configured correctly in the schema.
     await prisma.user.delete({
@@ -669,9 +870,19 @@ router.post("/forgot-password/reset", async (req, res) => {
       return res.status(400).json({ message: "Invalid reset code." });
     }
 
+    const legacyUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!legacyUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    await ensureSupabaseUserForLegacyUser(legacyUser, newPassword);
+
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
-    const updatedUser = await prisma.user.update({
+    await prisma.user.update({
       where: { email },
       data: { passwordHash }
     });
