@@ -19,7 +19,7 @@ export default function RecruiterSuccess({
     const router = useRouter();
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
             <div className="relative w-full max-w-xl rounded-3xl bg-white p-8 text-center shadow-2xl animate-in fade-in zoom-in duration-300 sm:p-10">
                 {onReset && (
                     <button

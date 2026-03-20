@@ -46,6 +46,7 @@ export default function LocationMap({ position, onLocationSelect }: LocationMapP
 
   return (
     <MapContainer
+      className="relative z-0"
       center={[position.lat, position.lng]}
       zoom={13}
       style={{ width: "100%", height: "250px" }}
