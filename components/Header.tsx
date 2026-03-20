@@ -40,7 +40,6 @@ export default function Header() {
             {/* My postings links directly to the employer job list */}
             <Link href="/employer/create-job/my-postings" className="opacity-80 hover:opacity-100">My postings</Link>
             <Link href="/messages" className="opacity-80 hover:opacity-100"><MessagesBadge /></Link>
-            <Link href="/profile" className="opacity-80 hover:opacity-100">Profile</Link>
           </nav>
 
           {/* Right — CTA button + user avatar */}
