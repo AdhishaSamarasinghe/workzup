@@ -5,10 +5,13 @@ import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import TimePicker from "@/components/TimePicker";
 import DatePicker from "@/components/jobs/DatePicker";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 const LocationMap = dynamic(() => import("@/components/LocationMap"), {
     ssr: false,
 });
+
+const payTypeOptions = ["/ hour", "/ day"];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type JobStatus = "DRAFT" | "PUBLIC" | "PRIVATE";
@@ -284,15 +287,21 @@ export default function JobPostForm({
                                     <p className="text-xs text-red-600 mt-1">{fieldErrorText("pay")}</p>
                                 )}
                             </div>
-                            <select
-                                name="payType"
-                                value={form.payType}
-                                onChange={handleChange}
-                                className="h-11 px-3 border border-slate-300 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-200"
-                            >
-                                <option value="hour">/ hour</option>
-                                <option value="day">/ day</option>
-                            </select>
+                            <div className="w-[120px]">
+                                <CustomSelect
+                                    value={form.payType === "day" ? "/ day" : "/ hour"}
+                                    onChange={(val) =>
+                                        setForm((p) => ({
+                                            ...p,
+                                            payType: val === "/ day" ? "day" : "hour",
+                                        }))
+                                    }
+                                    options={payTypeOptions}
+                                    placeholder="/ hour"
+                                    searchable={false}
+                                    showAllOption={false}
+                                />
+                            </div>
                         </div>
                     </div>
 
