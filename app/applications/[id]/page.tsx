@@ -64,7 +64,7 @@ const formatDate = (value?: string | null) => {
 
 const formatPay = (pay?: number | null, payType?: string | null) => {
   if (typeof pay !== "number") return null;
-  return `$${pay}/${payType || "hour"}`;
+  return `LKR ${pay}/${payType || "hour"}`;
 };
 
 type PreviewKind = "image" | "pdf" | "file";

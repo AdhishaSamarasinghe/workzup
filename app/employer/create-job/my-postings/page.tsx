@@ -198,7 +198,7 @@ export default function MyJobPostingsPage() {
                     </span>
                   </div>
                   <div className="text-sm text-slate-600 mb-3">
-                    {job.location} • ${job.hourlyRate}/hr
+                    {job.location} • LKR {job.hourlyRate}/hr
                   </div>
                   <div className="flex flex-wrap gap-4 text-xs text-slate-500">
                     <div><span className="font-medium text-slate-700">Posted:</span> {formatDate(job.postedDate)}</div>

@@ -276,7 +276,7 @@ export default function JobPostForm({
                                     name="pay"
                                     value={form.pay}
                                     onChange={handleChange}
-                                    placeholder="$250.00"
+                                    placeholder="LKR 250.00"
                                     inputMode="numeric"
                                     className={`w-full h-11 px-3 border rounded-xl outline-none focus:ring-2 ${missingFields.pay ? "border-red-400 focus:ring-red-200 bg-red-50/30" : "border-slate-300 focus:ring-blue-200"}`}
                                 />
