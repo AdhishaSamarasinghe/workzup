@@ -236,6 +236,7 @@ export default function MyJobPostingsPage() {
                         placeholder="Status"
                         searchable={false}
                         showAllOption={false}
+                        size="sm"
                       />
                     </div>
                     <Link
