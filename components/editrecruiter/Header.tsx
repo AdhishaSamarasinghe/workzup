@@ -27,9 +27,6 @@ export default function EditRecruiterHeader() {
           <Link href="#" className="transition-colors hover:text-accent">
             Dashboard
           </Link>
-          <Link href="#" className="transition-colors hover:text-accent">
-            Jobs
-          </Link>
           <Link href="/recruiter/messages" className="transition-colors hover:text-accent">
             <MessagesBadge />
           </Link>
@@ -120,13 +117,6 @@ export default function EditRecruiterHeader() {
               onClick={() => setMenuOpen(false)}
             >
               Dashboard
-            </Link>
-            <Link
-              href="#"
-              className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
-              onClick={() => setMenuOpen(false)}
-            >
-              Jobs
             </Link>
             <Link
               href="/recruiter/messages"
