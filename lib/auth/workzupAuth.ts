@@ -46,6 +46,13 @@ export async function signInWithSupabasePassword(
     throw error;
   }
 
+  if (typeof window !== "undefined") {
+    const accessToken = data.session?.access_token;
+    if (accessToken) {
+      localStorage.setItem("workzup:access_token", accessToken);
+    }
+  }
+
   return data;
 }
 
@@ -85,6 +92,10 @@ export async function syncOAuthSession(role: string) {
     throw new Error("Supabase OAuth session was not created.");
   }
 
+  if (typeof window !== "undefined") {
+    localStorage.setItem("workzup:access_token", accessToken);
+  }
+
   const response = await fetch("/api/auth/oauth-sync", {
     method: "POST",
     headers: {
@@ -106,4 +117,9 @@ export async function syncOAuthSession(role: string) {
 export async function signOutWorkzupAuth() {
   const supabase = requireSupabaseClient();
   await supabase.auth.signOut();
+
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("workzup:access_token");
+    localStorage.removeItem("token");
+  }
 }

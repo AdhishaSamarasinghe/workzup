@@ -69,8 +69,16 @@ export default function CreateJobPage() {
         rawMessage.includes("Forbidden: Requires one of") ||
         rawMessage.includes("cannot sign in here") ||
         rawMessage.includes("No role assigned");
+      const isAuthTokenError =
+        rawMessage.includes("Missing token") ||
+        rawMessage.includes("Invalid token");
 
-      if (isRoleError) {
+      if (isAuthTokenError) {
+        setMsg({
+          type: "error",
+          text: "Session expired. Please log in again as recruiter/employer.",
+        });
+      } else if (isRoleError) {
         setMsg({
           type: "error",
           text: "Please sign in with a recruiter/employer account to post jobs.",

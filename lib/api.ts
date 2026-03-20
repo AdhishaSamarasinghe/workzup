@@ -27,7 +27,39 @@ function getErrorMessage(error: unknown): string {
   return String(error);
 }
 
-export async function getAuthToken() {
+function normalizeToken(raw: string | null | undefined) {
+  if (!raw) return null;
+
+  const cleaned = String(raw)
+    .trim()
+    .replace(/^Bearer\s+/i, "")
+    .replace(/^"|"$/g, "")
+    .trim();
+
+  if (!cleaned || cleaned === "null" || cleaned === "undefined") {
+    return null;
+  }
+
+  return cleaned;
+}
+
+function isLikelyJwt(token: string | null | undefined) {
+  if (!token) return false;
+  const parts = token.split(".");
+  return parts.length === 3 && parts.every((part) => part.length > 0);
+}
+
+function clearCachedAuthTokens() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem("workzup:access_token");
+    window.localStorage.removeItem("token");
+  } catch {
+    // Ignore storage access issues.
+  }
+}
+
+async function getSupabaseSessionToken() {
   if (typeof window === "undefined") {
     return null;
   }
@@ -39,13 +71,49 @@ export async function getAuthToken() {
     }
 
     const { data } = await supabase.auth.getSession();
-    const supabaseToken = data.session?.access_token || null;
+    const supabaseToken = normalizeToken(data.session?.access_token || null);
 
-    if (supabaseToken) {
-      return supabaseToken;
+    if (supabaseToken && isLikelyJwt(supabaseToken)) {
+      try {
+        window.localStorage.setItem("workzup:access_token", supabaseToken);
+      } catch {
+        // Ignore storage access issues.
+      }
+    }
+
+    return supabaseToken && isLikelyJwt(supabaseToken) ? supabaseToken : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getAuthToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const supabaseToken = await getSupabaseSessionToken();
+  if (supabaseToken) {
+    return supabaseToken;
+  }
+
+  // Fallback for legacy/intermittent session scenarios.
+  // This helps avoid transient "Missing token" errors if session hydration lags.
+  try {
+    const fallbackToken = normalizeToken(
+      window.localStorage.getItem("workzup:access_token") ||
+        window.localStorage.getItem("token"),
+    );
+
+    if (fallbackToken && isLikelyJwt(fallbackToken)) {
+      return fallbackToken;
+    }
+
+    if (fallbackToken && !isLikelyJwt(fallbackToken)) {
+      clearCachedAuthTokens();
     }
   } catch {
-    // Ignore transient session read failures and treat the user as signed out.
+    // Ignore localStorage access issues.
   }
 
   return null;
@@ -155,7 +223,8 @@ async function executeFetch(path: string, options: RequestInit = {}) {
 // LOW-LEVEL FETCH HELPER (auth-aware)
 // ============================================
 export async function apiFetch(path: string, options: RequestInit = {}) {
-  const token = await getAuthToken();
+  const rawToken = await getAuthToken();
+  const token = normalizeToken(rawToken);
 
   const isFormData =
     !!options.body &&
@@ -164,11 +233,35 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 
   const headers: HeadersInit = {
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(token && isLikelyJwt(token) ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
 
-  const res = await executeFetch(path, { ...options, headers });
+  let res = await executeFetch(path, { ...options, headers });
+
+  if (!res.ok && res.status === 401) {
+    const authErrorData: { message?: string; error?: string } = await res
+      .clone()
+      .json()
+      .catch(() => ({}));
+    const authErrorMsg = authErrorData.message || authErrorData.error || "";
+    const isTokenError = /Missing token|Invalid token/i.test(authErrorMsg);
+
+    if (isTokenError) {
+      clearCachedAuthTokens();
+      const freshToken = await getSupabaseSessionToken();
+
+      if (freshToken && freshToken !== token && isLikelyJwt(freshToken)) {
+        const retryHeaders: HeadersInit = {
+          ...(isFormData ? {} : { "Content-Type": "application/json" }),
+          ...(options.headers || {}),
+          Authorization: `Bearer ${freshToken}`,
+        };
+
+        res = await executeFetch(path, { ...options, headers: retryHeaders });
+      }
+    }
+  }
 
   if (!res.ok) {
     const errorData: { message?: string; error?: string } = await res
