@@ -226,18 +226,18 @@ export default function MyJobPostingsPage() {
                     >
                       Edit Job
                     </Link>
-                    <select
-                      value={job.status}
-                      onChange={(e) =>
-                        handleStatusChange(job.id, e.target.value as EmployerJob["status"])
-                      }
-                      disabled={updatingJobId === job.id}
-                      className="flex-1 sm:flex-none rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100"
-                    >
-                      <option value="PUBLIC">PUBLIC</option>
-                      <option value="PRIVATE">PRIVATE</option>
-                      <option value="DRAFT">DRAFT</option>
-                    </select>
+                    <div className="min-w-[130px] flex-1 sm:flex-none">
+                      <CustomSelect
+                        value={job.status}
+                        onChange={(val) =>
+                          handleStatusChange(job.id, val as EmployerJob["status"])
+                        }
+                        options={["PUBLIC", "PRIVATE", "DRAFT"]}
+                        placeholder="Status"
+                        searchable={false}
+                        showAllOption={false}
+                      />
+                    </div>
                     <Link
                       href={`/recruiter/jobs/${job.id}/applicants`}
                       className="flex-1 sm:flex-none text-center rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
