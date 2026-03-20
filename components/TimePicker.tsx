@@ -149,14 +149,14 @@ export default function TimePicker({ value, onChange, label }: TimePickerProps) 
                             <button
                                 type="button"
                                 onClick={() => setPeriod("AM")}
-                                className={`w-full rounded-lg font-bold text-sm transition ${draftTime.p === "AM" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+                                className={`w-full rounded-lg font-bold text-sm transition ${draftTime.p === "AM" ? "bg-[#6B8BFF] text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
                             >
                                 AM
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setPeriod("PM")}
-                                className={`w-full rounded-lg font-bold text-sm transition ${draftTime.p === "PM" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+                                className={`w-full rounded-lg font-bold text-sm transition ${draftTime.p === "PM" ? "bg-[#6B8BFF] text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
                             >
                                 PM
                             </button>
@@ -170,7 +170,7 @@ export default function TimePicker({ value, onChange, label }: TimePickerProps) 
                             key={minute}
                             type="button"
                             onClick={() => commitTime({ ...draftTime, m: minute })}
-                            className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${draftTime.m === minute ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"}`}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${draftTime.m === minute ? "bg-[#6B8BFF] text-white border-[#6B8BFF]" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"}`}
                         >
                             :{minute}
                         </button>
@@ -184,7 +184,7 @@ export default function TimePicker({ value, onChange, label }: TimePickerProps) 
                             pulse();
                             setIsOpen(false);
                         }}
-                        className="bg-[#2952FF] text-white font-bold text-xs uppercase tracking-wider px-6 py-2 rounded-full hover:bg-blue-700 transition-colors shadow-sm"
+                        className="bg-[#6B8BFF] text-white font-bold text-xs uppercase tracking-wider px-6 py-2 rounded-full hover:bg-[#5979f0] transition-colors shadow-sm"
                     >
                         Done
                     </button>
