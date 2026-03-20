@@ -36,7 +36,7 @@ export default function Header() {
 
           {/* Center — Primary nav links (hidden on mobile) */}
           <nav className="hidden md:flex items-center gap-8 text-sm text-slate-700">
-            <Link href="/dashboard" className="opacity-80 hover:opacity-100">Dashboard</Link>
+            <Link href="/employer/create-job/my-postings" className="opacity-80 hover:opacity-100">Dashboard</Link>
             {/* My postings links directly to the employer job list */}
             <Link href="/employer/create-job/my-postings" className="opacity-80 hover:opacity-100">My postings</Link>
             <Link href="/messages" className="opacity-80 hover:opacity-100"><MessagesBadge /></Link>

@@ -24,7 +24,7 @@ export default function EditRecruiterHeader() {
         </Link>
 
         <nav className="hidden items-center gap-8 text-base font-medium text-[#1F2937] md:flex md:ml-auto md:mr-8">
-          <Link href="#" className="transition-colors hover:text-accent">
+          <Link href="/employer/create-job/my-postings" className="transition-colors hover:text-accent">
             Dashboard
           </Link>
           <Link href="/recruiter/messages" className="transition-colors hover:text-accent">
@@ -93,7 +93,7 @@ export default function EditRecruiterHeader() {
         <div className="border-t border-[#E5E7EB] bg-card md:hidden">
           <nav className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-3 text-sm font-medium text-[#1F2937] sm:px-6 lg:px-8">
             <Link
-              href="#"
+              href="/employer/create-job/my-postings"
               className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
               onClick={() => setMenuOpen(false)}
             >
