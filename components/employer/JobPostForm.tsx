@@ -316,7 +316,7 @@ export default function JobPostForm({
                     {/* Job Dates */}
                     <div
                         ref={setFieldRef("jobDates")}
-                        className={`md:col-span-2 rounded-xl p-2 -m-2 ${missingFields.jobDates ? "border border-red-300 bg-red-50/20" : ""}`}
+                        className={`md:col-span-2 rounded-xl px-2 pt-2 pb-1 ${missingFields.jobDates ? "border border-red-300 bg-red-50/20" : ""}`}
                     >
                         <label className="block text-sm font-semibold text-slate-800 mb-2">Job Dates</label>
                         <div className="flex gap-2 mb-2">
@@ -357,7 +357,7 @@ export default function JobPostForm({
                     {/* Locations */}
                     <div
                         ref={setFieldRef("locations")}
-                        className={`md:col-span-2 rounded-xl p-2 -m-2 ${missingFields.locations ? "border border-red-300 bg-red-50/20" : ""}`}
+                        className={`md:col-span-2 rounded-xl px-2 pt-2 pb-1 ${missingFields.locations ? "border border-red-300 bg-red-50/20" : ""}`}
                     >
                         <label className="block text-sm font-semibold text-slate-800 mb-2">Locations</label>
                         <div className="flex gap-2 mb-2">
@@ -401,7 +401,7 @@ export default function JobPostForm({
 
                     <div
                         ref={setFieldRef("startTime")}
-                        className={`rounded-xl p-2 -m-2 ${missingFields.startTime ? "border border-red-300 bg-red-50/20" : ""}`}
+                        className={`rounded-xl px-2 pt-2 pb-1 ${missingFields.startTime ? "border border-red-300 bg-red-50/20" : ""}`}
                     >
                         <TimePicker
                             label="Start Time"
@@ -418,7 +418,7 @@ export default function JobPostForm({
 
                     <div
                         ref={setFieldRef("endTime")}
-                        className={`rounded-xl p-2 -m-2 ${missingFields.endTime ? "border border-red-300 bg-red-50/20" : ""}`}
+                        className={`rounded-xl px-2 pt-2 pb-1 ${missingFields.endTime ? "border border-red-300 bg-red-50/20" : ""}`}
                     >
                         <TimePicker
                             label="End Time"
