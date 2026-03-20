@@ -2,8 +2,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import TimePicker from "@/components/TimePicker";
 import DatePicker from "@/components/jobs/DatePicker";
+
+const LocationMap = dynamic(() => import("@/components/LocationMap"), {
+    ssr: false,
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type JobStatus = "DRAFT" | "PUBLIC" | "PRIVATE";
@@ -70,6 +75,7 @@ export default function JobPostForm({
     const [reqInput, setReqInput] = useState("");
     const [locInput, setLocInput] = useState("");
     const [dateInput, setDateInput] = useState("");
+    const [mapPosition, setMapPosition] = useState({ lat: 6.9271, lng: 79.8612 });
 
     const [submitError, setSubmitError] = useState("");
     const [missingFields, setMissingFields] = useState<Partial<Record<FieldKey, boolean>>>({});
@@ -157,6 +163,14 @@ export default function JobPostForm({
 
     const removeLocation = (index: number) => {
         setForm((p) => ({ ...p, locations: p.locations.filter((_, i) => i !== index) }));
+    };
+
+    const handleMapLocationSelect = (lat: number, lng: number, address: string) => {
+        setMapPosition({ lat, lng });
+        if (address.trim()) {
+            setLocInput(address.trim());
+            setMissingFields((prev) => ({ ...prev, locations: false }));
+        }
     };
 
     const addDate = () => {
@@ -394,6 +408,15 @@ export default function JobPostForm({
                                 ))}
                             </div>
                         )}
+                        <div className="mt-3 rounded-xl overflow-hidden border border-slate-200">
+                            <LocationMap
+                                position={mapPosition}
+                                onLocationSelect={handleMapLocationSelect}
+                            />
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">
+                            Click on the map to pick a location. The selected address will appear in the input above.
+                        </p>
                         {missingFields.locations && (
                             <p className="text-xs text-red-600 mt-1">{fieldErrorText("locations")}</p>
                         )}
