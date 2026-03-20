@@ -4,6 +4,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { SRI_LANKA_LOCATIONS } from "@/app/data/locations";
 import TimePicker from "@/components/TimePicker";
+import DatePicker from "@/components/jobs/DatePicker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type JobStatus = "DRAFT" | "PUBLIC" | "PRIVATE";
@@ -220,12 +221,9 @@ export default function JobPostForm({
                     <div className="md:col-span-2">
                         <label className="block text-sm font-semibold text-slate-800 mb-2">Job Dates</label>
                         <div className="flex gap-2 mb-2">
-                            <input
-                                type="date"
-                                value={dateInput}
-                                onChange={(e) => setDateInput(e.target.value)}
-                                className="flex-1 h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
-                            />
+                            <div className="flex-1">
+                                <DatePicker value={dateInput} onChange={setDateInput} />
+                            </div>
                             <button
                                 onClick={addDate}
                                 type="button"
