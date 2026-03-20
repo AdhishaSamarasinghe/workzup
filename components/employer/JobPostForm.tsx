@@ -12,6 +12,15 @@ const LocationMap = dynamic(() => import("@/components/LocationMap"), {
 });
 
 const payTypeOptions = ["/ hour", "/ day"];
+const jobCategoryOptions = [
+    "Hospitality",
+    "Retail",
+    "Event Staff",
+    "Delivery",
+    "Cleaning",
+    "Admin",
+    "Other",
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type JobStatus = "DRAFT" | "PUBLIC" | "PRIVATE";
@@ -309,20 +318,14 @@ export default function JobPostForm({
                         <label className="block text-sm font-semibold text-slate-800 mb-2">
                             Job Category
                         </label>
-                        <select
-                            name="category"
+                        <CustomSelect
                             value={form.category}
-                            onChange={handleChange}
-                            className="w-full h-11 px-3 border border-slate-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-200"
-                        >
-                            <option>Hospitality</option>
-                            <option>Retail</option>
-                            <option>Event Staff</option>
-                            <option>Delivery</option>
-                            <option>Cleaning</option>
-                            <option>Admin</option>
-                            <option>Other</option>
-                        </select>
+                            onChange={(val) => setForm((p) => ({ ...p, category: val }))}
+                            options={jobCategoryOptions}
+                            placeholder="Select category"
+                            searchable={false}
+                            showAllOption={false}
+                        />
                     </div>
                 </div>
             </section>

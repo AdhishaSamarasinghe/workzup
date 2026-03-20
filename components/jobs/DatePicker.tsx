@@ -88,12 +88,13 @@ export default function DatePicker({ value, onChange }: DatePickerProps) {
           className="
             w-[300px] rounded-2xl bg-white p-5 shadow-2xl border border-gray-100
             animate-in fade-in zoom-in-95 data-[side=bottom]:slide-in-from-top-2
-            z-50
+            z-[2000]
           "
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <button
+              type="button"
               onClick={handlePrevMonth}
               // Prevent going back to past months if desired, but user only asked for days.
               // For now keeping navigation open but disabling days is standard.
@@ -109,6 +110,7 @@ export default function DatePicker({ value, onChange }: DatePickerProps) {
             </div>
 
             <button
+              type="button"
               onClick={handleNextMonth}
               className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 transition"
             >
