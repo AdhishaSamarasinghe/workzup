@@ -71,10 +71,7 @@ export default function JobPostForm({
     const [locInput, setLocInput] = useState("");
     const [dateInput, setDateInput] = useState("");
 
-    const [localMsg, setLocalMsg] = useState<{ type: "error" | ""; text: string }>({
-        type: "",
-        text: "",
-    });
+    const [submitError, setSubmitError] = useState("");
     const [missingFields, setMissingFields] = useState<Partial<Record<FieldKey, boolean>>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -89,6 +86,27 @@ export default function JobPostForm({
             if (!prev[key]) return prev;
             return { ...prev, [key]: false };
         });
+    };
+
+    const fieldErrorText = (key: FieldKey) => {
+        switch (key) {
+            case "title":
+                return "Job title is required.";
+            case "description":
+                return "Job description is required.";
+            case "pay":
+                return "Enter a valid pay amount.";
+            case "locations":
+                return "Add at least one location.";
+            case "jobDates":
+                return "Add at least one job date.";
+            case "startTime":
+                return "Start time is required.";
+            case "endTime":
+                return "End time is required.";
+            default:
+                return "This field is required.";
+        }
     };
 
     const validateForm = (status: JobStatus) => {
@@ -169,13 +187,12 @@ export default function JobPostForm({
     const handleInnerSubmit = async (status: JobStatus) => {
         if (isSubmitting) return;
         setIsSubmitting(true);
-        setLocalMsg({ type: "", text: "" });
+        setSubmitError("");
         setMissingFields({});
 
         const { errors, firstMissing } = validateForm(status);
         if (firstMissing) {
             setMissingFields(errors);
-            setLocalMsg({ type: "error", text: "Please fill all required fields." });
 
             const target = fieldRefs.current[firstMissing];
             if (target) {
@@ -191,7 +208,7 @@ export default function JobPostForm({
         try {
             await onSubmit(form, status);
         } catch (err: any) {
-            setLocalMsg({ type: "error", text: err.message || "Submission failed" });
+            setSubmitError(err.message || "Submission failed");
         } finally {
             setIsSubmitting(false);
         }
@@ -215,6 +232,9 @@ export default function JobPostForm({
                         placeholder="e.g. Event Staff for Charity Gala"
                         className={`w-full h-11 px-3 border rounded-xl outline-none focus:ring-2 ${missingFields.title ? "border-red-400 focus:ring-red-200 bg-red-50/30" : "border-slate-300 focus:ring-blue-200"}`}
                     />
+                    {missingFields.title && (
+                        <p className="text-xs text-red-600 mt-1">{fieldErrorText("title")}</p>
+                    )}
                 </div>
 
                 <label className="block text-sm font-semibold text-slate-800 mt-5 mb-2">
@@ -228,6 +248,9 @@ export default function JobPostForm({
                         placeholder="Describe responsibilities, requirements, and important details..."
                         className={`w-full min-h-[120px] px-3 py-2 border rounded-xl outline-none focus:ring-2 resize-y ${missingFields.description ? "border-red-400 focus:ring-red-200 bg-red-50/30" : "border-slate-300 focus:ring-blue-200"}`}
                     />
+                    {missingFields.description && (
+                        <p className="text-xs text-red-600 mt-1">{fieldErrorText("description")}</p>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
@@ -243,6 +266,9 @@ export default function JobPostForm({
                                     inputMode="numeric"
                                     className={`w-full h-11 px-3 border rounded-xl outline-none focus:ring-2 ${missingFields.pay ? "border-red-400 focus:ring-red-200 bg-red-50/30" : "border-slate-300 focus:ring-blue-200"}`}
                                 />
+                                {missingFields.pay && (
+                                    <p className="text-xs text-red-600 mt-1">{fieldErrorText("pay")}</p>
+                                )}
                             </div>
                             <select
                                 name="payType"
@@ -323,6 +349,9 @@ export default function JobPostForm({
                                 ))}
                             </div>
                         )}
+                        {missingFields.jobDates && (
+                            <p className="text-xs text-red-600 mt-1">{fieldErrorText("jobDates")}</p>
+                        )}
                     </div>
 
                     {/* Locations */}
@@ -365,6 +394,9 @@ export default function JobPostForm({
                                 ))}
                             </div>
                         )}
+                        {missingFields.locations && (
+                            <p className="text-xs text-red-600 mt-1">{fieldErrorText("locations")}</p>
+                        )}
                     </div>
 
                     <div
@@ -379,6 +411,9 @@ export default function JobPostForm({
                                 if (val) markFilled("startTime");
                             }}
                         />
+                        {missingFields.startTime && (
+                            <p className="text-xs text-red-600 mt-1">{fieldErrorText("startTime")}</p>
+                        )}
                     </div>
 
                     <div
@@ -393,6 +428,9 @@ export default function JobPostForm({
                                 if (val) markFilled("endTime");
                             }}
                         />
+                        {missingFields.endTime && (
+                            <p className="text-xs text-red-600 mt-1">{fieldErrorText("endTime")}</p>
+                        )}
                     </div>
                 </div>
             </section>
@@ -446,12 +484,7 @@ export default function JobPostForm({
 
             <hr className="border-slate-100" />
 
-            {/* Error feedback banner */}
-            {localMsg.text ? (
-                <div className="px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
-                    {localMsg.text}
-                </div>
-            ) : null}
+            {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
 
             {/* Action buttons */}
             <div className="flex items-center gap-4 pt-4">
