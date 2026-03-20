@@ -1,8 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
-import { SRI_LANKA_LOCATIONS } from "@/app/data/locations";
+import React, { useState, useEffect } from "react";
 import TimePicker from "@/components/TimePicker";
 import DatePicker from "@/components/jobs/DatePicker";
 
@@ -67,15 +66,6 @@ export default function JobPostForm({
         type: "",
         text: "",
     });
-
-    // Flatten locations for autocomplete
-    const ALL_CITIES = useMemo(() => {
-        const list: string[] = [];
-        Object.entries(SRI_LANKA_LOCATIONS).forEach(([dist, cities]) => {
-            cities.forEach(city => list.push(`${city}, ${dist}`));
-        });
-        return list.sort();
-    }, []);
 
     // Handlers
     const addRequirement = () => {
@@ -260,15 +250,9 @@ export default function JobPostForm({
                                 value={locInput}
                                 onChange={(e) => setLocInput(e.target.value)}
                                 placeholder="e.g. Colombo, Baththaramulla"
-                                list="city-list"
                                 className="flex-1 h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
                                 onKeyDown={(e) => e.key === "Enter" && addLocation()}
                             />
-                            <datalist id="city-list">
-                                {ALL_CITIES.map((loc) => (
-                                    <option key={loc} value={loc} />
-                                ))}
-                            </datalist>
                             <button
                                 onClick={addLocation}
                                 type="button"
