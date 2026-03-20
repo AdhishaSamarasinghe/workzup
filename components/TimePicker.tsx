@@ -20,10 +20,10 @@ type TimeParts = {
 };
 
 const parseTime = (val: string): TimeParts => {
-    if (!val) return { h: "07", m: "00", p: "AM" };
+    if (!val) return { h: "06", m: "00", p: "AM" };
 
     const match = val.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-    if (!match) return { h: "07", m: "00", p: "AM" };
+    if (!match) return { h: "06", m: "00", p: "AM" };
 
     const hour = Math.min(12, Math.max(1, Number(match[1]))).toString().padStart(2, "0");
     const minute = Math.min(59, Math.max(0, Number(match[2]))).toString().padStart(2, "0");
@@ -179,7 +179,11 @@ export default function TimePicker({ value, onChange, label }: TimePickerProps) 
 
                 <div className="p-3 border-t border-slate-100 bg-white flex justify-end">
                     <button
-                        onClick={() => setIsOpen(false)}
+                        onClick={() => {
+                            onChange(formatTime(draftTime));
+                            pulse();
+                            setIsOpen(false);
+                        }}
                         className="bg-[#2952FF] text-white font-bold text-xs uppercase tracking-wider px-6 py-2 rounded-full hover:bg-blue-700 transition-colors shadow-sm"
                     >
                         Done
