@@ -29,6 +29,15 @@ interface JobPostFormProps {
     mode: "create" | "edit";
 }
 
+type FieldKey =
+    | "title"
+    | "description"
+    | "pay"
+    | "jobDates"
+    | "locations"
+    | "startTime"
+    | "endTime";
+
 export default function JobPostForm({
     initialData,
     onSubmit,
@@ -66,6 +75,48 @@ export default function JobPostForm({
         type: "",
         text: "",
     });
+    const [missingFields, setMissingFields] = useState<Partial<Record<FieldKey, boolean>>>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const fieldRefs = React.useRef<Partial<Record<FieldKey, HTMLDivElement | null>>>({});
+
+    const setFieldRef = (key: FieldKey) => (el: HTMLDivElement | null) => {
+        fieldRefs.current[key] = el;
+    };
+
+    const markFilled = (key: FieldKey) => {
+        setMissingFields((prev) => {
+            if (!prev[key]) return prev;
+            return { ...prev, [key]: false };
+        });
+    };
+
+    const validateForm = (status: JobStatus) => {
+        const errors: Partial<Record<FieldKey, boolean>> = {};
+        const ordered: FieldKey[] = [
+            "title",
+            "description",
+            "pay",
+            "locations",
+            "jobDates",
+            "startTime",
+            "endTime",
+        ];
+
+        if (!form.title.trim()) errors.title = true;
+
+        if (status === "PUBLIC" || status === "PRIVATE") {
+            if (!form.description.trim()) errors.description = true;
+            if (!form.pay || Number(form.pay) <= 0) errors.pay = true;
+            if (form.locations.length === 0) errors.locations = true;
+            if (form.jobDates.length === 0) errors.jobDates = true;
+            if (!form.startTime) errors.startTime = true;
+            if (!form.endTime) errors.endTime = true;
+        }
+
+        const firstMissing = ordered.find((key) => errors[key]);
+        return { errors, firstMissing };
+    };
 
     // Handlers
     const addRequirement = () => {
@@ -82,6 +133,7 @@ export default function JobPostForm({
         if (!locInput.trim()) return;
         if (form.locations.includes(locInput.trim())) return;
         setForm((p) => ({ ...p, locations: [...p.locations, locInput.trim()] }));
+        markFilled("locations");
         setLocInput("");
     };
 
@@ -93,6 +145,7 @@ export default function JobPostForm({
         if (!dateInput) return;
         if (form.jobDates.includes(dateInput)) return setDateInput("");
         setForm((p) => ({ ...p, jobDates: [...p.jobDates, dateInput] }));
+        markFilled("jobDates");
         setDateInput("");
     };
 
@@ -105,14 +158,33 @@ export default function JobPostForm({
     ) {
         const { name, value } = e.target;
         setForm((p) => ({ ...p, [name]: value }));
+
+        if (name === "title") markFilled("title");
+        if (name === "description") markFilled("description");
+        if (name === "pay") {
+            if (value && Number(value) > 0) markFilled("pay");
+        }
     }
 
     const handleInnerSubmit = async (status: JobStatus) => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         setLocalMsg({ type: "", text: "" });
+        setMissingFields({});
 
-        // Simple validation shim (Parent usually validates too, but good to have here)
-        if (!form.title.trim()) {
-            setLocalMsg({ type: "error", text: "Job title is required." });
+        const { errors, firstMissing } = validateForm(status);
+        if (firstMissing) {
+            setMissingFields(errors);
+            setLocalMsg({ type: "error", text: "Please fill all required fields." });
+
+            const target = fieldRefs.current[firstMissing];
+            if (target) {
+                target.scrollIntoView({ behavior: "smooth", block: "center" });
+                const focusable = target.querySelector("input, textarea, select, button") as HTMLElement | null;
+                focusable?.focus();
+            }
+
+            setIsSubmitting(false);
             return;
         }
 
@@ -120,6 +192,8 @@ export default function JobPostForm({
             await onSubmit(form, status);
         } catch (err: any) {
             setLocalMsg({ type: "error", text: err.message || "Submission failed" });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -133,37 +207,43 @@ export default function JobPostForm({
                 </h2>
 
                 <label className="block text-sm font-semibold text-slate-800 mb-2">Job title</label>
-                <input
-                    name="title"
-                    value={form.title}
-                    onChange={handleChange}
-                    placeholder="e.g. Event Staff for Charity Gala"
-                    className="w-full h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
-                />
+                <div ref={setFieldRef("title")}>
+                    <input
+                        name="title"
+                        value={form.title}
+                        onChange={handleChange}
+                        placeholder="e.g. Event Staff for Charity Gala"
+                        className={`w-full h-11 px-3 border rounded-xl outline-none focus:ring-2 ${missingFields.title ? "border-red-400 focus:ring-red-200 bg-red-50/30" : "border-slate-300 focus:ring-blue-200"}`}
+                    />
+                </div>
 
                 <label className="block text-sm font-semibold text-slate-800 mt-5 mb-2">
                     Job description
                 </label>
-                <textarea
-                    name="description"
-                    value={form.description}
-                    onChange={handleChange}
-                    placeholder="Describe responsibilities, requirements, and important details..."
-                    className="w-full min-h-[120px] px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200 resize-y"
-                />
+                <div ref={setFieldRef("description")}>
+                    <textarea
+                        name="description"
+                        value={form.description}
+                        onChange={handleChange}
+                        placeholder="Describe responsibilities, requirements, and important details..."
+                        className={`w-full min-h-[120px] px-3 py-2 border rounded-xl outline-none focus:ring-2 resize-y ${missingFields.description ? "border-red-400 focus:ring-red-200 bg-red-50/30" : "border-slate-300 focus:ring-blue-200"}`}
+                    />
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
                     <div>
                         <label className="block text-sm font-semibold text-slate-800 mb-2">Pay</label>
                         <div className="flex gap-2">
-                            <input
-                                name="pay"
-                                value={form.pay}
-                                onChange={handleChange}
-                                placeholder="$250.00"
-                                inputMode="numeric"
-                                className="w-full h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
-                            />
+                            <div ref={setFieldRef("pay")} className="w-full">
+                                <input
+                                    name="pay"
+                                    value={form.pay}
+                                    onChange={handleChange}
+                                    placeholder="$250.00"
+                                    inputMode="numeric"
+                                    className={`w-full h-11 px-3 border rounded-xl outline-none focus:ring-2 ${missingFields.pay ? "border-red-400 focus:ring-red-200 bg-red-50/30" : "border-slate-300 focus:ring-blue-200"}`}
+                                />
+                            </div>
                             <select
                                 name="payType"
                                 value={form.payType}
@@ -208,7 +288,10 @@ export default function JobPostForm({
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Job Dates */}
-                    <div className="md:col-span-2">
+                    <div
+                        ref={setFieldRef("jobDates")}
+                        className={`md:col-span-2 rounded-xl p-2 -m-2 ${missingFields.jobDates ? "border border-red-300 bg-red-50/20" : ""}`}
+                    >
                         <label className="block text-sm font-semibold text-slate-800 mb-2">Job Dates</label>
                         <div className="flex gap-2 mb-2">
                             <div className="flex-1">
@@ -243,7 +326,10 @@ export default function JobPostForm({
                     </div>
 
                     {/* Locations */}
-                    <div className="md:col-span-2">
+                    <div
+                        ref={setFieldRef("locations")}
+                        className={`md:col-span-2 rounded-xl p-2 -m-2 ${missingFields.locations ? "border border-red-300 bg-red-50/20" : ""}`}
+                    >
                         <label className="block text-sm font-semibold text-slate-800 mb-2">Locations</label>
                         <div className="flex gap-2 mb-2">
                             <input
@@ -281,19 +367,31 @@ export default function JobPostForm({
                         )}
                     </div>
 
-                    <div>
+                    <div
+                        ref={setFieldRef("startTime")}
+                        className={`rounded-xl p-2 -m-2 ${missingFields.startTime ? "border border-red-300 bg-red-50/20" : ""}`}
+                    >
                         <TimePicker
                             label="Start Time"
                             value={form.startTime}
-                            onChange={(val) => setForm(p => ({ ...p, startTime: val }))}
+                            onChange={(val) => {
+                                setForm(p => ({ ...p, startTime: val }));
+                                if (val) markFilled("startTime");
+                            }}
                         />
                     </div>
 
-                    <div>
+                    <div
+                        ref={setFieldRef("endTime")}
+                        className={`rounded-xl p-2 -m-2 ${missingFields.endTime ? "border border-red-300 bg-red-50/20" : ""}`}
+                    >
                         <TimePicker
                             label="End Time"
                             value={form.endTime}
-                            onChange={(val) => setForm(p => ({ ...p, endTime: val }))}
+                            onChange={(val) => {
+                                setForm(p => ({ ...p, endTime: val }));
+                                if (val) markFilled("endTime");
+                            }}
                         />
                     </div>
                 </div>
@@ -361,14 +459,14 @@ export default function JobPostForm({
                     <>
                         <button
                             onClick={() => handleInnerSubmit("PUBLIC")}
-                            disabled={loading}
+                            disabled={loading || isSubmitting}
                             className="btn-primary min-w-[156px] px-6 h-[44px] whitespace-nowrap"
                         >
                             {loading ? "Creating..." : "Post a new job"}
                         </button>
                         <button
                             onClick={() => handleInnerSubmit("DRAFT")}
-                            disabled={loading}
+                            disabled={loading || isSubmitting}
                             className="btn-secondary"
                         >
                             {loading ? "Saving..." : "Save as Draft"}
@@ -377,7 +475,7 @@ export default function JobPostForm({
                 ) : (
                     <button
                         onClick={() => handleInnerSubmit("PUBLIC")}
-                        disabled={loading}
+                        disabled={loading || isSubmitting}
                         className="btn-primary min-w-[156px] px-6 h-[44px] whitespace-nowrap"
                     >
                         {loading ? "Saving..." : "Save Changes"}
