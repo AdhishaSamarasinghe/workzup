@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
@@ -91,7 +91,6 @@ export default function AdminVerificationsPage() {
 
       <div className="bg-slate-100 p-0">
         <div className="grid min-h-[calc(100vh-80px)] grid-cols-1 xl:grid-cols-[320px_1fr]">
-          {/* Left Queue */}
           <aside className="border-r border-slate-200 bg-white">
             <div className="border-b border-slate-100 px-6 py-6">
               <h2 className="text-[1.75rem] font-bold leading-none text-slate-900">
@@ -130,17 +129,17 @@ export default function AdminVerificationsPage() {
               ) : filteredQueue.map((item) => {
                 const isActive = item.id === selectedItem?.id;
 
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setSelectedId(item.id)}
-                    className={`relative flex w-full items-start gap-4 px-5 py-5 text-left transition hover:bg-slate-50 ${
-                      isActive ? "bg-slate-50" : "bg-white"
-                    }`}
-                  >
-                    {isActive ? (
-                      <span className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-blue-600" />
-                    ) : null}
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setSelectedId(item.id)}
+                      className={`relative flex w-full items-start gap-4 px-5 py-5 text-left transition hover:bg-slate-50 ${
+                        isActive ? "bg-slate-50" : "bg-white"
+                      }`}
+                    >
+                      {isActive ? (
+                        <span className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-blue-600" />
+                      ) : null}
 
                     <div className="mt-0.5 h-11 w-11 shrink-0 rounded-full bg-orange-200 flex items-center justify-center font-bold text-orange-700 text-sm">
                       {item.name.charAt(0)}
@@ -152,31 +151,31 @@ export default function AdminVerificationsPage() {
                         <span className="text-xs text-slate-400 shrink-0">{item.timeAgo}</span>
                       </div>
 
-                      <p className="mt-1 text-xs text-slate-500">{item.type}</p>
+                        <p className="mt-1 text-xs text-slate-500">{item.type}</p>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        {item.priority === "High Priority" ? (
-                          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-600">
-                            High Priority
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
-                            Standard
-                          </span>
-                        )}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {item.priority === "High Priority" ? (
+                            <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-600">
+                              High Priority
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                              Standard
+                            </span>
+                          )}
 
-                        <span className="text-[10px] font-medium text-slate-400">
-                          {item.category}
-                        </span>
+                          <span className="text-[10px] font-medium text-slate-400">
+                            {item.category}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })
+              }
             </div>
           </aside>
 
-          {/* Right Detail */}
           <section className="bg-slate-50">
             {selectedItem ? (
               <>
@@ -189,7 +188,7 @@ export default function AdminVerificationsPage() {
                           {selectedItem.name}
                         </p>
                         <p className="mt-1 text-sm text-slate-500">
-                          Applied for: Senior Frontend Engineer
+                          Verification request in review
                         </p>
                       </div>
                     </div>
@@ -225,10 +224,10 @@ export default function AdminVerificationsPage() {
 
                     <div className="mt-6 grid grid-cols-4 gap-4">
                       {[
-                        { label: "EMAIL", active: true, color: "bg-emerald-500" },
-                        { label: "IDENTITY", active: true, color: "bg-blue-600" },
-                        { label: "PROFESSIONAL", active: false, color: "bg-slate-300" },
-                        { label: "FINAL AUDIT", active: false, color: "bg-slate-300" },
+                        { label: "EMAIL", color: "bg-emerald-500" },
+                        { label: "IDENTITY", color: "bg-blue-600" },
+                        { label: "PROFESSIONAL", color: "bg-slate-300" },
+                        { label: "FINAL AUDIT", color: "bg-slate-300" },
                       ].map((step, index) => (
                         <div key={step.label} className="relative flex flex-col items-center">
                           {index !== 3 ? (
@@ -252,7 +251,7 @@ export default function AdminVerificationsPage() {
                     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-slate-900">
-                          ID Card (Front)
+                          ID Card / Document
                         </p>
                         <button className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-700">
                           <Download size={14} />
@@ -261,17 +260,7 @@ export default function AdminVerificationsPage() {
                       </div>
 
                       <div className="mt-5 flex h-[260px] items-center justify-center rounded-2xl bg-[#49707a]">
-                        <div className="w-[250px] rounded-2xl bg-white px-5 py-6 shadow-md">
-                          <div className="flex items-center gap-4">
-                            <div className="h-14 w-14 rounded-xl bg-slate-200" />
-                            <div className="space-y-2">
-                              <div className="h-2 w-24 rounded bg-slate-200" />
-                              <div className="h-2 w-20 rounded bg-slate-200" />
-                              <div className="h-2 w-16 rounded bg-slate-200" />
-                              <div className="h-2 w-24 rounded bg-slate-200" />
-                            </div>
-                          </div>
-                        </div>
+                        <div className="text-sm text-white">Document preview area</div>
                       </div>
 
                       <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50 p-4">
@@ -283,7 +272,7 @@ export default function AdminVerificationsPage() {
                           <div className="h-2 w-[98.4%] rounded-full bg-emerald-500" />
                         </div>
                         <p className="mt-3 text-xs text-slate-400">
-                          Extracted: ALEX JOHNSON, ID: 8219-XXXX
+                          Extracted verification preview data
                         </p>
                       </div>
                     </div>
@@ -306,7 +295,7 @@ export default function AdminVerificationsPage() {
                             Liveness Check
                           </p>
                           <p className="mt-2 text-sm font-semibold text-emerald-500">
-                            ● Passed
+                            â— Passed
                           </p>
                         </div>
 

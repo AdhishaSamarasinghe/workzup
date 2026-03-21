@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
@@ -244,7 +244,7 @@ export default function AdminApplicationsPage() {
                               {item.candidate}
                             </p>
                             <p className="mt-1 text-xs text-slate-400">
-                              {item.jobTitle} · {item.id}
+                              {item.jobTitle} Â· {item.id}
                             </p>
                           </div>
                         </td>

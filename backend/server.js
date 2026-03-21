@@ -21,16 +21,19 @@ app.set("trust proxy", 1);
 // Security Hardening
 app.use(helmet());
 
-app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:3000",
-  credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser());
 
 // Serve static files from the uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ── profile-preferences routes ──
 try {
@@ -38,7 +41,7 @@ try {
   const recruitersRoutes = require("./routes/recruiters");
   app.use("/preferences", preferencesRoutes);
   app.use("/recruiters", recruitersRoutes);
-} catch (_) { }
+} catch (_) {}
 
 // ── Chat-branch routes (messages, conversations, users, jobs) ──
 const usersRoutes = require("./routes/users");
@@ -52,22 +55,20 @@ app.use("/messages", messagesRoutes);
 app.use("/conversations", conversationsRoutes);
 
 // ── Main-branch routes (auth, onboarding, recruiter) ──
-// Loaded with try/catch so the server works on branches where these don't yet exist.
 try {
   const authRoutes = require("./routes/auth");
   app.use("/api/auth", authRoutes);
-} catch (_) { /* not yet in this branch */ }
-
+} catch (_) {}
 
 try {
   const recruiterRoutes = require("./routes/recruiter");
   app.use("/api/recruiter", recruiterRoutes);
-} catch (_) { /* not yet in this branch */ }
+} catch (_) {}
 
 try {
   const applicationsRoutes = require("./routes/applications");
   app.use("/api/applications", applicationsRoutes);
-} catch (_) { }
+} catch (_) {}
 
 try {
   const messagingRoutes = require("./routes/messaging");
@@ -79,12 +80,15 @@ try {
 try {
   const savedJobsRoutes = require("./routes/savedJobs");
   app.use("/api/saved-jobs", savedJobsRoutes);
-} catch (_) { }
+} catch (_) {}
 
-try {
-  const adminRoutes = require("./routes/admin");
-  app.use("/api/admin", adminRoutes);
-} catch (_) { }
+/**
+ * IMPORTANT:
+ * Do NOT silently swallow admin route loading errors.
+ * If admin routes fail to load, we WANT the server to crash and show the real error.
+ */
+const adminRoutes = require("./routes/admin");
+app.use("/api/admin", adminRoutes);
 
 try {
   const employerJobsRoute = require("./routes/employerJobs");
@@ -96,6 +100,7 @@ try {
 let PORT = process.env.PORT || 5000;
 
 app.get("/health", (req, res) => res.json({ ok: true, port: PORT }));
+
 app.get("/", (req, res) => {
   res.send(`Workzup API is running on port ${PORT} ✅`);
 });
@@ -106,7 +111,7 @@ app.get("/jobs", async (req, res) => {
     const prisma = require("./prismaClient");
     const jobs = await prisma.job.findMany({
       orderBy: { createdAt: "desc" },
-      where: { status: "ACTIVE" } // Only show active publicly!
+      where: { status: "ACTIVE" },
     });
     res.json(jobs);
   } catch (err) {
@@ -119,9 +124,9 @@ app.get("/categories", async (req, res) => {
     const prisma = require("./prismaClient");
     const categories = await prisma.job.findMany({
       select: { category: true },
-      distinct: ['category'],
+      distinct: ["category"],
     });
-    const formatted = categories.map(c => c.category).filter(Boolean);
+    const formatted = categories.map((c) => c.category).filter(Boolean);
     res.json(["All Jobs", "All Categories", ...formatted]);
   } catch (err) {
     res.json(["All Jobs", "All Categories", "Hospitality", "Retail"]);
@@ -136,23 +141,32 @@ app.get("/reviews", async (req, res) => {
       orderBy: { createdAt: "desc" },
       include: {
         reviewer: {
-          select: { firstName: true, lastName: true, role: true }
-        }
-      }
+          select: { firstName: true, lastName: true, role: true },
+        },
+      },
     });
 
-    const formatted = reviews.map(r => ({
+    const formatted = reviews.map((r) => ({
       id: r.id,
-      name: r.reviewer?.firstName ? `${r.reviewer.firstName} ${r.reviewer.lastName || ""}`.trim() : "Anonymous User",
-      role: r.reviewer?.role === "RECRUITER" || r.reviewer?.role === "EMPLOYER" ? "Employer" : "Job Seeker",
-      avatar: r.reviewer?.firstName ? r.reviewer.firstName[0].toUpperCase() : "U",
+      name: r.reviewer?.firstName
+        ? `${r.reviewer.firstName} ${r.reviewer.lastName || ""}`.trim()
+        : "Anonymous User",
+      role:
+        r.reviewer?.role === "RECRUITER" || r.reviewer?.role === "EMPLOYER"
+          ? "Employer"
+          : "Job Seeker",
+      avatar: r.reviewer?.firstName
+        ? r.reviewer.firstName[0].toUpperCase()
+        : "U",
       rating: r.rating || 5,
-      text: r.comment || ""
+      text: r.comment || "",
     }));
 
     res.json(formatted);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch reviews", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch reviews", error: err.message });
   }
 });
 
@@ -160,7 +174,7 @@ app.get("/max-pay", async (req, res) => {
   try {
     const prisma = require("./prismaClient");
     const aggregation = await prisma.job.aggregate({
-      _max: { pay: true }
+      _max: { pay: true },
     });
     res.json({ max: aggregation._max.pay || 5000 });
   } catch (err) {
@@ -173,7 +187,7 @@ app.use((err, req, res, next) => {
   console.error("Server Error:", err);
   res.status(err.status || 500).json({
     message: err.message || "Internal Server Error",
-    error: process.env.NODE_ENV === "development" ? err.stack : undefined
+    error: process.env.NODE_ENV === "development" ? err.stack : undefined,
   });
 });
 
@@ -190,7 +204,7 @@ function startServer(portToTry) {
         startServer(5001);
       } else {
         console.error(
-          `Port ${portToTry} is also in use. Could not start server.`,
+          `Port ${portToTry} is also in use. Could not start server.`
         );
         process.exit(1);
       }

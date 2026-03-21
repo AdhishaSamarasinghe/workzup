@@ -45,9 +45,7 @@ function getVerificationLabel(user: AdminUser): VerificationLevel {
 
 function mapUserToRow(user: AdminUser, index: number): UserRow {
   const fullName =
-    user.name ||
-    `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-    "Unnamed User";
+    `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Unnamed User";
 
   const initials = fullName
     .split(" ")
@@ -78,15 +76,17 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   const loadUsers = useCallback(async (searchValue = "") => {
     try {
       setLoading(true);
+      setError("");
 
       const response = await getAdminUsers(searchValue);
 
       if (!response.success || !response.data) {
-        console.error(response.error || "Failed to fetch users");
+        setError(response.error || "Failed to fetch users");
         setUsers([]);
         return;
       }
@@ -95,6 +95,7 @@ export default function AdminUsersPage() {
       setUsers(mapped);
     } catch (error) {
       console.error("Failed to load users:", error);
+      setError("Failed to load users");
       setUsers([]);
     } finally {
       setLoading(false);
@@ -113,17 +114,19 @@ export default function AdminUsersPage() {
     async (user: UserRow) => {
       try {
         setActionLoadingId(user.id);
+        setError("");
 
         const response = await toggleUserBanStatus(user.id, !user.isBanned);
 
         if (!response.success) {
-          console.error(response.error || "Failed to update user");
+          setError(response.error || "Failed to update user");
           return;
         }
 
         await loadUsers(search);
       } catch (error) {
         console.error("Failed to toggle user status:", error);
+        setError("Failed to update user");
       } finally {
         setActionLoadingId(null);
       }
@@ -176,6 +179,7 @@ export default function AdminUsersPage() {
             </button>
             <button
               type="button"
+              title={user.isBanned ? "Unban User" : "Ban User"}
               className="hover:text-rose-500 disabled:opacity-50"
               onClick={() => handleToggleStatus(user)}
               disabled={actionLoadingId === user.id}
@@ -263,6 +267,10 @@ export default function AdminUsersPage() {
               <ChevronDown size={16} />
             </button>
           </div>
+
+          {error && (
+            <div className="mt-4 text-sm text-rose-500">{error}</div>
+          )}
 
           <div className="mt-4">
             {loading ? (

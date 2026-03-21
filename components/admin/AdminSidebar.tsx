@@ -1,17 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
-  BriefcaseBusiness,
+  Briefcase,
   ShieldCheck,
-  FileSearch,
-  ClipboardList,
+  FileText,
+  Flag,
   Settings,
   LogOut,
 } from "lucide-react";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const navItems = [
   {
@@ -27,7 +28,7 @@ const navItems = [
   {
     label: "Jobs",
     href: "/admin/jobs",
-    icon: BriefcaseBusiness,
+    icon: Briefcase,
   },
   {
     label: "Verification",
@@ -37,83 +38,125 @@ const navItems = [
   {
     label: "Applications",
     href: "/admin/applications",
-    icon: ClipboardList,
+    icon: FileText,
   },
   {
     label: "Reports",
     href: "/admin/reports",
-    icon: FileSearch,
+    icon: Flag,
+  },
+];
+
+const accountItems = [
+  {
+    label: "Settings",
+    href: "/admin/settings",
+    icon: Settings,
   },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      const supabase = getSupabaseBrowserClient();
+      await supabase.auth.signOut();
+      router.replace("/admin/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Sign out failed:", error);
+    }
+  };
 
   return (
-    <aside className="flex min-h-screen w-[270px] flex-col border-r border-slate-200 bg-white">
-      <div className="border-b border-slate-100 px-6 py-6">
-        <h2 className="text-2xl font-extrabold tracking-tight text-blue-600">
+    <aside className="flex min-h-screen w-[300px] flex-col border-r border-slate-200 bg-white">
+      <div className="border-b border-slate-200 px-8 py-8">
+        <div className="text-[2.1rem] font-extrabold tracking-tight text-blue-600">
           WORKZUP
-        </h2>
-        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+        </div>
+        <p className="mt-1 text-xs font-medium uppercase tracking-[0.35em] text-slate-400">
           Admin Portal
         </p>
       </div>
 
-      <div className="px-4 py-5">
-        <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Main Menu
-        </p>
+      <div className="flex-1 px-4 py-6">
+        <div>
+          <p className="px-4 text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+            Main Menu
+          </p>
 
-        <nav className="mt-4 space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
+          <nav className="mt-5 space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                item.href === "/admin"
+                  ? pathname === "/admin"
+                  : pathname.startsWith(item.href);
 
-            const isActive =
-              item.href === "/admin"
-                ? pathname === "/admin"
-                : pathname.startsWith(item.href);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-100"
-                    : "text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      <div className="mt-auto border-t border-slate-100 px-4 py-5">
-        <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Account
-        </p>
-
-        <div className="mt-4 space-y-2">
-          <button className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
-            <Settings size={18} />
-            <span>Settings</span>
-          </button>
-
-          <button className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-rose-500 transition hover:bg-rose-50">
-            <LogOut size={18} />
-            <span>Sign Out</span>
-          </button>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-4 text-base font-medium transition ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-100"
+                      : "text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  <Icon size={20} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-          <p className="text-sm font-semibold text-slate-900">System Status</p>
-          <div className="mt-2 flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            <span className="text-xs text-slate-500">All systems operational</span>
+        <div className="mt-10">
+          <p className="px-4 text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+            Account
+          </p>
+
+          <div className="mt-5 space-y-2">
+            {accountItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-4 text-base font-medium transition ${
+                    isActive
+                      ? "bg-slate-100 text-slate-900"
+                      : "text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  <Icon size={20} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-base font-medium text-rose-500 transition hover:bg-rose-50"
+            >
+              <LogOut size={20} />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 pb-4">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+          <p className="text-lg font-semibold text-slate-900">System Status</p>
+          <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
+            <span className="h-3 w-3 rounded-full bg-emerald-500" />
+            <span>All systems operational</span>
           </div>
         </div>
       </div>

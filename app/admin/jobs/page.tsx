@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
@@ -106,9 +106,24 @@ export default function AdminJobsPage() {
 
       <div className="bg-slate-100 p-6 md:p-8">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-          <MetricCard label="Total Postings" value="1,284" subtext="+5.2%" subtextColor="text-emerald-500" />
-          <MetricCard label="Flagged Jobs" value="12" subtext="Action Required" subtextColor="text-rose-500" />
-          <MetricCard label="New Today" value="48" subtext="In moderation" subtextColor="text-blue-500" />
+          <MetricCard
+            label="Total Postings"
+            value={String(jobs.length)}
+            subtext="+Live"
+            subtextColor="text-emerald-500"
+          />
+          <MetricCard
+            label="Flagged Jobs"
+            value={String(flaggedCount)}
+            subtext="Action Required"
+            subtextColor="text-rose-500"
+          />
+          <MetricCard
+            label="New Today"
+            value="--"
+            subtext="In moderation"
+            subtextColor="text-blue-500"
+          />
         </div>
 
         <div className="mt-6">
@@ -227,7 +242,7 @@ export default function AdminJobsPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-start gap-3">
                           <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                            💼
+                            ðŸ’¼
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
