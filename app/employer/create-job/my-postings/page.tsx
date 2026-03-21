@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import CustomSelect from "@/components/ui/CustomSelect";
+import { DeleteConfirmModal } from "@/components/ui";
 import { useWorkzupAuth } from "@/lib/auth/useWorkzupAuth";
 
 // Safe mock Job type
@@ -28,6 +29,9 @@ export default function MyJobPostingsPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  const [pendingDeleteJob, setPendingDeleteJob] = useState<EmployerJob | null>(null);
 
   // Custom simple debounce hook to avoid needing to install new packages
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
@@ -73,6 +77,57 @@ export default function MyJobPostingsPage() {
   const formatDate = (iso: string) => {
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
+  };
+
+  const handleStatusChange = async (jobId: string, nextStatus: EmployerJob["status"]) => {
+    const currentJob = jobs.find((item) => item.id === jobId);
+    if (!currentJob || currentJob.status === nextStatus) return;
+
+    const previousStatus = currentJob.status;
+
+    setError("");
+    setUpdatingJobId(jobId);
+    setJobs((prev) =>
+      prev.map((job) => (job.id === jobId ? { ...job, status: nextStatus } : job)),
+    );
+
+    try {
+      await apiFetch(`/api/employer/my-postings/${jobId}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: nextStatus }),
+      });
+    } catch (err: unknown) {
+      setJobs((prev) =>
+        prev.map((job) => (job.id === jobId ? { ...job, status: previousStatus } : job)),
+      );
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update status. Please try again.",
+      );
+    } finally {
+      setUpdatingJobId(null);
+    }
+  };
+
+  const handleDeleteJob = async (jobId: string) => {
+    setError("");
+    setDeletingJobId(jobId);
+
+    try {
+      await apiFetch(`/api/employer/my-postings/${jobId}`, {
+        method: "DELETE",
+      });
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete job. Please try again.",
+      );
+    } finally {
+      setDeletingJobId(null);
+    }
   };
 
   return (
@@ -166,7 +221,7 @@ export default function MyJobPostingsPage() {
                     </span>
                   </div>
                   <div className="text-sm text-slate-600 mb-3">
-                    {job.location} • ${job.hourlyRate}/hr
+                    {job.location} • LKR {job.hourlyRate}/hr
                   </div>
                   <div className="flex flex-wrap gap-4 text-xs text-slate-500">
                     <div><span className="font-medium text-slate-700">Posted:</span> {formatDate(job.postedDate)}</div>
@@ -186,7 +241,7 @@ export default function MyJobPostingsPage() {
                       <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Total</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto mt-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto mt-2 flex-wrap sm:flex-nowrap">
                     {/* Safe placeholders for navigation, using # layout without breaking existing routes if they do not exist */}
                     <Link
                       href={`/employer/edit-job/${job.id}`}
@@ -194,13 +249,44 @@ export default function MyJobPostingsPage() {
                     >
                       Edit Job
                     </Link>
+                    <div className="min-w-[130px] flex-1 sm:flex-none">
+                      <CustomSelect
+                        value={job.status}
+                        onChange={(val) =>
+                          handleStatusChange(job.id, val as EmployerJob["status"])
+                        }
+                        options={["PUBLIC", "PRIVATE", "DRAFT"]}
+                        placeholder="Status"
+                        searchable={false}
+                        showAllOption={false}
+                        size="sm"
+                      />
+                    </div>
                     <Link
                       href={`/recruiter/jobs/${job.id}/applicants`}
                       className="flex-1 sm:flex-none text-center rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
                     >
                       View Applicants
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => setPendingDeleteJob(job)}
+                      disabled={deletingJobId === job.id}
+                      className="flex-1 sm:flex-none text-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {deletingJobId === job.id ? "Deleting..." : "Delete Job"}
+                    </button>
                   </div>
+                  {updatingJobId === job.id && (
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      Updating status...
+                    </p>
+                  )}
+                  {deletingJobId === job.id && (
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-red-600">
+                      Deleting job...
+                    </p>
+                  )}
 
                 </div>
               </div>
@@ -208,6 +294,22 @@ export default function MyJobPostingsPage() {
           </div>
         )}
       </main>
+
+      <DeleteConfirmModal
+        isOpen={Boolean(pendingDeleteJob)}
+        onClose={() => setPendingDeleteJob(null)}
+        onConfirm={() => {
+          if (pendingDeleteJob) {
+            void handleDeleteJob(pendingDeleteJob.id);
+          }
+        }}
+        title="Delete Job Posting"
+        message={
+          pendingDeleteJob
+            ? `Are you sure you want to delete \"${pendingDeleteJob.title}\"? This action cannot be undone.`
+            : "Are you sure you want to delete this job posting? This action cannot be undone."
+        }
+      />
     </div>
   );
 }

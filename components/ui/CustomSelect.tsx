@@ -9,12 +9,23 @@ interface CustomSelectProps {
     placeholder?: string;
     searchable?: boolean;
     showAllOption?: boolean; // New prop
+    size?: "md" | "sm";
 }
 
-const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, placeholder = "Select...", searchable = false, showAllOption = true }) => {
+const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, placeholder = "Select...", searchable = false, showAllOption = true, size = "md" }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const triggerClass =
+        size === "sm"
+            ? "w-full rounded-lg border border-gray-200 px-3 py-1.5 text-xs bg-white flex items-center justify-between cursor-pointer focus:border-blue-500 hover:border-blue-400 transition-colors"
+            : "w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white flex items-center justify-between cursor-pointer focus:border-blue-500 hover:border-blue-400 transition-colors";
+
+    const optionClass =
+        size === "sm"
+            ? "px-3 py-2"
+            : "px-4 py-3";
 
     const filteredOptions = options.filter(opt =>
         opt.toLowerCase().includes(searchTerm.toLowerCase())
@@ -36,7 +47,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, p
             {/* Trigger Button */}
             <div
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white flex items-center justify-between cursor-pointer focus:border-blue-500 hover:border-blue-400 transition-colors"
+                className={triggerClass}
             >
                 <span className={!value ? "text-gray-500" : "text-gray-900"}>
                     {value || placeholder}
@@ -69,7 +80,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, p
                         {/* Actually, let's keep it simple: defaulting to true unless passed as false */}
                         {showAllOption && (
                             <div
-                                className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${value === "" ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700"}`}
+                                className={`${optionClass} cursor-pointer hover:bg-blue-50 transition-colors ${value === "" ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700"}`}
                                 onClick={() => {
                                     onChange("");
                                     setIsOpen(false);
@@ -84,7 +95,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, p
                             filteredOptions.map((opt) => (
                                 <div
                                     key={opt}
-                                    className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${value === opt ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700"}`}
+                                    className={`${optionClass} cursor-pointer hover:bg-blue-50 transition-colors ${value === opt ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700"}`}
                                     onClick={() => {
                                         onChange(opt);
                                         setIsOpen(false);

@@ -69,8 +69,16 @@ export default function CreateJobPage() {
         rawMessage.includes("Forbidden: Requires one of") ||
         rawMessage.includes("cannot sign in here") ||
         rawMessage.includes("No role assigned");
+      const isAuthTokenError =
+        rawMessage.includes("Missing token") ||
+        rawMessage.includes("Invalid token");
 
-      if (isRoleError) {
+      if (isAuthTokenError) {
+        setMsg({
+          type: "error",
+          text: "Session expired. Please log in again as recruiter/employer.",
+        });
+      } else if (isRoleError) {
         setMsg({
           type: "error",
           text: "Please sign in with a recruiter/employer account to post jobs.",
@@ -87,33 +95,30 @@ export default function CreateJobPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <main className="max-w-5xl mx-auto px-4 py-8">
-        {!showSuccess && (
-          <>
-            <div className="text-xs text-slate-500 mb-3 uppercase tracking-wider font-bold">My postings / Post a new job</div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Post a new job</h1>
-            <p className="text-slate-600 mt-1 text-lg">
-              Fill out the details below to find the right person for your one-day job
-            </p>
-          </>
-        )}
+        <>
+          <div className="text-xs text-slate-500 mb-3 uppercase tracking-wider font-bold">My postings / Post a new job</div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Post a new job</h1>
+          <p className="text-slate-600 mt-1 text-lg">
+            Fill out the details below to find the right person for your one-day job
+          </p>
+        </>
 
-        {showSuccess ? (
+        <div className="mt-8 shadow-2xl shadow-slate-200/50 rounded-3xl overflow-hidden">
+          <JobPostForm
+            mode="create"
+            loading={loading}
+            onSubmit={handleFormSubmit}
+            onCancel={() => router.push("/employer/create-job/my-postings")}
+          />
+        </div>
+
+        {showSuccess && (
           <RecruiterSuccess
             title="Job Posted!"
             message="The employer has been notified. We will send you an update on your application status soon."
             onReset={() => { setShowSuccess(false); setMsg({ type: "", text: "" }); }}
             showPostAnother={true}
           />
-        ) : (
-
-          <div className="mt-8 shadow-2xl shadow-slate-200/50 rounded-3xl overflow-hidden">
-            <JobPostForm
-              mode="create"
-              loading={loading}
-              onSubmit={handleFormSubmit}
-              onCancel={() => router.push("/employer/create-job/my-postings")}
-            />
-          </div>
         )}
       </main>
     </div>

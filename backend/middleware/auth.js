@@ -92,11 +92,18 @@ async function tryDecodeSupabaseAccessToken(token) {
 async function authenticateToken(req, res, next) {
   const header = req.headers.authorization;
 
-  if (!header || !header.startsWith("Bearer ")) {
+  if (!header || !/^Bearer\s+/i.test(header)) {
     return res.status(401).json({ message: "Missing token" });
   }
 
-  const token = header.replace("Bearer ", "");
+  const token = String(header)
+    .replace(/^Bearer\s+/i, "")
+    .replace(/^"|"$/g, "")
+    .trim();
+
+  if (!token || token === "null" || token === "undefined") {
+    return res.status(401).json({ message: "Missing token" });
+  }
 
   try {
     const supabaseAdmin = getSupabaseAdmin();

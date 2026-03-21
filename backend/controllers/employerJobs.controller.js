@@ -90,21 +90,31 @@ const updateJob = async (req, res) => {
 
         const { title, description, pay, payType, category, locations, jobDates, startTime, endTime, requirements, status } = req.body;
 
+        const allowedStatuses = new Set(["PUBLIC", "PRIVATE", "DRAFT"]);
+        if (status !== undefined && !allowedStatuses.has(status)) {
+            return res.status(400).json({ message: "Invalid status. Allowed values: PUBLIC, PRIVATE, DRAFT" });
+        }
+
+        const data = {};
+        if (title !== undefined) data.title = title;
+        if (description !== undefined) data.description = description;
+        if (pay !== undefined) data.pay = pay;
+        if (payType !== undefined) data.payType = payType;
+        if (category !== undefined) data.category = category;
+        if (locations !== undefined) data.locations = locations;
+        if (jobDates !== undefined) data.jobDates = jobDates;
+        if (startTime !== undefined) data.startTime = startTime;
+        if (endTime !== undefined) data.endTime = endTime;
+        if (requirements !== undefined) data.requirements = requirements;
+        if (status !== undefined) data.status = status;
+
+        if (Object.keys(data).length === 0) {
+            return res.status(400).json({ message: "No fields provided for update" });
+        }
+
         const updatedJob = await prisma.job.update({
             where: { id: jobId },
-            data: {
-                title,
-                description,
-                pay,
-                payType,
-                category,
-                locations,
-                jobDates,
-                startTime,
-                endTime,
-                requirements,
-                status
-            }
+            data
         });
 
         res.status(200).json({ message: "Job updated successfully", job: updatedJob });

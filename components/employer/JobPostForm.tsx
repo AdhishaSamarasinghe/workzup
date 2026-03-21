@@ -1,9 +1,26 @@
 /* eslint-disable */
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
-import { SRI_LANKA_LOCATIONS } from "@/app/data/locations";
+import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import TimePicker from "@/components/TimePicker";
+import DatePicker from "@/components/jobs/DatePicker";
+import CustomSelect from "@/components/ui/CustomSelect";
+
+const LocationMap = dynamic(() => import("@/components/LocationMap"), {
+    ssr: false,
+});
+
+const payTypeOptions = ["/ hour", "/ day"];
+const jobCategoryOptions = [
+    "Hospitality",
+    "Retail",
+    "Event Staff",
+    "Delivery",
+    "Cleaning",
+    "Admin",
+    "Other",
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type JobStatus = "DRAFT" | "PUBLIC" | "PRIVATE";
@@ -28,6 +45,15 @@ interface JobPostFormProps {
     loading: boolean;
     mode: "create" | "edit";
 }
+
+type FieldKey =
+    | "title"
+    | "description"
+    | "pay"
+    | "jobDates"
+    | "locations"
+    | "startTime"
+    | "endTime";
 
 export default function JobPostForm({
     initialData,
@@ -61,20 +87,72 @@ export default function JobPostForm({
     const [reqInput, setReqInput] = useState("");
     const [locInput, setLocInput] = useState("");
     const [dateInput, setDateInput] = useState("");
+    const [mapPosition, setMapPosition] = useState({ lat: 6.9271, lng: 79.8612 });
 
-    const [localMsg, setLocalMsg] = useState<{ type: "error" | ""; text: string }>({
-        type: "",
-        text: "",
-    });
+    const [submitError, setSubmitError] = useState("");
+    const [missingFields, setMissingFields] = useState<Partial<Record<FieldKey, boolean>>>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Flatten locations for autocomplete
-    const ALL_CITIES = useMemo(() => {
-        const list: string[] = [];
-        Object.entries(SRI_LANKA_LOCATIONS).forEach(([dist, cities]) => {
-            cities.forEach(city => list.push(`${city}, ${dist}`));
+    const fieldRefs = React.useRef<Partial<Record<FieldKey, HTMLDivElement | null>>>({});
+
+    const setFieldRef = (key: FieldKey) => (el: HTMLDivElement | null) => {
+        fieldRefs.current[key] = el;
+    };
+
+    const markFilled = (key: FieldKey) => {
+        setMissingFields((prev) => {
+            if (!prev[key]) return prev;
+            return { ...prev, [key]: false };
         });
-        return list.sort();
-    }, []);
+    };
+
+    const fieldErrorText = (key: FieldKey) => {
+        switch (key) {
+            case "title":
+                return "Job title is required.";
+            case "description":
+                return "Job description is required.";
+            case "pay":
+                return "Enter a valid pay amount.";
+            case "locations":
+                return "Add at least one location.";
+            case "jobDates":
+                return "Add at least one job date.";
+            case "startTime":
+                return "Start time is required.";
+            case "endTime":
+                return "End time is required.";
+            default:
+                return "This field is required.";
+        }
+    };
+
+    const validateForm = (status: JobStatus) => {
+        const errors: Partial<Record<FieldKey, boolean>> = {};
+        const ordered: FieldKey[] = [
+            "title",
+            "description",
+            "pay",
+            "locations",
+            "jobDates",
+            "startTime",
+            "endTime",
+        ];
+
+        if (!form.title.trim()) errors.title = true;
+
+        if (status === "PUBLIC" || status === "PRIVATE") {
+            if (!form.description.trim()) errors.description = true;
+            if (!form.pay || Number(form.pay) <= 0) errors.pay = true;
+            if (form.locations.length === 0) errors.locations = true;
+            if (form.jobDates.length === 0) errors.jobDates = true;
+            if (!form.startTime) errors.startTime = true;
+            if (!form.endTime) errors.endTime = true;
+        }
+
+        const firstMissing = ordered.find((key) => errors[key]);
+        return { errors, firstMissing };
+    };
 
     // Handlers
     const addRequirement = () => {
@@ -91,6 +169,7 @@ export default function JobPostForm({
         if (!locInput.trim()) return;
         if (form.locations.includes(locInput.trim())) return;
         setForm((p) => ({ ...p, locations: [...p.locations, locInput.trim()] }));
+        markFilled("locations");
         setLocInput("");
     };
 
@@ -98,10 +177,19 @@ export default function JobPostForm({
         setForm((p) => ({ ...p, locations: p.locations.filter((_, i) => i !== index) }));
     };
 
+    const handleMapLocationSelect = (lat: number, lng: number, address: string) => {
+        setMapPosition({ lat, lng });
+        if (address.trim()) {
+            setLocInput(address.trim());
+            setMissingFields((prev) => ({ ...prev, locations: false }));
+        }
+    };
+
     const addDate = () => {
         if (!dateInput) return;
         if (form.jobDates.includes(dateInput)) return setDateInput("");
         setForm((p) => ({ ...p, jobDates: [...p.jobDates, dateInput] }));
+        markFilled("jobDates");
         setDateInput("");
     };
 
@@ -114,21 +202,41 @@ export default function JobPostForm({
     ) {
         const { name, value } = e.target;
         setForm((p) => ({ ...p, [name]: value }));
+
+        if (name === "title") markFilled("title");
+        if (name === "description") markFilled("description");
+        if (name === "pay") {
+            if (value && Number(value) > 0) markFilled("pay");
+        }
     }
 
     const handleInnerSubmit = async (status: JobStatus) => {
-        setLocalMsg({ type: "", text: "" });
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        setSubmitError("");
+        setMissingFields({});
 
-        // Simple validation shim (Parent usually validates too, but good to have here)
-        if (!form.title.trim()) {
-            setLocalMsg({ type: "error", text: "Job title is required." });
+        const { errors, firstMissing } = validateForm(status);
+        if (firstMissing) {
+            setMissingFields(errors);
+
+            const target = fieldRefs.current[firstMissing];
+            if (target) {
+                target.scrollIntoView({ behavior: "smooth", block: "center" });
+                const focusable = target.querySelector("input, textarea, select, button") as HTMLElement | null;
+                focusable?.focus();
+            }
+
+            setIsSubmitting(false);
             return;
         }
 
         try {
             await onSubmit(form, status);
         } catch (err: any) {
-            setLocalMsg({ type: "error", text: err.message || "Submission failed" });
+            setSubmitError(err.message || "Submission failed");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -142,46 +250,67 @@ export default function JobPostForm({
                 </h2>
 
                 <label className="block text-sm font-semibold text-slate-800 mb-2">Job title</label>
-                <input
-                    name="title"
-                    value={form.title}
-                    onChange={handleChange}
-                    placeholder="e.g. Event Staff for Charity Gala"
-                    className="w-full h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
-                />
+                <div ref={setFieldRef("title")}>
+                    <input
+                        name="title"
+                        value={form.title}
+                        onChange={handleChange}
+                        placeholder="e.g. Event Staff for Charity Gala"
+                        className={`w-full h-11 px-3 border rounded-xl outline-none focus:ring-2 ${missingFields.title ? "border-red-400 focus:ring-red-200 bg-red-50/30" : "border-slate-300 focus:ring-blue-200"}`}
+                    />
+                    {missingFields.title && (
+                        <p className="text-xs text-red-600 mt-1">{fieldErrorText("title")}</p>
+                    )}
+                </div>
 
                 <label className="block text-sm font-semibold text-slate-800 mt-5 mb-2">
                     Job description
                 </label>
-                <textarea
-                    name="description"
-                    value={form.description}
-                    onChange={handleChange}
-                    placeholder="Describe responsibilities, requirements, and important details..."
-                    className="w-full min-h-[120px] px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200 resize-y"
-                />
+                <div ref={setFieldRef("description")}>
+                    <textarea
+                        name="description"
+                        value={form.description}
+                        onChange={handleChange}
+                        placeholder="Describe responsibilities, requirements, and important details..."
+                        className={`w-full min-h-[120px] px-3 py-2 border rounded-xl outline-none focus:ring-2 resize-y ${missingFields.description ? "border-red-400 focus:ring-red-200 bg-red-50/30" : "border-slate-300 focus:ring-blue-200"}`}
+                    />
+                    {missingFields.description && (
+                        <p className="text-xs text-red-600 mt-1">{fieldErrorText("description")}</p>
+                    )}
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
                     <div>
                         <label className="block text-sm font-semibold text-slate-800 mb-2">Pay</label>
                         <div className="flex gap-2">
-                            <input
-                                name="pay"
-                                value={form.pay}
-                                onChange={handleChange}
-                                placeholder="$250.00"
-                                inputMode="numeric"
-                                className="w-full h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
-                            />
-                            <select
-                                name="payType"
-                                value={form.payType}
-                                onChange={handleChange}
-                                className="h-11 px-3 border border-slate-300 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-200"
-                            >
-                                <option value="hour">/ hour</option>
-                                <option value="day">/ day</option>
-                            </select>
+                            <div ref={setFieldRef("pay")} className="w-full">
+                                <input
+                                    name="pay"
+                                    value={form.pay}
+                                    onChange={handleChange}
+                                    placeholder="LKR 250.00"
+                                    inputMode="numeric"
+                                    className={`w-full h-11 px-3 border rounded-xl outline-none focus:ring-2 ${missingFields.pay ? "border-red-400 focus:ring-red-200 bg-red-50/30" : "border-slate-300 focus:ring-blue-200"}`}
+                                />
+                                {missingFields.pay && (
+                                    <p className="text-xs text-red-600 mt-1">{fieldErrorText("pay")}</p>
+                                )}
+                            </div>
+                            <div className="w-[120px]">
+                                <CustomSelect
+                                    value={form.payType === "day" ? "/ day" : "/ hour"}
+                                    onChange={(val) =>
+                                        setForm((p) => ({
+                                            ...p,
+                                            payType: val === "/ day" ? "day" : "hour",
+                                        }))
+                                    }
+                                    options={payTypeOptions}
+                                    placeholder="/ hour"
+                                    searchable={false}
+                                    showAllOption={false}
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -189,20 +318,14 @@ export default function JobPostForm({
                         <label className="block text-sm font-semibold text-slate-800 mb-2">
                             Job Category
                         </label>
-                        <select
-                            name="category"
+                        <CustomSelect
                             value={form.category}
-                            onChange={handleChange}
-                            className="w-full h-11 px-3 border border-slate-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-200"
-                        >
-                            <option>Hospitality</option>
-                            <option>Retail</option>
-                            <option>Event Staff</option>
-                            <option>Delivery</option>
-                            <option>Cleaning</option>
-                            <option>Admin</option>
-                            <option>Other</option>
-                        </select>
+                            onChange={(val) => setForm((p) => ({ ...p, category: val }))}
+                            options={jobCategoryOptions}
+                            placeholder="Select category"
+                            searchable={false}
+                            showAllOption={false}
+                        />
                     </div>
                 </div>
             </section>
@@ -217,15 +340,15 @@ export default function JobPostForm({
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Job Dates */}
-                    <div className="md:col-span-2">
+                    <div
+                        ref={setFieldRef("jobDates")}
+                        className={`md:col-span-2 rounded-xl px-2 pt-2 pb-1 ${missingFields.jobDates ? "border border-red-300 bg-red-50/20" : ""}`}
+                    >
                         <label className="block text-sm font-semibold text-slate-800 mb-2">Job Dates</label>
                         <div className="flex gap-2 mb-2">
-                            <input
-                                type="date"
-                                value={dateInput}
-                                onChange={(e) => setDateInput(e.target.value)}
-                                className="flex-1 h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
-                            />
+                            <div className="flex-1">
+                                <DatePicker value={dateInput} onChange={setDateInput} />
+                            </div>
                             <button
                                 onClick={addDate}
                                 type="button"
@@ -252,25 +375,25 @@ export default function JobPostForm({
                                 ))}
                             </div>
                         )}
+                        {missingFields.jobDates && (
+                            <p className="text-xs text-red-600 mt-1">{fieldErrorText("jobDates")}</p>
+                        )}
                     </div>
 
                     {/* Locations */}
-                    <div className="md:col-span-2">
+                    <div
+                        ref={setFieldRef("locations")}
+                        className={`md:col-span-2 rounded-xl px-2 pt-2 pb-1 ${missingFields.locations ? "border border-red-300 bg-red-50/20" : ""}`}
+                    >
                         <label className="block text-sm font-semibold text-slate-800 mb-2">Locations</label>
                         <div className="flex gap-2 mb-2">
                             <input
                                 value={locInput}
                                 onChange={(e) => setLocInput(e.target.value)}
                                 placeholder="e.g. Colombo, Baththaramulla"
-                                list="city-list"
                                 className="flex-1 h-11 px-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-200"
                                 onKeyDown={(e) => e.key === "Enter" && addLocation()}
                             />
-                            <datalist id="city-list">
-                                {ALL_CITIES.map((loc) => (
-                                    <option key={loc} value={loc} />
-                                ))}
-                            </datalist>
                             <button
                                 onClick={addLocation}
                                 type="button"
@@ -297,22 +420,52 @@ export default function JobPostForm({
                                 ))}
                             </div>
                         )}
+                        <div className="mt-3 rounded-xl overflow-hidden border border-slate-200">
+                            <LocationMap
+                                position={mapPosition}
+                                onLocationSelect={handleMapLocationSelect}
+                            />
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">
+                            Click on the map to pick a location. The selected address will appear in the input above.
+                        </p>
+                        {missingFields.locations && (
+                            <p className="text-xs text-red-600 mt-1">{fieldErrorText("locations")}</p>
+                        )}
                     </div>
 
-                    <div>
+                    <div
+                        ref={setFieldRef("startTime")}
+                        className={`rounded-xl px-2 pt-2 pb-1 ${missingFields.startTime ? "border border-red-300 bg-red-50/20" : ""}`}
+                    >
                         <TimePicker
                             label="Start Time"
                             value={form.startTime}
-                            onChange={(val) => setForm(p => ({ ...p, startTime: val }))}
+                            onChange={(val) => {
+                                setForm(p => ({ ...p, startTime: val }));
+                                if (val) markFilled("startTime");
+                            }}
                         />
+                        {missingFields.startTime && (
+                            <p className="text-xs text-red-600 mt-1">{fieldErrorText("startTime")}</p>
+                        )}
                     </div>
 
-                    <div>
+                    <div
+                        ref={setFieldRef("endTime")}
+                        className={`rounded-xl px-2 pt-2 pb-1 ${missingFields.endTime ? "border border-red-300 bg-red-50/20" : ""}`}
+                    >
                         <TimePicker
                             label="End Time"
                             value={form.endTime}
-                            onChange={(val) => setForm(p => ({ ...p, endTime: val }))}
+                            onChange={(val) => {
+                                setForm(p => ({ ...p, endTime: val }));
+                                if (val) markFilled("endTime");
+                            }}
                         />
+                        {missingFields.endTime && (
+                            <p className="text-xs text-red-600 mt-1">{fieldErrorText("endTime")}</p>
+                        )}
                     </div>
                 </div>
             </section>
@@ -366,12 +519,7 @@ export default function JobPostForm({
 
             <hr className="border-slate-100" />
 
-            {/* Error feedback banner */}
-            {localMsg.text ? (
-                <div className="px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
-                    {localMsg.text}
-                </div>
-            ) : null}
+            {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
 
             {/* Action buttons */}
             <div className="flex items-center gap-4 pt-4">
@@ -379,14 +527,14 @@ export default function JobPostForm({
                     <>
                         <button
                             onClick={() => handleInnerSubmit("PUBLIC")}
-                            disabled={loading}
+                            disabled={loading || isSubmitting}
                             className="btn-primary min-w-[156px] px-6 h-[44px] whitespace-nowrap"
                         >
                             {loading ? "Creating..." : "Post a new job"}
                         </button>
                         <button
                             onClick={() => handleInnerSubmit("DRAFT")}
-                            disabled={loading}
+                            disabled={loading || isSubmitting}
                             className="btn-secondary"
                         >
                             {loading ? "Saving..." : "Save as Draft"}
@@ -395,7 +543,7 @@ export default function JobPostForm({
                 ) : (
                     <button
                         onClick={() => handleInnerSubmit("PUBLIC")}
-                        disabled={loading}
+                        disabled={loading || isSubmitting}
                         className="btn-primary min-w-[156px] px-6 h-[44px] whitespace-nowrap"
                     >
                         {loading ? "Saving..." : "Save Changes"}

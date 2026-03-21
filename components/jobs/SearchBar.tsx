@@ -26,7 +26,7 @@ const districts = [
   "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya",
 ];
 
-const payRanges = ["$10-$20", "$20-$30", "$30-$40", "$40+"];
+const payRanges = ["LKR 10-20", "LKR 20-30", "LKR 30-40", "LKR 40+"];
 
 export default function SearchBar({
   keywords,

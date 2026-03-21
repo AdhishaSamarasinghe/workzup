@@ -116,33 +116,34 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
             <main className="max-w-5xl mx-auto px-4 py-8">
                 <div className="text-xs text-slate-500 mb-3 uppercase tracking-wider font-bold">My postings / Edit Job</div>
 
-                {showSuccess ? (
+                <>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">Edit Job Posting</h1>
+                    <p className="text-slate-600 mt-1 text-lg">
+                        Update the details for your <span className="font-semibold text-slate-800">{initialData?.title}</span> position.
+                    </p>
+
+                    <div className="mt-8">
+                        <JobPostForm
+                            mode="edit"
+                            initialData={initialData}
+                            loading={loading}
+                            onSubmit={handleFormSubmit}
+                            onCancel={() => router.push("/employer/create-job/my-postings")}
+                        />
+                        {msg.text && msg.type === "error" && (
+                            <div className="mt-6 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
+                                {msg.text}
+                            </div>
+                        )}
+                    </div>
+                </>
+
+                {showSuccess && (
                     <RecruiterSuccess
                         title="Posting Updated"
                         message="You've successfully updated your job posting. The changes are now live. We'll notify you when new applications are received."
+                        onReset={() => setShowSuccess(false)}
                     />
-                ) : (
-                    <>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Edit Job Posting</h1>
-                        <p className="text-slate-600 mt-1 text-lg">
-                            Update the details for your <span className="font-semibold text-slate-800">{initialData?.title}</span> position.
-                        </p>
-
-                        <div className="mt-8">
-                            <JobPostForm
-                                mode="edit"
-                                initialData={initialData}
-                                loading={loading}
-                                onSubmit={handleFormSubmit}
-                                onCancel={() => router.push("/employer/create-job/my-postings")}
-                            />
-                            {msg.text && msg.type === "error" && (
-                                <div className="mt-6 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
-                                    {msg.text}
-                                </div>
-                            )}
-                        </div>
-                    </>
                 )}
             </main>
         </div>

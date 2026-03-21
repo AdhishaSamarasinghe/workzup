@@ -119,8 +119,8 @@ const GigFilters: React.FC<GigFiltersProps> = ({
 
                     </div>
                     <div className="mt-3 flex items-center justify-between text-sm font-medium text-gray-700">
-                        <span>${safeMin}/hr</span>
-                        <span>${safeMax}/hr</span>
+                        <span>LKR {safeMin}/hr</span>
+                        <span>LKR {safeMax}/hr</span>
                     </div>
                 </div>
             </div>

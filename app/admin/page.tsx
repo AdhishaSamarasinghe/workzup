@@ -72,7 +72,7 @@ export default function AdminDashboardPage() {
           />
           <StatCard
             label="Revenue"
-            value="$24,500"
+            value="LKR 24,500"
             change="+15%"
             icon="💲"
             changeType="positive"

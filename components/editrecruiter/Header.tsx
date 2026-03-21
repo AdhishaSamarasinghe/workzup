@@ -24,14 +24,8 @@ export default function EditRecruiterHeader() {
         </Link>
 
         <nav className="hidden items-center gap-8 text-base font-medium text-[#1F2937] md:flex md:ml-auto md:mr-8">
-          <Link href="#" className="transition-colors hover:text-accent">
+          <Link href="/employer/create-job/my-postings" className="transition-colors hover:text-accent">
             Dashboard
-          </Link>
-          <Link href="#" className="transition-colors hover:text-accent">
-            Profile
-          </Link>
-          <Link href="#" className="transition-colors hover:text-accent">
-            Jobs
           </Link>
           <Link href="/recruiter/messages" className="transition-colors hover:text-accent">
             <MessagesBadge />
@@ -71,25 +65,6 @@ export default function EditRecruiterHeader() {
 
         {/* Notification & Profile Icons */}
         <div className="hidden items-center gap-4 md:flex">
-          {/* Notification Bell -> same style as profile header */}
-          <Link href="#" aria-label="Notifications">
-            <div className="relative flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-full bg-[#F3F4F6] text-[#1F2937] transition-colors hover:bg-[#E5E7EB]">
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-            </div>
-          </Link>
-
           {/* Profile Icon -> same style as profile header */}
           <Link href="#" aria-label="Account">
             <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-full bg-[#F3F4F6] text-[#1F2937] transition-colors hover:bg-[#E5E7EB]">
@@ -118,25 +93,11 @@ export default function EditRecruiterHeader() {
         <div className="border-t border-[#E5E7EB] bg-card md:hidden">
           <nav className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-3 text-sm font-medium text-[#1F2937] sm:px-6 lg:px-8">
             <Link
-              href="#"
+              href="/employer/create-job/my-postings"
               className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
               onClick={() => setMenuOpen(false)}
             >
               Dashboard
-            </Link>
-            <Link
-              href="#"
-              className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
-              onClick={() => setMenuOpen(false)}
-            >
-              Profile
-            </Link>
-            <Link
-              href="#"
-              className="rounded-md px-2 py-2 transition-colors hover:bg-[#F3F4F6]"
-              onClick={() => setMenuOpen(false)}
-            >
-              Jobs
             </Link>
             <Link
               href="/recruiter/messages"

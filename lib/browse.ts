@@ -81,7 +81,7 @@ export const DEFAULT_BROWSE_FILTERS: BrowseFilters = {
 export function formatPay(pay: number, payType: string) {
   if (!Number.isFinite(pay)) return "Pay on request";
   const suffix = payType ? `/${payType}` : "";
-  return `$${pay.toFixed(pay % 1 === 0 ? 0 : 2)}${suffix}`;
+  return `LKR ${pay.toFixed(pay % 1 === 0 ? 0 : 2)}${suffix}`;
 }
 
 export function formatDateLabel(date: string) {
@@ -99,9 +99,10 @@ export function formatDateLabel(date: string) {
 
 export function matchesPayRange(pay: number, range: string) {
   if (!range) return true;
-  if (range === "$40+") return pay >= 40;
+  const upperMatch = range.match(/(\d+)\+$/);
+  if (upperMatch) return pay >= Number(upperMatch[1]);
 
-  const match = range.match(/\$(\d+)-\$(\d+)/);
+  const match = range.match(/(\d+)-(\d+)/);
   if (!match) return true;
 
   const min = Number(match[1]);
