@@ -43,6 +43,7 @@ export default function JobApplicantsPage() {
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [sortMethod, setSortMethod] = useState("match_desc");
     const [errorMsg, setErrorMsg] = useState("");
+    const [messaging, setMessaging] = useState(false);
 
     // [STATE] Right Column (Selected Profile) State
     const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
@@ -147,7 +148,57 @@ export default function JobApplicantsPage() {
     };
 
     const handleMessage = () => {
-        console.log("Messaging applicant:", applicantProfile?.name);
+        const selectedApplicant = applicants.find(
+            (app) => app.applicantId === selectedApplicantId,
+        );
+
+        if (!selectedApplicant) {
+            setErrorMsg("Please select an applicant first.");
+            return;
+        }
+
+        const openConversation = async () => {
+            try {
+                setMessaging(true);
+                setErrorMsg("");
+
+                const response = await apiFetch(
+                    `/api/applications/${selectedApplicant.applicationId}/conversation`,
+                    {
+                        method: "POST",
+                    },
+                );
+
+                const conversationId = response?.conversationId;
+                const recipientId = response?.otherParticipantId;
+                const recipientName = response?.otherParticipantName;
+
+                if (!conversationId) {
+                    throw new Error("Unable to open conversation for this applicant.");
+                }
+
+                const params = new URLSearchParams({
+                    conversationId,
+                    applicationId: selectedApplicant.applicationId,
+                });
+
+                if (recipientId) {
+                    params.set("recipientId", recipientId);
+                }
+
+                if (recipientName) {
+                    params.set("recipientName", recipientName);
+                }
+
+                router.push(`/recruiter/messages?${params.toString()}`);
+            } catch (error: any) {
+                setErrorMsg(error?.message || "Unable to open applicant chat.");
+            } finally {
+                setMessaging(false);
+            }
+        };
+
+        void openConversation();
     };
 
     // [UI] Helper: Status Badge Colors
@@ -319,10 +370,11 @@ export default function JobApplicantsPage() {
                                     <div className="flex gap-4 mb-10">
                                         <button
                                             onClick={handleMessage}
+                                            disabled={messaging}
                                             className="flex-1 bg-[#6D83F2] hover:bg-[#5B73F1] text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-3 transition-all shadow-sm active:scale-95"
                                         >
                                             <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 4l-8 5-8-5V6l8 5 8-5v2z" /></svg>
-                                            Message
+                                            {messaging ? "Opening..." : "Message"}
                                         </button>
                                         <button
                                             onClick={() => updateStatus("HIRED")}
