@@ -50,11 +50,12 @@ export default function EditRecruiterPage() {
     const load = async () => {
       try {
         console.log("[EditRecruiter] Loading profile from backend...");
-        const json = await fetchApi<RecruiterProfile & { logoUrl?: string | null }>("/recruiters/default");
+        const json = await fetchApi<{ profile: RecruiterProfile & { logoUrl?: string | null } }>("/api/recruiter/profile");
 
         if (!json.success) throw new Error(json.error || "Failed to load");
 
-        const d = json.data;
+        const d = json.data?.profile;
+        if (!d) throw new Error("Profile data not found");
         console.log("[EditRecruiter] Profile loaded:", d);
 
         setFormData({
@@ -130,9 +131,9 @@ export default function EditRecruiterPage() {
     setSuccess(false);
 
     try {
-      console.log("[EditRecruiter] Saving profile to /recruiters/default");
+      console.log("[EditRecruiter] Saving profile to /api/recruiter/profile");
 
-      const json = await fetchApi<RecruiterProfile>("/recruiters/default", {
+      const json = await fetchApi<{ message: string }>("/api/recruiter/profile", {
         method: "PUT",
         body: JSON.stringify(formData),
       });
