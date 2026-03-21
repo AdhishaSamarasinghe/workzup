@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, Building2, Contact, Save } from "lucide-react";
 import { fetchApi } from "@/lib/api";
 import type { ChangeEvent, FormEvent } from "react";
-
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 type RecruiterProfile = {
   companyName: string;
@@ -27,6 +27,7 @@ export default function EditRecruiterPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<"company" | "contact">("company");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -49,11 +50,12 @@ export default function EditRecruiterPage() {
     const load = async () => {
       try {
         console.log("[EditRecruiter] Loading profile from backend...");
-        const json = await fetchApi("/api/auth/recruiter-profile");
+        const json = await fetchApi<{ profile: RecruiterProfile & { logoUrl?: string | null } }>("/api/recruiter/profile");
 
         if (!json.success) throw new Error(json.error || "Failed to load");
 
-        const d = json.data;
+        const d = json.data?.profile;
+        if (!d) throw new Error("Profile data not found");
         console.log("[EditRecruiter] Profile loaded:", d);
 
         setFormData({
@@ -74,7 +76,11 @@ export default function EditRecruiterPage() {
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
         console.error("[EditRecruiter] Load error:", msg);
-        setError("Could not load recruiter profile. Make sure the backend is running on port 5000.");
+        setError(
+          msg.includes("404")
+            ? "Recruiter profile endpoint was not found. Please check backend routes."
+            : "Could not load recruiter profile. Please check backend connection.",
+        );
       } finally {
         setLoading(false);
       }
@@ -125,18 +131,13 @@ export default function EditRecruiterPage() {
     setSuccess(false);
 
     try {
-      if (!BASE) throw new Error("NEXT_PUBLIC_BACKEND_URL is not set in .env.local");
+      console.log("[EditRecruiter] Saving profile to /api/recruiter/profile");
 
-      const url = `${BASE}/recruiters/default`;
-      console.log(`[EditRecruiter] Saving to ${url}`);
-
-      const res = await fetch(url, {
+      const json = await fetchApi<{ message: string }>("/api/recruiter/profile", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
-      const json = await res.json();
       if (!json.success) throw new Error(json.error || "Save failed");
 
       console.log("[EditRecruiter] Saved successfully:", json.data);
@@ -158,253 +159,313 @@ export default function EditRecruiterPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg grid place-items-center">
+      <div className="min-h-screen bg-slate-50 grid place-items-center pt-24">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-accent mx-auto mb-3" />
-          <p className="text-muted text-sm">Loading edit form...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slate-900 mx-auto mb-3" />
+          <p className="text-slate-500 text-sm font-medium">Loading recruiter settings...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-bg py-8">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 pt-32">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[#1F2937]">
-            Edit Business Profile
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            Update your company&apos;s information for job seekers.
+          <Link
+            href="/recruiterprofile"
+            className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-[#6b8bff] transition-colors mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back to Profile
+          </Link>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Account Settings</h1>
+          <p className="text-slate-500 mt-2 font-medium">
+            Manage your business profile and recruiter contact details.
           </p>
         </div>
 
-        {/* Error banner */}
-        {error && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="w-full md:w-64 shrink-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-2 sticky top-24">
+              <button
+                onClick={() => setActiveTab("company")}
+                className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center transition-colors ${
+                  activeTab === "company"
+                    ? "bg-blue-50 text-[#6b8bff]"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                }`}
+              >
+                <Building2
+                  className={`w-5 h-5 mr-3 ${
+                    activeTab === "company" ? "text-[#6b8bff]" : "text-slate-400"
+                  }`}
+                />
+                Company Profile
+              </button>
+              <button
+                onClick={() => setActiveTab("contact")}
+                className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center transition-colors mt-1 ${
+                  activeTab === "contact"
+                    ? "bg-blue-50 text-[#6b8bff]"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                }`}
+              >
+                <Contact
+                  className={`w-5 h-5 mr-3 ${
+                    activeTab === "contact" ? "text-[#6b8bff]" : "text-slate-400"
+                  }`}
+                />
+                Contact Details
+              </button>
+            </div>
           </div>
-        )}
 
-        {/* Success banner */}
-        {success && (
-          <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700 font-medium">
-            ✓ Profile saved! Redirecting to profile page...
-          </div>
-        )}
+          <div className="flex-1 max-w-2xl">
+            {error && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
-            {/* Logo */}
-            <div className="mb-6 sm:mb-8">
-              <h2 className="mb-3 text-base font-semibold text-[#1F2937] sm:mb-4">
-                Company Logo
-              </h2>
+            {success && (
+              <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700 font-medium">
+                Profile saved successfully.
+              </div>
+            )}
 
-              <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-                <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-[#E5E7EB] sm:h-24 sm:w-24">
-                  {logoPreview ? (
-                    <Image
-                      src={logoPreview}
-                      alt="Company logo preview"
-                      width={96}
-                      height={96}
-                      className="h-full w-full object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-gray-400 text-xs text-center p-2">
-                      No logo
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
-                  <p className="text-xs text-muted sm:text-sm">
-                    Update a new logo. We recommend a square image, at least
-                    200×200px, in PNG or JPG format.
+            <form onSubmit={handleSubmit}>
+              {activeTab === "company" && (
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
+                  <h2 className="text-xl font-bold text-slate-900 mb-2">Company Profile</h2>
+                  <p className="text-slate-500 mb-6 text-sm">
+                    Update your company brand and business information for job seekers.
                   </p>
 
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleLogoUpload}
-                    accept="image/png,image/jpeg"
-                    className="hidden"
-                  />
+                  <div className="mb-8">
+                    <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">
+                      Company Logo
+                    </h3>
 
-                  <button
-                    type="button"
-                    onClick={handleUploadClick}
-                    className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#E5E7EB] bg-card px-3 py-1.5 text-xs font-medium text-[#1F2937] transition-colors hover:bg-[#F9FAFB] sm:px-4 sm:py-2 sm:text-sm"
-                  >
-                    Upload new logo
-                  </button>
-                </div>
-              </div>
-            </div>
+                    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+                      <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-[#E5E7EB] sm:h-24 sm:w-24">
+                        {logoPreview ? (
+                          <Image
+                            src={logoPreview}
+                            alt="Company logo preview"
+                            width={96}
+                            height={96}
+                            className="h-full w-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-gray-400 text-xs text-center p-2">
+                            No logo
+                          </div>
+                        )}
+                      </div>
 
-            {/* Company Details */}
-            <div className="mb-6 sm:mb-8">
-              <h2 className="mb-3 text-base font-semibold text-[#1F2937] sm:mb-4">
-                Company Details
-              </h2>
+                      <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+                        <p className="text-xs text-slate-500 sm:text-sm">
+                          Upload a square logo (PNG or JPG), recommended size 200x200px or larger.
+                        </p>
 
-              <div className="grid gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
-                      Company Name
-                    </label>
-                    <input
-                      type="text"
-                      name="companyName"
-                      value={formData.companyName}
-                      onChange={handleInputChange}
-                      className="w-full rounded-lg border border-[#E5E7EB] bg-card px-4 py-2.5 text-sm text-[#1F2937] outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-                    />
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleLogoUpload}
+                          accept="image/png,image/jpeg"
+                          className="hidden"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={handleUploadClick}
+                          className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                        >
+                          Upload New Logo
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
-                      Website
-                    </label>
-                    <input
-                      type="text"
-                      name="website"
-                      value={formData.website}
-                      onChange={handleInputChange}
-                      className="w-full rounded-lg border border-[#E5E7EB] bg-card px-4 py-2.5 text-sm text-[#1F2937] outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-                    />
-                  </div>
-                </div>
+                  <div className="grid gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                          Company Name
+                        </label>
+                        <input
+                          type="text"
+                          name="companyName"
+                          value={formData.companyName}
+                          onChange={handleInputChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#6b8bff] focus:ring-2 focus:ring-blue-50 transition-all font-medium text-slate-900"
+                        />
+                      </div>
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
-                    Company Address
-                  </label>
-                  <input
-                    type="text"
-                    name="companyAddress"
-                    value={formData.companyAddress}
-                    onChange={handleInputChange}
-                    className="w-full rounded-lg border border-[#E5E7EB] bg-card px-4 py-2.5 text-sm text-[#1F2937] outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-                  />
-                </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                          Website
+                        </label>
+                        <input
+                          type="text"
+                          name="website"
+                          value={formData.website}
+                          onChange={handleInputChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#6b8bff] focus:ring-2 focus:ring-blue-50 transition-all font-medium text-slate-900"
+                        />
+                      </div>
+                    </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      className="w-full rounded-lg border border-[#E5E7EB] bg-card px-4 py-2.5 text-sm text-[#1F2937] outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                        Company Address
+                      </label>
+                      <input
+                        type="text"
+                        name="companyAddress"
+                        value={formData.companyAddress}
+                        onChange={handleInputChange}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#6b8bff] focus:ring-2 focus:ring-blue-50 transition-all font-medium text-slate-900"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
-                      Zip Code
-                    </label>
-                    <input
-                      type="text"
-                      name="zipCode"
-                      value={formData.zipCode}
-                      onChange={handleInputChange}
-                      className="w-full rounded-lg border border-[#E5E7EB] bg-card px-4 py-2.5 text-sm text-[#1F2937] outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-                    />
-                  </div>
-                </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                          City
+                        </label>
+                        <input
+                          type="text"
+                          name="city"
+                          value={formData.city}
+                          onChange={handleInputChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#6b8bff] focus:ring-2 focus:ring-blue-50 transition-all font-medium text-slate-900"
+                        />
+                      </div>
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
-                    Company Description
-                  </label>
-                  <textarea
-                    name="about"
-                    value={formData.about}
-                    onChange={handleInputChange}
-                    rows={4}
-                    className="w-full resize-none rounded-lg border border-[#E5E7EB] bg-card px-4 py-2.5 text-sm text-[#1F2937] outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-                  />
-                </div>
-              </div>
-            </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                          Zip Code
+                        </label>
+                        <input
+                          type="text"
+                          name="zipCode"
+                          value={formData.zipCode}
+                          onChange={handleInputChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#6b8bff] focus:ring-2 focus:ring-blue-50 transition-all font-medium text-slate-900"
+                        />
+                      </div>
+                    </div>
 
-            {/* Contact Info */}
-            <div className="mb-6 sm:mb-8">
-              <h2 className="mb-3 text-base font-semibold text-[#1F2937] sm:mb-4">
-                Contact Information
-              </h2>
-
-              <div className="grid gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
-                      Contact Person Name
-                    </label>
-                    <input
-                      type="text"
-                      name="contactPersonName"
-                      value={formData.contactPersonName}
-                      onChange={handleInputChange}
-                      className="w-full rounded-lg border border-[#E5E7EB] bg-card px-4 py-2.5 text-sm text-[#1F2937] outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-                    />
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                        Company Description
+                      </label>
+                      <textarea
+                        name="about"
+                        value={formData.about}
+                        onChange={handleInputChange}
+                        rows={4}
+                        className="w-full resize-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#6b8bff] focus:ring-2 focus:ring-blue-50 transition-all font-medium text-slate-900"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
-                      Contact Email
-                    </label>
-                    <input
-                      type="email"
-                      name="contactEmail"
-                      value={formData.contactEmail}
-                      onChange={handleInputChange}
-                      className="w-full rounded-lg border border-[#E5E7EB] bg-card px-4 py-2.5 text-sm text-[#1F2937] outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-                    />
+                  <div className="pt-6 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-800"
+                      disabled={saving}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-70 flex items-center gap-2"
+                      disabled={saving}
+                    >
+                      <Save className="w-4 h-4" />
+                      {saving ? "Saving..." : "Save Changes"}
+                    </button>
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-[#1F2937]">
-                    Contact Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    name="contactPhoneNumber"
-                    value={formData.contactPhoneNumber}
-                    onChange={handleInputChange}
-                    className="w-full rounded-lg border border-[#E5E7EB] bg-card px-4 py-2.5 text-sm text-[#1F2937] outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-                  />
+              {activeTab === "contact" && (
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
+                  <h2 className="text-xl font-bold text-slate-900 mb-2">Contact Details</h2>
+                  <p className="text-slate-500 mb-6 text-sm">
+                    Set the recruiter contact info that applicants and team members can use.
+                  </p>
+
+                  <div className="grid gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                          Contact Person Name
+                        </label>
+                        <input
+                          type="text"
+                          name="contactPersonName"
+                          value={formData.contactPersonName}
+                          onChange={handleInputChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#6b8bff] focus:ring-2 focus:ring-blue-50 transition-all font-medium text-slate-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                          Contact Email
+                        </label>
+                        <input
+                          type="email"
+                          name="contactEmail"
+                          value={formData.contactEmail}
+                          onChange={handleInputChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#6b8bff] focus:ring-2 focus:ring-blue-50 transition-all font-medium text-slate-900"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                        Contact Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        name="contactPhoneNumber"
+                        value={formData.contactPhoneNumber}
+                        onChange={handleInputChange}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-[#6b8bff] focus:ring-2 focus:ring-blue-50 transition-all font-medium text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-6 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-800"
+                      disabled={saving}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-70 flex items-center gap-2"
+                      disabled={saving}
+                    >
+                      <Save className="w-4 h-4" />
+                      {saving ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="w-full rounded-lg px-6 py-2.5 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] sm:w-auto"
-                disabled={saving}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-60 sm:w-auto"
-                disabled={saving}
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
+              )}
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

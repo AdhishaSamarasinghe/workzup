@@ -43,6 +43,7 @@ export default function JobApplicantsPage() {
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [sortMethod, setSortMethod] = useState("match_desc");
     const [errorMsg, setErrorMsg] = useState("");
+    const [messaging, setMessaging] = useState(false);
 
     // [STATE] Right Column (Selected Profile) State
     const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
@@ -147,7 +148,57 @@ export default function JobApplicantsPage() {
     };
 
     const handleMessage = () => {
-        console.log("Messaging applicant:", applicantProfile?.name);
+        const selectedApplicant = applicants.find(
+            (app) => app.applicantId === selectedApplicantId,
+        );
+
+        if (!selectedApplicant) {
+            setErrorMsg("Please select an applicant first.");
+            return;
+        }
+
+        const openConversation = async () => {
+            try {
+                setMessaging(true);
+                setErrorMsg("");
+
+                const response = await apiFetch(
+                    `/api/applications/${selectedApplicant.applicationId}/conversation`,
+                    {
+                        method: "POST",
+                    },
+                );
+
+                const conversationId = response?.conversationId;
+                const recipientId = response?.otherParticipantId;
+                const recipientName = response?.otherParticipantName;
+
+                if (!conversationId) {
+                    throw new Error("Unable to open conversation for this applicant.");
+                }
+
+                const params = new URLSearchParams({
+                    conversationId,
+                    applicationId: selectedApplicant.applicationId,
+                });
+
+                if (recipientId) {
+                    params.set("recipientId", recipientId);
+                }
+
+                if (recipientName) {
+                    params.set("recipientName", recipientName);
+                }
+
+                router.push(`/recruiter/messages?${params.toString()}`);
+            } catch (error: any) {
+                setErrorMsg(error?.message || "Unable to open applicant chat.");
+            } finally {
+                setMessaging(false);
+            }
+        };
+
+        void openConversation();
     };
 
     // [UI] Helper: Status Badge Colors
@@ -168,19 +219,19 @@ export default function JobApplicantsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] p-8 font-sans">
+        <div className="min-h-screen bg-slate-50 px-4 py-8 font-sans sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
                 {/* [UI] Breadcrumb & Header */}
-                <div className="text-sm text-gray-500 mb-4 font-medium">
+                <div className="text-sm text-slate-500 mb-4 font-medium">
                     Dashboard / Jobs / {jobDetails.title} / Applicants
                 </div>
 
                 <div className="flex justify-between items-start mb-8">
                     <div>
-                        <h1 className="text-[34px] font-extrabold text-[#111827] mb-1 tracking-tight">
+                        <h1 className="text-4xl font-extrabold text-[#111827] mb-1 tracking-tight">
                             {jobDetails.title} - Applicants
                         </h1>
-                        <p className="text-slate-500 font-medium text-lg flex items-center gap-2">
+                        <p className="text-slate-600 font-medium text-lg flex items-center gap-2">
                             Showing {applicants.length} of {totalItems} applicants
                             {statusFilter !== "ALL" && <span className="inline-block h-4 w-1 bg-blue-400 rounded-full"></span>}
                         </p>
@@ -195,12 +246,12 @@ export default function JobApplicantsPage() {
 
                 <div className="flex gap-6">
                     {/* [UI] Left Column: List */}
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                         {/* Filters Card */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6">
                             {/* Search Bar */}
                             <div className="relative mb-5">
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                                 </span>
                                 <input
@@ -208,7 +259,7 @@ export default function JobApplicantsPage() {
                                     placeholder="Search by name or keyword......"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-gray-100 text-gray-900 rounded-full py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[#5c7cfa] focus:bg-white transition-colors"
+                                    className="w-full bg-slate-100 text-slate-900 rounded-xl border border-slate-200 py-3 pl-12 pr-4 outline-none focus:ring-2 focus:ring-[#D8E0FF] focus:border-[#6D83F2] focus:bg-white transition-colors"
                                 />
                             </div>
 
@@ -218,7 +269,7 @@ export default function JobApplicantsPage() {
                                     <select
                                         value={statusFilter}
                                         onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="appearance-none bg-gray-200 text-sm font-medium text-gray-700 py-2.5 pl-4 pr-10 rounded-full focus:outline-none cursor-pointer"
+                                        className="appearance-none bg-slate-100 border border-slate-200 text-sm font-semibold text-slate-700 py-2.5 pl-4 pr-10 rounded-xl outline-none cursor-pointer focus:ring-2 focus:ring-[#D8E0FF] focus:border-[#6D83F2]"
                                     >
                                         <option value="ALL">Status : All</option>
                                         <option value="NEW">Status : New</option>
@@ -227,7 +278,7 @@ export default function JobApplicantsPage() {
                                         <option value="HIRED">Status : Hired</option>
                                         <option value="REJECTED">Status : Rejected</option>
                                     </select>
-                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
                                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
@@ -236,14 +287,14 @@ export default function JobApplicantsPage() {
                                     <select
                                         value={sortMethod}
                                         onChange={(e) => setSortMethod(e.target.value)}
-                                        className="appearance-none bg-gray-200 text-sm font-medium text-gray-700 py-2.5 pl-4 pr-10 rounded-full focus:outline-none cursor-pointer"
+                                        className="appearance-none bg-slate-100 border border-slate-200 text-sm font-semibold text-slate-700 py-2.5 pl-4 pr-10 rounded-xl outline-none cursor-pointer focus:ring-2 focus:ring-[#D8E0FF] focus:border-[#6D83F2]"
                                     >
                                         <option value="match_desc">Sort by : Match Score</option>
                                         <option value="name_asc">Sort by : Name</option>
                                         <option value="newest">Sort by : Newest</option>
                                         <option value="oldest">Sort by : Oldest</option>
                                     </select>
-                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
                                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
@@ -252,12 +303,12 @@ export default function JobApplicantsPage() {
 
                         {/* Applicants List */}
                         {loading ? (
-                            <div className="py-20 flex flex-col items-center justify-center opacity-50">
-                                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#5c7cfa] mb-4"></div>
-                                <p className="text-slate-500 font-bold tracking-tight">Loading applicants...</p>
+                            <div className="py-20 flex flex-col items-center justify-center opacity-70">
+                                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#6D83F2] mb-4"></div>
+                                <p className="text-slate-500 font-semibold tracking-tight">Loading applicants...</p>
                             </div>
                         ) : applicants.length === 0 ? (
-                            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-12 text-center text-slate-500 font-medium">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500 font-medium">
                                 No applicants found matching your criteria.
                             </div>
                         ) : (
@@ -266,25 +317,25 @@ export default function JobApplicantsPage() {
                                     <div
                                         key={app.applicationId}
                                         onClick={() => setSelectedApplicantId(app.applicantId)}
-                                        className={`bg-white rounded-[20px] shadow-sm border-2 p-5 flex items-center justify-between cursor-pointer transition-all duration-300 transform ${selectedApplicantId === app.applicantId
-                                            ? 'border-[#6b8bff] bg-slate-50/50 scale-[1.01]'
-                                            : 'border-transparent hover:border-slate-200 hover:translate-x-1'
+                                        className={`bg-white rounded-2xl shadow-sm border p-5 flex items-center justify-between cursor-pointer transition-all duration-200 ${selectedApplicantId === app.applicantId
+                                            ? 'border-[#cfd8ff] bg-[#f8faff]'
+                                            : 'border-slate-200 hover:border-slate-300'
                                             }`}
                                     >
                                         <div className="flex items-center">
                                             <div>
-                                                <h3 className="text-[19px] font-black text-[#111827]">{app.name}</h3>
-                                                <p className="text-slate-500 font-bold mt-0.5 text-[15px]">
+                                                <h3 className="text-[19px] font-bold text-[#111827]">{app.name}</h3>
+                                                <p className="text-slate-500 font-semibold mt-0.5 text-[15px]">
                                                     {app.matchScore}% Match | {app.relevantSkillsCount} relevant skills
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-6">
-                                            <span className={`px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-wider ${getStatusStyles(app.status)}`}>
+                                        <div className="flex items-center gap-4">
+                                            <span className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${getStatusStyles(app.status)}`}>
                                                 {formatStatusDisplay(app.status)}
                                             </span>
-                                            <div className="text-slate-300 font-black text-xl leading-none">›</div>
+                                            <div className="text-slate-300 font-bold text-xl leading-none">›</div>
                                         </div>
                                     </div>
                                 ))}
@@ -293,40 +344,41 @@ export default function JobApplicantsPage() {
                     </div>
 
                     {/* [UI] Right Column: Profile Panel */}
-                    <div className="w-[440px] flex-shrink-0">
-                        <div className="bg-white rounded-[32px] shadow-lg shadow-slate-200/50 border border-slate-50 p-10 sticky top-8">
+                    <div className="w-[420px] flex-shrink-0">
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 sticky top-8">
                             {!selectedApplicantId ? (
                                 <div className="h-[500px] flex flex-col items-center justify-center text-center opacity-40">
                                     <div className="w-20 h-20 bg-slate-100 rounded-full mb-6 flex items-center justify-center">
                                         <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                                     </div>
-                                    <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Select an applicant to view details</p>
+                                    <p className="font-semibold text-slate-400 uppercase tracking-widest text-xs">Select an applicant to view details</p>
                                 </div>
                             ) : profileLoading || !applicantProfile ? (
                                 <div className="h-[500px] flex flex-col items-center justify-center space-y-4">
-                                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#5c7cfa]"></div>
-                                    <p className="text-slate-500 font-bold tracking-tight">Retrieving profile...</p>
+                                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#6D83F2]"></div>
+                                    <p className="text-slate-500 font-semibold tracking-tight">Retrieving profile...</p>
                                 </div>
                             ) : (
                                 <>
                                     {/* Info */}
                                     <div className="flex flex-col items-center text-center mb-10">
-                                        <h2 className="text-2xl font-black text-[#111827] leading-tight">{applicantProfile.name}</h2>
-                                        <p className="text-lg text-slate-500 font-bold mt-1">{applicantProfile.title}</p>
+                                        <h2 className="text-2xl font-extrabold text-[#111827] leading-tight">{applicantProfile.name}</h2>
+                                        <p className="text-lg text-slate-500 font-semibold mt-1">{applicantProfile.title}</p>
                                     </div>
 
                                     {/* Primary Actions */}
                                     <div className="flex gap-4 mb-10">
                                         <button
                                             onClick={handleMessage}
-                                            className="flex-1 bg-[#6b8bff] hover:bg-[#5a78f0] text-white py-3.5 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-md active:scale-95"
+                                            disabled={messaging}
+                                            className="flex-1 bg-[#6D83F2] hover:bg-[#5B73F1] text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-3 transition-all shadow-sm active:scale-95"
                                         >
                                             <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 4l-8 5-8-5V6l8 5 8-5v2z" /></svg>
-                                            Message
+                                            {messaging ? "Opening..." : "Message"}
                                         </button>
                                         <button
                                             onClick={() => updateStatus("HIRED")}
-                                            className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3.5 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95"
+                                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-semibold border border-slate-200 flex items-center justify-center gap-3 transition-all active:scale-95"
                                         >
                                             <svg className="w-5 h-5 fill-slate-700" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2m-6 0h-4V4h4v2z" /></svg>
                                             Hire
@@ -338,8 +390,8 @@ export default function JobApplicantsPage() {
                                         <div className="relative">
                                             <div className="absolute top-0 left-0 w-1 h-full bg-blue-100 rounded-full"></div>
                                             <div className="pl-4">
-                                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3">SUMMARY</h3>
-                                                <p className="text-[15px] text-slate-600 leading-relaxed font-bold">
+                                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">SUMMARY</h3>
+                                                <p className="text-[15px] text-slate-600 leading-relaxed font-medium">
                                                     {applicantProfile.summary}
                                                 </p>
                                             </div>
@@ -347,10 +399,10 @@ export default function JobApplicantsPage() {
 
                                         {/* Skills */}
                                         <div>
-                                            <h3 className="text-[16px] font-black text-[#111827] mb-4">Key skills</h3>
+                                            <h3 className="text-[16px] font-bold text-[#111827] mb-4">Key skills</h3>
                                             <div className="flex flex-wrap gap-2.5">
                                                 {applicantProfile.skills.map((skill, index) => (
-                                                    <span key={index} className="px-5 py-2 bg-[#dbe4ff] text-[#4263eb] text-[13px] font-black rounded-full shadow-sm">
+                                                    <span key={index} className="px-4 py-1.5 bg-[#EEF2FF] text-[#4263eb] text-[12px] font-semibold rounded-full border border-[#dbe4ff]">
                                                         {skill}
                                                     </span>
                                                 ))}
@@ -359,9 +411,9 @@ export default function JobApplicantsPage() {
 
                                         {/* Contact Info */}
                                         <div>
-                                            <h3 className="text-[16px] font-black text-[#111827] mb-4">Contact Info</h3>
+                                            <h3 className="text-[16px] font-bold text-[#111827] mb-4">Contact Info</h3>
                                             <div className="space-y-4">
-                                                <div className="flex items-center gap-4 text-slate-500 text-[15px] font-bold group">
+                                                <div className="flex items-center gap-4 text-slate-500 text-[15px] font-medium group">
                                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
                                                         <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
                                                     </div>
@@ -373,7 +425,7 @@ export default function JobApplicantsPage() {
                                                         <span className="text-slate-400">Not provided</span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-4 text-slate-500 text-[15px] font-bold group">
+                                                <div className="flex items-center gap-4 text-slate-500 text-[15px] font-medium group">
                                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
                                                         <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path></svg>
                                                     </div>
@@ -390,17 +442,17 @@ export default function JobApplicantsPage() {
 
                                         {/* Quick Links */}
                                         <div>
-                                            <h3 className="text-[16px] font-black text-[#111827] mb-4">Quick Links</h3>
+                                            <h3 className="text-[16px] font-bold text-[#111827] mb-4">Quick Links</h3>
                                             <div className="space-y-4">
                                                 {applicantProfile.resumeUrl ? (
-                                                <a href={applicantProfile.resumeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 text-slate-500 hover:text-blue-600 text-[15px] font-bold transition-all group">
+                                                <a href={applicantProfile.resumeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 text-slate-500 hover:text-blue-600 text-[15px] font-medium transition-all group">
                                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-blue-50">
                                                         <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                                     </div>
                                                     Download resume
                                                 </a>
                                                 ) : (
-                                                    <div className="flex items-center gap-4 text-slate-400 text-[15px] font-bold">
+                                                    <div className="flex items-center gap-4 text-slate-400 text-[15px] font-medium">
                                                         <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
                                                             <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                                         </div>
@@ -408,14 +460,14 @@ export default function JobApplicantsPage() {
                                                     </div>
                                                 )}
                                                 {applicantProfile.portfolioUrl ? (
-                                                <a href={applicantProfile.portfolioUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 text-slate-500 hover:text-blue-600 text-[15px] font-bold transition-all group">
+                                                <a href={applicantProfile.portfolioUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 text-slate-500 hover:text-blue-600 text-[15px] font-medium transition-all group">
                                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-blue-50">
                                                         <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                                                     </div>
                                                     View portfolio
                                                 </a>
                                                 ) : (
-                                                    <div className="flex items-center gap-4 text-slate-400 text-[15px] font-bold">
+                                                    <div className="flex items-center gap-4 text-slate-400 text-[15px] font-medium">
                                                         <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
                                                             <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                                                         </div>
@@ -434,7 +486,7 @@ export default function JobApplicantsPage() {
                                                         router.push(`/recruiter/applications/${applicantItem.applicationId}`);
                                                     }
                                                 }}
-                                                className="text-[#6b8bff] hover:text-[#5a78f0] font-black text-sm flex items-center gap-2 transition-all group"
+                                                className="text-[#6D83F2] hover:text-[#5B73F1] font-semibold text-sm flex items-center gap-2 transition-all group"
                                             >
                                                 View full profile
                                                 <span className="group-hover:translate-x-1 transition-transform">→</span>
@@ -445,7 +497,7 @@ export default function JobApplicantsPage() {
                                         <div className="pt-6">
                                             <button
                                                 onClick={() => updateStatus("REJECTED")}
-                                                className="w-full bg-[#fa5252]/10 hover:bg-[#fa5252]/20 text-[#fa5252] font-black py-4 rounded-2xl transition-all tracking-wider text-[15px] active:scale-[0.98]"
+                                                className="w-full bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA] font-semibold py-3 rounded-xl transition-all tracking-wide text-[14px] active:scale-[0.98]"
                                             >
                                                 Reject
                                             </button>

@@ -44,7 +44,11 @@ export default function HeaderWrapper() {
     }
 
     // Show the Recruiter/Employer Header for employer/recruiter dashboard routes
-    if (pathname?.startsWith("/employer") || pathname?.startsWith("/recruiter")) {
+    if (
+        pathname?.startsWith("/employer") ||
+        pathname?.startsWith("/recruiter") ||
+        pathname?.startsWith("/editrecruiter")
+    ) {
         return <EditRecruiterHeader />;
     }
 

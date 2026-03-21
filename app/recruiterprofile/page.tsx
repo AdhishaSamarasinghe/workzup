@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Bell, User, Hammer, Home, Truck, Star, CheckCircle } from "lucide-react";
-import { fetchRecruiter, fetchRecruiterJobs, fetchRecruiterReviews, fetchApi } from "@/lib/api";
+import Link from "next/link";
+import { Hammer, Home, Truck, Star, CheckCircle } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 // --- Types ---
 
@@ -40,14 +40,14 @@ interface Review {
 
 // --- Icons ---
 
-const VerifiedBadge = () => <CheckCircle className="w-5 h-5 text-green-500 fill-current bg-white rounded-full" />;
+const VerifiedBadge = () => <CheckCircle className="w-4 h-4 text-green-500 fill-current bg-white rounded-full" />;
 
 const StarIcon = ({ filled }: { filled: boolean }) => (
-  <Star className={`w-4 h-4 ${filled ? "text-yellow-400 fill-current" : "text-gray-200"}`} />
+  <Star className={`w-3.5 h-3.5 ${filled ? "text-yellow-400 fill-current" : "text-gray-200"}`} />
 );
 
 const JobIconWrapper = ({ type }: { type: string }) => {
-  const iconClass = "w-8 h-8 text-[#111827]";
+  const iconClass = "w-6 h-6 text-[#111827]";
   switch (type) {
     case "tool":
       return <Hammer className={iconClass} />;
@@ -63,50 +63,34 @@ const JobIconWrapper = ({ type }: { type: string }) => {
 // --- Page ---
 
 export default function RecruiterProfilePage() {
-  const router = useRouter();
   const [recruiter, setRecruiter] = useState<Recruiter | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [activeTab, setActiveTab] = useState<"jobs" | "reviews">("jobs");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [contactStatus, setContactStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   useEffect(() => {
     async function loadData() {
       try {
-        const id = "default";
-        const [profileRes, jobsRes, reviewsRes] = await Promise.all([
-          fetchRecruiter(id),
-          fetchRecruiterJobs(id),
-          fetchRecruiterReviews(id),
-        ]);
-
-        if (profileRes.success) setRecruiter(profileRes.data);
-        if (jobsRes.success) setJobs(jobsRes.data);
-        if (reviewsRes.success) setReviews(reviewsRes.data);
+        const data = await apiFetch("/api/recruiter/profile");
+        setRecruiter((data?.profile || null) as Recruiter | null);
+        setJobs(Array.isArray(data?.jobs) ? (data.jobs as Job[]) : []);
+        setReviews(Array.isArray(data?.reviews) ? (data.reviews as Review[]) : []);
       } catch (err: any) {
         console.error("Failed to load recruiter data:", err);
-        setError(`Backend not reachable. ${err.message}`);
+        const message = typeof err?.message === "string" ? err.message : "Unknown error";
+        if (/401|403|Missing token|Invalid token/i.test(message)) {
+          setError("Please sign in as a recruiter to view your profile.");
+        } else {
+          setError(`Failed to load recruiter profile. ${message}`);
+        }
       } finally {
         setIsLoading(false);
       }
     }
     loadData();
   }, []);
-
-  const handleContact = async () => {
-    if (!recruiter) return;
-    setContactStatus("sending");
-    try {
-      await contactRecruiter("default");
-      setContactStatus("sent");
-      setTimeout(() => setContactStatus("idle"), 3000);
-    } catch {
-      setContactStatus("error");
-      setTimeout(() => setContactStatus("idle"), 3000);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -143,73 +127,75 @@ export default function RecruiterProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC] pb-20 font-sans antialiased text-[#111827]">
+    <div className="min-h-screen bg-[#F7F9FC] pb-14 font-sans antialiased text-[#111827]">
       {/* Main Container */}
-      <main className="max-w-[1240px] mx-auto px-6 mt-12 pb-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-12">
+      <main className="max-w-[1080px] mx-auto px-4 mt-7 pb-7">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
 
           {/* LEFT COLUMN */}
-          <div className="space-y-8">
+          <div className="space-y-4">
             {/* Company Card */}
-            <div className="bg-white rounded-[40px] p-10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] text-center flex flex-col items-center border border-white">
-              <div className="w-[124px] h-[124px] bg-[#67805F] rounded-full flex items-center justify-center mb-6 border-[6px] border-white shadow-sm overflow-hidden p-4">
-                <span className="text-white text-[12px] leading-[1.1] font-bold text-center uppercase tracking-tighter opacity-90 select-none">CONSTRUCT...C<br /><span className="text-[6px] opacity-60">NATIONALFOUNDATION</span></span>
+            <div className="bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] text-center flex flex-col items-center border border-white">
+              <div className="w-[82px] h-[82px] bg-[#F3F4F6] rounded-full flex items-center justify-center mb-3 border-[3px] border-white shadow-sm overflow-hidden p-2.5">
+                {recruiter.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={recruiter.logoUrl} alt={`${recruiter.companyName} logo`} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-[#6B7280] text-[18px] leading-none font-bold text-center uppercase tracking-tight select-none">
+                    {(recruiter.companyName || "R").trim().charAt(0)}
+                  </span>
+                )}
               </div>
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <h1 className="text-[28px] font-bold text-[#111827] tracking-tight">{recruiter.companyName}</h1>
-                <VerifiedBadge />
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <h1 className="text-[18px] font-bold text-[#111827] tracking-tight">{recruiter.companyName}</h1>
+                {recruiter.verified && <VerifiedBadge />}
               </div>
-              <div className="text-[#9CA3AF] font-bold text-[15px] leading-relaxed mb-8">
-                {recruiter.location}<br />
-                {recruiter.tagline}
+              <div className="text-[#9CA3AF] font-bold text-[11px] leading-relaxed mb-4">
+                <div>{recruiter.location || "Location not set"}</div>
+                {recruiter.tagline ? <div>{recruiter.tagline}</div> : null}
               </div>
-              <button
-                onClick={handleContact}
-                disabled={contactStatus === "sending"}
-                className={`w-full text-white py-4 rounded-[24px] font-bold text-[18px] shadow-lg transition-all transform active:scale-95 ${contactStatus === "sending"
-                    ? "bg-[#A0AFFF] cursor-not-allowed"
-                    : "bg-[#758FFF] hover:bg-[#657EF5] shadow-[#758FFF]/25"
-                  }`}
+              <Link
+                href="/editrecruiter"
+                className="w-full text-center text-white py-2.5 rounded-[16px] font-bold text-[14px] shadow-lg transition-all transform active:scale-95 bg-[#758FFF] hover:bg-[#657EF5] shadow-[#758FFF]/25"
               >
-                {contactStatus === "sending" ? "Sending..." : "Contact"}
-              </button>
-              {contactStatus === "sent" && (
-                <p className="mt-3 text-center text-[14px] font-bold text-green-600 animate-pulse">
-                  ✓ Message request sent!
-                </p>
-              )}
-              {contactStatus === "error" && (
-                <p className="mt-3 text-center text-[14px] font-bold text-red-500">
-                  ✗ Failed to send. Try again.
-                </p>
-              )}
+                Edit Profile
+              </Link>
             </div>
 
             {/* About Card */}
-            <div className="bg-white rounded-[40px] p-10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-white">
-              <h2 className="text-[24px] font-bold text-[#111827] mb-6">About</h2>
-              <p className="text-[#6B7280] font-bold text-[16px] leading-relaxed mb-10">
-                {recruiter.about}
+            <div className="bg-white rounded-[28px] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-white">
+              <h2 className="text-[18px] font-bold text-[#111827] mb-3">About</h2>
+              <p className="text-[#6B7280] font-bold text-[13px] leading-relaxed mb-6">
+                {recruiter.about || "No company description provided yet."}
               </p>
 
-              <div className="space-y-6">
-                <div className="flex justify-between items-center text-[15px] font-bold">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-[13px] font-bold">
                   <span className="text-[#9CA3AF]">Industry</span>
-                  <span className="text-[#111827]">{recruiter.industry}</span>
+                  <span className="text-[#111827]">{recruiter.industry || "-"}</span>
                 </div>
-                <div className="flex justify-between items-center text-[15px] font-bold">
+                <div className="flex justify-between items-center text-[13px] font-bold">
                   <span className="text-[#9CA3AF]">Company size</span>
-                  <span className="text-[#111827] text-right">{recruiter.companySize}</span>
+                  <span className="text-[#111827] text-right">{recruiter.companySize || "-"}</span>
                 </div>
-                <div className="flex justify-between items-center text-[15px] font-bold">
+                <div className="flex justify-between items-center text-[13px] font-bold">
                   <span className="text-[#9CA3AF]">Member since</span>
-                  <span className="text-[#111827]">{recruiter.memberSince}</span>
+                  <span className="text-[#111827]">{recruiter.memberSince || "-"}</span>
                 </div>
-                <div className="flex justify-between items-center text-[15px] font-bold">
+                <div className="flex justify-between items-center text-[13px] font-bold">
                   <span className="text-[#9CA3AF]">Website</span>
-                  <a href={`https://${recruiter.website}`} className="text-[#0090FF] hover:underline transition-colors" target="_blank" rel="noopener noreferrer">
-                    {recruiter.website}
-                  </a>
+                  {recruiter.website ? (
+                    <a
+                      href={recruiter.website.startsWith("http") ? recruiter.website : `https://${recruiter.website}`}
+                      className="text-[#0090FF] hover:underline transition-colors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {recruiter.website}
+                    </a>
+                  ) : (
+                    <span className="text-[#111827]">-</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -217,25 +203,25 @@ export default function RecruiterProfilePage() {
 
           {/* RIGHT COLUMN */}
           <div>
-            <div className="bg-white rounded-[32px] border-[3px] border-[#0090FF] overflow-hidden shadow-[0_8px_30px_rgba(0,144,255,0.04)] min-h-[640px] flex flex-col">
+            <div className="bg-white rounded-[22px] border border-slate-200 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)] min-h-[520px] flex flex-col">
 
               {/* Tabs */}
-              <div className="flex border-b border-[#E5E7EB] px-8 pt-6">
+              <div className="flex border-b border-[#E5E7EB] px-5 pt-3">
                 <button
                   onClick={() => setActiveTab("jobs")}
-                  className={`pb-4 px-6 font-bold text-[18px] transition-all relative ${activeTab === "jobs" ? "text-[#0090FF]" : "text-[#9CA3AF] hover:text-[#111827]"
+                  className={`pb-2.5 px-3 font-bold text-[15px] transition-all relative ${activeTab === "jobs" ? "text-[#0090FF]" : "text-[#9CA3AF] hover:text-[#111827]"
                     }`}
                 >
                   Job History
-                  {activeTab === "jobs" && <div className="absolute bottom-[-3px] left-6 right-6 h-[4px] bg-[#0090FF] rounded-full" />}
+                  {activeTab === "jobs" && <div className="absolute bottom-[-2px] left-4 right-4 h-[3px] bg-[#0090FF] rounded-full" />}
                 </button>
                 <button
                   onClick={() => setActiveTab("reviews")}
-                  className={`pb-4 px-6 font-bold text-[18px] transition-all relative ${activeTab === "reviews" ? "text-[#0090FF]" : "text-[#9CA3AF] hover:text-[#111827]"
+                  className={`pb-2.5 px-3 font-bold text-[15px] transition-all relative ${activeTab === "reviews" ? "text-[#0090FF]" : "text-[#9CA3AF] hover:text-[#111827]"
                     }`}
                 >
                   Reviews
-                  {activeTab === "reviews" && <div className="absolute bottom-[-3px] left-6 right-6 h-[4px] bg-[#0090FF] rounded-full" />}
+                  {activeTab === "reviews" && <div className="absolute bottom-[-2px] left-4 right-4 h-[3px] bg-[#0090FF] rounded-full" />}
                 </button>
               </div>
 
@@ -244,25 +230,25 @@ export default function RecruiterProfilePage() {
                 {activeTab === "jobs" ? (
                   <div className="divide-y divide-[#E5E7EB]">
                     {jobs.map((job) => (
-                      <div key={job.id} className="p-10 flex items-center justify-between hover:bg-[#F9FAFB] transition-all duration-300">
-                        <div className="flex items-center gap-6">
-                          <div className="w-[72px] h-[72px] bg-[#F3F4F6] rounded-[24px] flex items-center justify-center border border-[#E5E7EB] shadow-sm">
+                      <div key={job.id} className="p-6 flex items-center justify-between hover:bg-[#F9FAFB] transition-all duration-300">
+                        <div className="flex items-center gap-4">
+                          <div className="w-[56px] h-[56px] bg-[#F3F4F6] rounded-[16px] flex items-center justify-center border border-[#E5E7EB] shadow-sm">
                             <JobIconWrapper type={job.icon} />
                           </div>
                           <div>
-                            <h3 className="text-[22px] font-bold text-[#111827] mb-0.5 tracking-tight">{job.title}</h3>
-                            <p className="text-[#9CA3AF] text-[16px] font-bold tracking-tight">Posted on {job.postedOn}</p>
+                            <h3 className="text-[17px] font-bold text-[#111827] mb-0.5 tracking-tight">{job.title}</h3>
+                            <p className="text-[#9CA3AF] text-[13px] font-bold tracking-tight">Posted on {job.postedOn}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-10">
-                          <div className={`flex items-center gap-2.5 px-6 py-2 rounded-full font-bold text-[16px] border ${job.status === "Completed"
+                        <div className="flex items-center gap-5">
+                          <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full font-bold text-[12px] border ${job.status === "Completed"
                             ? "bg-[#E6FAF1] text-[#00C853] border-transparent"
                             : "bg-[#F3F4F6] text-[#6B7280] border-transparent"
                             }`}>
-                            <div className={`w-2.5 h-2.5 rounded-full ${job.status === "Completed" ? "bg-[#00C853]" : "bg-[#6B7280]"}`} />
+                            <div className={`w-2 h-2 rounded-full ${job.status === "Completed" ? "bg-[#00C853]" : "bg-[#6B7280]"}`} />
                             {job.status}
                           </div>
-                          <span className="text-[#9CA3AF] text-[16px] font-bold min-w-[120px] text-right">
+                          <span className="text-[#9CA3AF] text-[13px] font-bold min-w-[92px] text-right">
                             {job.applicants} Applicants
                           </span>
                         </div>
@@ -272,14 +258,14 @@ export default function RecruiterProfilePage() {
                 ) : (
                   <div className="divide-y divide-[#E5E7EB]">
                     {reviews.map((review) => (
-                      <div key={review.id} className="p-10 hover:bg-[#F9FAFB] transition-all duration-300">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-[#DEEBFF] text-[#0090FF] rounded-full flex items-center justify-center font-bold text-[20px] uppercase border-2 border-white shadow-sm">
+                      <div key={review.id} className="p-6 hover:bg-[#F9FAFB] transition-all duration-300">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 bg-[#DEEBFF] text-[#0090FF] rounded-full flex items-center justify-center font-bold text-[15px] uppercase border-2 border-white shadow-sm">
                               {review.reviewerName[0]}
                             </div>
                             <div>
-                              <h4 className="text-[18px] font-bold text-[#111827] mb-0.5 tracking-tight">{review.reviewerName}</h4>
+                              <h4 className="text-[15px] font-bold text-[#111827] mb-0.5 tracking-tight">{review.reviewerName}</h4>
                               <div className="flex gap-0.5">
                                 {[1, 2, 3, 4, 5].map((s) => (
                                   <StarIcon key={s} filled={s <= review.rating} />
@@ -287,13 +273,13 @@ export default function RecruiterProfilePage() {
                               </div>
                             </div>
                           </div>
-                          <span className="text-[#9CA3AF] text-[14px] font-bold uppercase tracking-[0.15em]">{review.date}</span>
+                          <span className="text-[#9CA3AF] text-[11px] font-bold uppercase tracking-[0.1em]">{review.date}</span>
                         </div>
-                        <p className="text-[#4B5563] font-bold text-[17px] leading-relaxed italic opacity-90">"{review.comment}"</p>
+                        <p className="text-[#4B5563] font-bold text-[14px] leading-relaxed italic opacity-90">"{review.comment}"</p>
                       </div>
                     ))}
                     {reviews.length === 0 && (
-                      <div className="p-20 text-center text-gray-400 font-bold">No reviews yet</div>
+                      <div className="p-12 text-center text-gray-400 font-bold">No reviews yet</div>
                     )}
                   </div>
                 )}

@@ -7,7 +7,11 @@ const buildPublicFileUrl = (req, storedPath) => {
     const normalizedPath = String(storedPath || "").trim().replace(/\\/g, "/").replace(/^\/+/, "");
     if (!normalizedPath) return "";
 
-    if (normalizedPath.startsWith("http://") || normalizedPath.startsWith("https://")) {
+    if (
+        normalizedPath.startsWith("http://") ||
+        normalizedPath.startsWith("https://") ||
+        normalizedPath.startsWith("data:")
+    ) {
         return normalizedPath;
     }
 
@@ -38,6 +42,177 @@ const resolvePortfolioUrl = (socialLinks) => {
 
     return "";
 };
+
+const formatMonthYear = (value) => {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+};
+
+const mapJobStatus = (status) => {
+    const normalized = String(status || "").toUpperCase();
+    if (normalized === "COMPLETED") return "Completed";
+    if (normalized === "CANCELLED" || normalized === "PRIVATE") return "Expired";
+    return "Active";
+};
+
+const mapJobIcon = (category) => {
+    const key = String(category || "").toLowerCase();
+    if (key.includes("home") || key.includes("house")) return "home";
+    if (key.includes("delivery") || key.includes("transport") || key.includes("driver")) return "truck";
+    return "tool";
+};
+
+// GET /api/recruiter/profile
+router.get("/profile", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.user.userId },
+            include: {
+                companies: {
+                    orderBy: { createdAt: "desc" },
+                    take: 1,
+                },
+                jobsPosted: {
+                    include: {
+                        applications: true,
+                    },
+                    orderBy: { createdAt: "desc" },
+                },
+                receivedReviews: {
+                    include: {
+                        reviewer: true,
+                    },
+                    orderBy: { createdAt: "desc" },
+                    take: 20,
+                },
+            },
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: "Recruiter not found" });
+        }
+
+        const company = user.companies[0] || null;
+        const defaultCompanyName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || "Recruiter";
+        const profile = {
+            id: user.id,
+            companyName: company?.name || defaultCompanyName,
+            logoUrl: buildPublicFileUrl(req, company?.logoUrl || ""),
+            companyAddress: company?.address || "",
+            city: company?.city || "",
+            zipCode: company?.zipCode || "",
+            verified: Boolean(company?.isVerified || user.isVerified),
+            location: company?.city || user.homeTown || "Sri Lanka",
+            tagline: company?.tagline || "",
+            about: company?.about || "",
+            industry: company?.industry || "",
+            companySize: company?.companySize || "",
+            memberSince: formatMonthYear(user.createdAt),
+            website: company?.website || "",
+            contactPersonName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+            contactEmail: user.email || "",
+            contactPhoneNumber: user.phone || "",
+        };
+
+        const jobs = user.jobsPosted.map((job) => ({
+            id: job.id,
+            title: job.title,
+            postedOn: formatMonthYear(job.createdAt),
+            status: mapJobStatus(job.status),
+            applicants: job.applications.length,
+            icon: mapJobIcon(job.category),
+        }));
+
+        const reviews = user.receivedReviews.map((review) => ({
+            id: review.id,
+            reviewerName: `${review.reviewer?.firstName || ""} ${review.reviewer?.lastName || ""}`.trim() || "Anonymous",
+            rating: Number(review.rating || 0),
+            date: formatMonthYear(review.createdAt),
+            comment: review.comment || "",
+        }));
+
+        return res.status(200).json({ profile, jobs, reviews });
+    } catch (error) {
+        console.error("Error fetching recruiter profile:", error);
+        return res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// PUT /api/recruiter/profile
+router.put("/profile", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
+    try {
+        const {
+            companyName,
+            website,
+            companyAddress,
+            city,
+            zipCode,
+            about,
+            contactPersonName,
+            contactEmail,
+            contactPhoneNumber,
+            logoBase64,
+        } = req.body || {};
+
+        const userId = req.user.userId;
+
+        const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+        if (!existingUser) {
+            return res.status(404).json({ message: "Recruiter not found" });
+        }
+
+        const nameParts = String(contactPersonName || "").trim().split(/\s+/).filter(Boolean);
+        const nextFirstName = nameParts.length > 0 ? nameParts[0] : existingUser.firstName || null;
+        const nextLastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : existingUser.lastName || null;
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                firstName: nextFirstName,
+                lastName: nextLastName,
+                email: contactEmail !== undefined ? String(contactEmail || "").trim() || existingUser.email : existingUser.email,
+                phone: contactPhoneNumber !== undefined ? String(contactPhoneNumber || "").trim() || null : existingUser.phone,
+                homeTown: city !== undefined ? String(city || "").trim() || existingUser.homeTown : existingUser.homeTown,
+            },
+        });
+
+        const existingCompany = await prisma.company.findFirst({
+            where: { recruiterId: userId },
+            orderBy: { createdAt: "desc" },
+        });
+
+        const companyData = {
+            name: String(companyName || "").trim() || existingCompany?.name || "Recruiter",
+            website: website !== undefined ? String(website || "").trim() || null : existingCompany?.website || null,
+            address: companyAddress !== undefined ? String(companyAddress || "").trim() || null : existingCompany?.address || null,
+            city: city !== undefined ? String(city || "").trim() || null : existingCompany?.city || null,
+            zipCode: zipCode !== undefined ? String(zipCode || "").trim() || null : existingCompany?.zipCode || null,
+            about: about !== undefined ? String(about || "").trim() || null : existingCompany?.about || null,
+            logoUrl: logoBase64 !== undefined ? String(logoBase64 || "").trim() || null : existingCompany?.logoUrl || null,
+        };
+
+        if (existingCompany) {
+            await prisma.company.update({
+                where: { id: existingCompany.id },
+                data: companyData,
+            });
+        } else {
+            await prisma.company.create({
+                data: {
+                    recruiterId: userId,
+                    ...companyData,
+                },
+            });
+        }
+
+        return res.status(200).json({ message: "Recruiter profile updated" });
+    } catch (error) {
+        console.error("Error updating recruiter profile:", error);
+        return res.status(500).json({ message: "Server Error" });
+    }
+});
 
 // GET /api/recruiter/jobs/:jobId/applicants
 router.get("/jobs/:jobId/applicants", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {

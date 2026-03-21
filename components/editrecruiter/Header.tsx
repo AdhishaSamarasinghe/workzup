@@ -1,12 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import MessagesBadge from '@/components/chat/MessagesBadge';
+import { LogOut } from "lucide-react";
+import ProfileAvatar from "@/components/ProfileAvatar";
+import { useProfileIdentity } from "@/lib/useProfileIdentity";
+import { signOutWorkzupAuth } from "@/lib/auth/workzupAuth";
 
 export default function EditRecruiterHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const fallbackName = "Recruiter";
+  const { avatarUrl, name } = useProfileIdentity(fallbackName);
+  const userName = name || fallbackName;
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!dropdownRef.current) return;
+      if (!dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [dropdownOpen]);
+
+  const handleLogout = async () => {
+    await signOutWorkzupAuth();
+    window.location.href = "/auth/login/recruiter";
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-card/90 backdrop-blur relative">
@@ -63,26 +94,55 @@ export default function EditRecruiterHeader() {
           </svg>
         </button>
 
-        {/* Notification & Profile Icons */}
-        <div className="hidden items-center gap-4 md:flex">
-          {/* Profile Icon -> same style as profile header */}
-          <Link href="#" aria-label="Account">
-            <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-full bg-[#F3F4F6] text-[#1F2937] transition-colors hover:bg-[#E5E7EB]">
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
+        {/* Profile Dropdown Area */}
+        <div ref={dropdownRef} className="relative hidden md:block">
+          <button
+            type="button"
+            onClick={() => setDropdownOpen((open) => !open)}
+            className="flex items-center gap-2 rounded-full p-1 transition-all duration-300 hover:bg-slate-100"
+            aria-expanded={dropdownOpen}
+            aria-label="Account menu"
+          >
+            <div className="h-9 w-9 md:h-10 md:w-10 overflow-hidden rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center shadow-sm">
+              <ProfileAvatar
+                src={avatarUrl}
+                name={userName}
+                size={40}
+                textClassName="text-sm"
+              />
             </div>
-          </Link>
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white py-2 shadow-lg ring-1 ring-black/5 flex flex-col items-start overflow-hidden">
+              <div className="px-4 py-2 border-b border-slate-100 w-full mb-1">
+                <p className="text-sm font-semibold truncate text-slate-800">{userName}</p>
+                <p className="text-xs text-slate-500">Job Recruiter</p>
+              </div>
+              <Link
+                href="/recruiterprofile"
+                className="block w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                onClick={() => setDropdownOpen(false)}
+              >
+                My Profile
+              </Link>
+              <Link
+                href="/editrecruiter"
+                className="block w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                onClick={() => setDropdownOpen(false)}
+              >
+                Settings
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left mt-1 border-t border-slate-100"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="md:hidden" />
