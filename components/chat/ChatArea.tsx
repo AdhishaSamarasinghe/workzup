@@ -6,9 +6,25 @@ import MessageInput from './MessageInput';
 import MessageBubble from './MessageBubble';
 import { apiFetch } from '@/lib/api';
 
-const dedupeMessages = (list: any[]) => {
+type ChatMessage = {
+  id?: string;
+  senderId?: string;
+  timestamp?: string;
+  createdAt?: string;
+  content?: string;
+  text?: string;
+  [key: string]: unknown;
+};
+
+type ChatConversation = {
+  id: string;
+  otherUserName?: string;
+  participants?: string[];
+};
+
+const dedupeMessages = (list: ChatMessage[]) => {
   const seen = new Set<string>();
-  const output: any[] = [];
+  const output: ChatMessage[] = [];
 
   for (const msg of Array.isArray(list) ? list : []) {
     const key = msg?.id
@@ -23,8 +39,8 @@ const dedupeMessages = (list: any[]) => {
   return output;
 };
 
-export default function ChatArea({ conversation, currentUserId, socket, onlineUsers = [] }: { conversation: any, currentUserId: string, socket: Socket, onlineUsers?: string[] }) {
-  const [messages, setMessages] = useState<any[]>([]);
+export default function ChatArea({ conversation, currentUserId, socket, onlineUsers = [] }: { conversation: ChatConversation, currentUserId: string, socket: Socket, onlineUsers?: string[] }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const socketRef = React.useRef<Socket | null>(null);
@@ -50,7 +66,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
       try {
         const data = await apiFetch(`/conversations/${conversation.id}/messages`);
         if (data.success && isActive) {
-          setMessages(dedupeMessages(data.data));
+          setMessages(dedupeMessages((data.data as ChatMessage[]) || []));
         }
       } catch (error) {
         console.error("Failed to fetch messages", error);
@@ -101,7 +117,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
     socket.emit('join_room', conversation.id);
     socket.on('connect', handleConnect);
 
-    socket.on('receive_message', (newMsg: any) => {
+    socket.on('receive_message', (newMsg: ChatMessage) => {
       setMessages((prev) => dedupeMessages([...prev, newMsg]));
       setTypingUsers((prev) => prev.filter(uid => uid !== newMsg.senderId));
     });
@@ -137,7 +153,7 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
   const otherParticipant = conversation.otherUserName || conversation.participants?.find((p: string) => p !== currentUserId) || 'Unknown User';
   const isOnline = onlineUsers.includes(otherParticipant);
 
-  const handleMessageSent = (newMsg: any) => {
+  const handleMessageSent = (newMsg: ChatMessage) => {
     setMessages((prev) => dedupeMessages([...prev, newMsg]));
   };
 

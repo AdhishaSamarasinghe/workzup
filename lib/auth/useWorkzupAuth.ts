@@ -9,20 +9,16 @@ type WorkzupAuthState = {
 };
 
 export function useWorkzupAuth(): WorkzupAuthState {
+  const supabase = getSupabaseBrowserClient();
   const [state, setState] = useState<WorkzupAuthState>({
-    loading: true,
+    loading: Boolean(supabase),
     isAuthenticated: false,
   });
 
   useEffect(() => {
     let active = true;
-    const supabase = getSupabaseBrowserClient();
 
     if (!supabase) {
-      setState({
-        loading: false,
-        isAuthenticated: false,
-      });
       return;
     }
 
@@ -60,7 +56,7 @@ export function useWorkzupAuth(): WorkzupAuthState {
       active = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
   return state;
 }

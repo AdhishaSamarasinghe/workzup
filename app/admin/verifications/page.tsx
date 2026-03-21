@@ -20,6 +20,10 @@ type VerificationItem = {
   rawData?: AdminUser;
 };
 
+type UserWithVerificationStatus = AdminUser & {
+  verificationStatus?: QueueStatus;
+};
+
 const tabs: QueueStatus[] = ["PENDING", "APPROVED", "REJECTED"];
 
 export default function AdminVerificationsPage() {
@@ -40,7 +44,7 @@ export default function AdminVerificationsPage() {
           type: "Identity Verification & Background",
           category: "ID Card",
           timeAgo: new Date(user.createdAt).toLocaleDateString(),
-          status: (user as any).verificationStatus as QueueStatus || "PENDING",
+          status: (user as UserWithVerificationStatus).verificationStatus || "PENDING",
           priority: "Standard",
           rawData: user
         })));

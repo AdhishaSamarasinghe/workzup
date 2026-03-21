@@ -25,7 +25,7 @@ export default function PostJobSuccess({ jobTitle, onReset }: PostJobSuccessProp
 
             {/* Confirmation Message */}
             <p className="text-lg text-slate-500 font-bold max-w-md mb-12 leading-relaxed">
-                Your job posting for <span className="text-[#6B8BFF]">"{jobTitle}"</span> has been successfully created and is now live.
+                Your job posting for <span className="text-[#6B8BFF]">&quot;{jobTitle}&quot;</span> has been successfully created and is now live.
             </p>
 
             {/* Actions */}

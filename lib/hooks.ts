@@ -27,7 +27,10 @@ export function useConversations() {
   }, []);
 
   useEffect(() => {
-    fetchConversations();
+    const timer = window.setTimeout(() => {
+      void fetchConversations();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchConversations]);
 
   const archiveConversation = async (conversationId: string) => {
@@ -114,7 +117,10 @@ export function useChat(conversationId: string | null) {
   }, [conversationId]);
 
   useEffect(() => {
-    fetchChat();
+    const timer = window.setTimeout(() => {
+      void fetchChat();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchChat]);
 
   // Send a message
@@ -252,7 +258,10 @@ export function useJobDetails(jobId: string | null) {
   }, [jobId]);
 
   useEffect(() => {
-    fetchJob();
+    const timer = window.setTimeout(() => {
+      void fetchJob();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchJob]);
 
   const updateJob = async (updates: Partial<JobDetails>) => {

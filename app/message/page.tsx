@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ConversationList } from "@/components/message";
 import { useConversations, useChat } from "@/lib/hooks";
@@ -40,6 +41,7 @@ export default function MessagePage() {
     string | null
   >(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const effectiveConversationId = selectedConversationId ?? conversations[0]?.id ?? null;
 
   // Use the chat hook for the selected conversation
   const {
@@ -51,7 +53,7 @@ export default function MessagePage() {
     editMessage,
     deleteMessage,
     setTyping,
-  } = useChat(selectedConversationId);
+  } = useChat(effectiveConversationId);
 
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -62,13 +64,6 @@ export default function MessagePage() {
   const [selectedMessage, setSelectedMessage] = useState<MessageType | null>(
     null,
   );
-
-  // Auto-select first conversation
-  useEffect(() => {
-    if (conversations.length > 0 && !selectedConversationId) {
-      setSelectedConversationId(conversations[0].id);
-    }
-  }, [conversations, selectedConversationId]);
 
   // Handle conversation selection (single click - show messages)
   const handleSelectConversation = (conversationId: string) => {
@@ -131,8 +126,8 @@ export default function MessagePage() {
 
   // Navigate to full jobchat page
   const handleOpenFullChat = () => {
-    if (selectedConversationId) {
-      router.push(`/jobchat?id=${selectedConversationId}`);
+    if (effectiveConversationId) {
+      router.push(`/jobchat?id=${effectiveConversationId}`);
     }
   };
 
@@ -241,7 +236,7 @@ export default function MessagePage() {
         <div className="w-full md:w-80 lg:w-96 flex-shrink-0">
           <ConversationList
             conversations={transformedConversations}
-            selectedConversationId={selectedConversationId}
+            selectedConversationId={effectiveConversationId}
             onSelectConversation={handleSelectConversation}
             onDoubleClickConversation={handleDoubleClickConversation}
             searchQuery={searchQuery}
@@ -362,10 +357,7 @@ export default function MessagePage() {
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-2 flex justify-around items-center z-50">
-        <a
-          href="/"
-          className="flex flex-col items-center p-2 text-gray-500 hover:text-blue-600"
-        >
+        <Link href="/" className="flex flex-col items-center p-2 text-gray-500 hover:text-blue-600">
           <svg
             className="w-6 h-6"
             fill="none"
@@ -380,11 +372,8 @@ export default function MessagePage() {
             />
           </svg>
           <span className="text-xs mt-1">Home</span>
-        </a>
-        <a
-          href="/jobs"
-          className="flex flex-col items-center p-2 text-gray-500 hover:text-blue-600"
-        >
+        </Link>
+        <Link href="/jobs" className="flex flex-col items-center p-2 text-gray-500 hover:text-blue-600">
           <svg
             className="w-6 h-6"
             fill="none"
@@ -399,11 +388,8 @@ export default function MessagePage() {
             />
           </svg>
           <span className="text-xs mt-1">Jobs</span>
-        </a>
-        <a
-          href="/Message"
-          className="flex flex-col items-center p-2 text-blue-600"
-        >
+        </Link>
+        <Link href="/Message" className="flex flex-col items-center p-2 text-blue-600">
           <svg
             className="w-6 h-6"
             fill="none"
@@ -418,11 +404,8 @@ export default function MessagePage() {
             />
           </svg>
           <span className="text-xs mt-1">Messages</span>
-        </a>
-        <a
-          href="/profile"
-          className="flex flex-col items-center p-2 text-gray-500 hover:text-blue-600"
-        >
+        </Link>
+        <Link href="/profile" className="flex flex-col items-center p-2 text-gray-500 hover:text-blue-600">
           <svg
             className="w-6 h-6"
             fill="none"
@@ -437,7 +420,7 @@ export default function MessagePage() {
             />
           </svg>
           <span className="text-xs mt-1">Profile</span>
-        </a>
+        </Link>
       </div>
 
       {/* Edit Message Modal */}
@@ -479,7 +462,14 @@ function MessageBubble({
   participant,
   isOwn,
   options,
-}: MessageBubbleProps & { options?: any[] }) {
+}: MessageBubbleProps & {
+  options?: Array<{
+    onClick: () => void;
+    label: string;
+    icon?: React.ReactNode;
+    danger?: boolean;
+  }>;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 

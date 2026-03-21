@@ -30,6 +30,11 @@ interface ApplicantProfile {
     portfolioUrl?: string;
 }
 
+const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error && error.message) return error.message;
+    return "Unexpected error";
+};
+
 export default function JobApplicantsPage() {
     const params = useParams();
     const router = useRouter();
@@ -82,9 +87,9 @@ export default function JobApplicantsPage() {
                     setSelectedApplicantId(null);
                     setApplicantProfile(null);
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error("Error:", error);
-                setErrorMsg(error.message || "Failed to load applicants");
+                setErrorMsg(getErrorMessage(error) || "Failed to load applicants");
             } finally {
                 setLoading(false);
             }
@@ -110,9 +115,9 @@ export default function JobApplicantsPage() {
             try {
                 const data = await apiFetch(`/api/recruiter/applicants/${selectedApplicantId}`);
                 setApplicantProfile(data);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error("Error:", error);
-                setErrorMsg(error.message || "Failed to load profile");
+                setErrorMsg(getErrorMessage(error) || "Failed to load profile");
             } finally {
                 setProfileLoading(false);
             }
@@ -141,9 +146,9 @@ export default function JobApplicantsPage() {
                     : app
             ));
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error updating status:", error);
-            setErrorMsg(error.message || "Failed to update status");
+            setErrorMsg(getErrorMessage(error) || "Failed to update status");
         }
     };
 
@@ -191,8 +196,8 @@ export default function JobApplicantsPage() {
                 }
 
                 router.push(`/recruiter/messages?${params.toString()}`);
-            } catch (error: any) {
-                setErrorMsg(error?.message || "Unable to open applicant chat.");
+            } catch (error: unknown) {
+                setErrorMsg(getErrorMessage(error) || "Unable to open applicant chat.");
             } finally {
                 setMessaging(false);
             }

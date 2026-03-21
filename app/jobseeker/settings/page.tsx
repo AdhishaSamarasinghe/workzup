@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Shield, Key, Mail, Trash2, CheckCircle2, AlertTriangle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { signOutWorkzupAuth } from "@/lib/auth/workzupAuth";
+
+const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error && error.message) return error.message;
+    return "Unexpected error";
+};
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState("security");
@@ -87,8 +92,8 @@ function TabSecurity() {
             });
             setStatus({ type: "success", msg: "Password successfully changed!" });
             setPasswords({ current: "", new: "", confirm: "" });
-        } catch (err: any) {
-            setStatus({ type: "error", msg: err.message || "Failed to change password." });
+        } catch (err: unknown) {
+            setStatus({ type: "error", msg: getErrorMessage(err) || "Failed to change password." });
         }
         setLoading(false);
     };
@@ -156,8 +161,8 @@ function TabEmail() {
             });
             setStatus({ type: "success", msg: `Verification code sent to ${newEmail}` });
             setStep("verify");
-        } catch (err: any) {
-            setStatus({ type: "error", msg: err.message || "Failed to send code." });
+        } catch (err: unknown) {
+            setStatus({ type: "error", msg: getErrorMessage(err) || "Failed to send code." });
         }
         setLoading(false);
     };
@@ -177,8 +182,8 @@ function TabEmail() {
             setStep("request");
             setNewEmail("");
             setOtp("");
-        } catch (err: any) {
-            setStatus({ type: "error", msg: err.message || "Invalid verification code." });
+        } catch (err: unknown) {
+            setStatus({ type: "error", msg: getErrorMessage(err) || "Invalid verification code." });
         }
         setLoading(false);
     };
@@ -188,7 +193,7 @@ function TabEmail() {
             <h2 className="text-xl font-bold text-slate-900 mb-2 flex items-center">
                 <Mail className="w-5 h-5 mr-2 text-slate-400" /> Change Email
             </h2>
-            <p className="text-slate-500 mb-6 text-sm">Update your primary login email. We'll send a code to verify the new address.</p>
+            <p className="text-slate-500 mb-6 text-sm">Update your primary login email. We&apos;ll send a code to verify the new address.</p>
 
             {status && (
                 <div className={`p-4 rounded-xl mb-6 font-medium text-sm flex items-start gap-3 ${status.type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
@@ -252,8 +257,8 @@ function TabDangerZone() {
             // Clear local storage and redirect to home
             await signOutWorkzupAuth();
             window.location.href = "/";
-        } catch (err: any) {
-            setError(err.message || "Failed to delete account. Try again later.");
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || "Failed to delete account. Try again later.");
             setLoading(false);
         }
     };
@@ -276,7 +281,7 @@ function TabDangerZone() {
                         <AlertTriangle className="w-4 h-4 mr-1.5" /> {error}
                     </div>
                 )}
-                <label className="block text-xs font-bold text-red-800 mb-2 tracking-wider">Type "DELETE" to confirm</label>
+                <label className="block text-xs font-bold text-red-800 mb-2 tracking-wider">Type &quot;DELETE&quot; to confirm</label>
                 <div className="flex flex-col sm:flex-row gap-3">
                     <input 
                         type="text" 

@@ -416,11 +416,23 @@ export function RecommendedJobsSection({
 
       <div className="flex flex-col gap-5">
         {jobs.map((job, index) => {
+          const categoryObj =
+            typeof job.category === "object" &&
+            job.category !== null &&
+            "name" in job.category
+              ? (job.category as { name?: string })
+              : null;
+
+          const derivedCategory =
+            typeof (job as Record<string, unknown>).derivedCategory === "string"
+              ? ((job as Record<string, unknown>).derivedCategory as string)
+              : "Uncategorized";
+
           const cat = typeof job.category === 'object' && job.category !== null 
-            ? (job.category as any).name 
+            ? categoryObj?.name
             : typeof job.category === 'string' 
               ? job.category 
-              : (job as any).derivedCategory || "Uncategorized";
+              : derivedCategory;
 
           return (
             <div

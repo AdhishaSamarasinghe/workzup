@@ -5,6 +5,11 @@ import Link from "next/link";
 import { Hammer, Home, Truck, Star, CheckCircle } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error && error.message) return error.message;
+  return "Unknown error";
+};
+
 // --- Types ---
 
 interface Recruiter {
@@ -77,9 +82,9 @@ export default function RecruiterProfilePage() {
         setRecruiter((data?.profile || null) as Recruiter | null);
         setJobs(Array.isArray(data?.jobs) ? (data.jobs as Job[]) : []);
         setReviews(Array.isArray(data?.reviews) ? (data.reviews as Review[]) : []);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to load recruiter data:", err);
-        const message = typeof err?.message === "string" ? err.message : "Unknown error";
+        const message = getErrorMessage(err);
         if (/401|403|Missing token|Invalid token/i.test(message)) {
           setError("Please sign in as a recruiter to view your profile.");
         } else {
@@ -275,7 +280,7 @@ export default function RecruiterProfilePage() {
                           </div>
                           <span className="text-[#9CA3AF] text-[11px] font-bold uppercase tracking-[0.1em]">{review.date}</span>
                         </div>
-                        <p className="text-[#4B5563] font-bold text-[14px] leading-relaxed italic opacity-90">"{review.comment}"</p>
+                        <p className="text-[#4B5563] font-bold text-[14px] leading-relaxed italic opacity-90">&quot;{review.comment}&quot;</p>
                       </div>
                     ))}
                     {reviews.length === 0 && (

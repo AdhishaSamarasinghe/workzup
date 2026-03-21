@@ -20,8 +20,11 @@ export function EditMessageModal({
 
   useEffect(() => {
     if (isOpen) {
-      setContent(initialContent);
-      setTimeout(() => inputRef.current?.focus(), 100);
+      const timer = window.setTimeout(() => {
+        setContent(initialContent);
+        inputRef.current?.focus();
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [isOpen, initialContent]);
 
@@ -185,7 +188,10 @@ export function JobEditModal({
 
   useEffect(() => {
     if (isOpen && job) {
-      setFormData(job);
+      const timer = window.setTimeout(() => {
+        setFormData(job);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [isOpen, job]);
 

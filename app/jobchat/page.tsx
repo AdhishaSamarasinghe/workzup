@@ -73,7 +73,9 @@ function JobChatPage() {
   );
 
   const [inputValue, setInputValue] = useState("");
-  const [showJobDetails, setShowJobDetails] = useState(false);
+  const [showJobDetails, setShowJobDetails] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : false,
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Edit/Delete modal state
@@ -83,15 +85,6 @@ function JobChatPage() {
   const [selectedMessage, setSelectedMessage] = useState<MessageType | null>(
     null,
   );
-
-  // Show job details by default on large screens
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (window.innerWidth >= 1024) {
-        setShowJobDetails(true);
-      }
-    }
-  }, []);
 
   // Auto-scroll to bottom when messages change
   const scrollToBottom = () => {

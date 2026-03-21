@@ -3,8 +3,19 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 
-export default function InboxSidebar({ onSelectConversation, selectedId, onlineUsers = [], currentUserId }: { onSelectConversation: (conv: any) => void, selectedId: string | null, onlineUsers?: string[], currentUserId: string }) {
-  const [conversations, setConversations] = useState<any[]>([]);
+type SidebarConversation = {
+  id: string;
+  otherUserId?: string;
+  otherUserName?: string;
+  participants?: string[];
+  jobTitle?: string;
+  lastMessageTime?: string;
+  lastMessage?: string;
+  unreadCount?: number;
+};
+
+export default function InboxSidebar({ onSelectConversation, selectedId, onlineUsers = [], currentUserId }: { onSelectConversation: (conv: SidebarConversation) => void, selectedId: string | null, onlineUsers?: string[], currentUserId: string }) {
+  const [conversations, setConversations] = useState<SidebarConversation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { getNameInitials } from "@/lib/profile";
 
@@ -21,23 +21,19 @@ export default function ProfileAvatar({
   imageClassName = "",
   textClassName = "",
 }: ProfileAvatarProps) {
-  const [imgError, setImgError] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const initials = getNameInitials(name);
 
-  // Reset error state if src changes
-  useEffect(() => {
-    setImgError(false);
-  }, [src]);
-
-  if (src && !imgError) {
+  if (src && src !== failedSrc) {
     return (
       <Image
+        key={src}
         src={src}
         alt={name || "Profile avatar"}
         width={size}
         height={size}
         className={imageClassName || "h-full w-full object-cover transition-opacity duration-300"}
-        onError={() => setImgError(true)}
+        onError={() => setFailedSrc(src)}
         unoptimized
       />
     );

@@ -3,7 +3,21 @@
 import React, { useState, useRef } from 'react';
 import { apiFetch } from '@/lib/api';
 
-export default function MessageInput({ conversationId, currentUserId, onMessageSent, onTyping }: any) {
+type InputMessage = {
+  id?: string;
+  content?: string;
+  text?: string;
+  [key: string]: unknown;
+};
+
+interface MessageInputProps {
+  conversationId: string;
+  currentUserId: string;
+  onMessageSent?: (message: InputMessage) => void;
+  onTyping?: (isTyping: boolean) => void;
+}
+
+export default function MessageInput({ conversationId, currentUserId, onMessageSent, onTyping }: MessageInputProps) {
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

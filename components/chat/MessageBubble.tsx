@@ -2,7 +2,14 @@
 
 import React from 'react';
 
-export default function MessageBubble({ msg, isMine, participantName }: { msg: any; isMine: boolean, participantName?: string }) {
+type BubbleMessage = {
+  content?: string;
+  text?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+};
+
+export default function MessageBubble({ msg, isMine, participantName }: { msg: BubbleMessage; isMine: boolean, participantName?: string }) {
   const content = msg.content || msg.text || '';
   const isImage = content.startsWith('[IMAGE]');
   const imageUrl = isImage ? `http://localhost:5000${content.replace('[IMAGE]', '')}` : '';

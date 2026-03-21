@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { X, CheckCircle2, ChevronRight, LoaderCircle, Upload, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -16,25 +16,71 @@ export interface ProfileCompletionData {
     isAvailable?: boolean;
 }
 
-export type ProfileDataProp = any;
+type EducationLevel = { level: string };
+
+export interface ProfileDataProp {
+    phone?: string;
+    aboutMe?: string;
+    title?: string;
+    skills?: string[];
+    languages?: string[];
+    availableTimes?: string;
+    cv?: string;
+    idFront?: string;
+    idBack?: string;
+    education?: EducationLevel[];
+}
+
+type SaveUpdates =
+    | { phone: string }
+    | { title: string; aboutMe: string }
+    | { skills: string[] }
+    | { languages: string[] }
+    | { availableTimes: string }
+    | { education: EducationLevel[] };
 
 interface ProfileCompletionWizardProps {
     profile: ProfileDataProp;
     onClose: () => void;
-    onSaveStep: (updates: any) => Promise<boolean>;
+    onSaveStep: (updates: SaveUpdates) => Promise<boolean>;
     onUploadDocs: (cv: File | null, idFront: File | null, idBack: File | null) => Promise<boolean>;
 }
 
 export default function ProfileCompletionWizard({ profile, onClose, onSaveStep, onUploadDocs }: ProfileCompletionWizardProps) {
-    const steps = [];
-    
-    // Determine missing steps based on profile data
-    if (!profile.phone) steps.push({ id: "phone", label: "Phone Number", desc: "How can employers reach you directly?" });
-    if (!profile.aboutMe || profile.aboutMe.trim() === "" || !profile.title || profile.title.trim() === "") steps.push({ id: "about", label: "Professional Headline & Summary", desc: "Tell employers about your expertise" });
-    if (!profile.skills || profile.skills.length === 0) steps.push({ id: "skills", label: "Skills", desc: "What are your top skills?" });
-    if (!profile.languages || profile.languages.length === 0) steps.push({ id: "languages", label: "Languages", desc: "What languages do you speak?" });
-    if (!profile.cv || !profile.idFront || !profile.idBack) steps.push({ id: "documents", label: "Documents", desc: "Upload your CV and ID for verification." });
-    if (!profile.education || profile.education.length === 0) steps.push({ id: "education", label: "Education", desc: "Add your highest level of education" });
+    const steps = useMemo(() => {
+        const nextSteps: Array<{ id: string; label: string; desc: string }> = [];
+
+        if (!profile.phone) nextSteps.push({ id: "phone", label: "Phone Number", desc: "How can employers reach you directly?" });
+        if (!profile.aboutMe || profile.aboutMe.trim() === "" || !profile.title || profile.title.trim() === "") nextSteps.push({ id: "about", label: "Professional Headline & Summary", desc: "Tell employers about your expertise" });
+        if (!profile.skills || profile.skills.length === 0) nextSteps.push({ id: "skills", label: "Skills", desc: "What are your top skills?" });
+        if (!profile.languages || profile.languages.length === 0) nextSteps.push({ id: "languages", label: "Languages", desc: "What languages do you speak?" });
+        if (!profile.cv || !profile.idFront || !profile.idBack) nextSteps.push({ id: "documents", label: "Documents", desc: "Upload your CV and ID for verification." });
+        if (!profile.education || profile.education.length === 0) nextSteps.push({ id: "education", label: "Education", desc: "Add your highest level of education" });
+
+        return nextSteps;
+    }, [profile]);
+
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
+    const [saving, setSaving] = useState(false);
+
+    // Form States
+    const initialPhone = profile.phone ? profile.phone.replace(/^(\+94|0)/, '') : "";
+    const [phone, setPhone] = useState(initialPhone);
+    const [phoneError, setPhoneError] = useState("");
+    const [title, setTitle] = useState(profile.title || "");
+    const [aboutMe, setAboutMe] = useState(profile.aboutMe || "");
+    const [skillsText, setSkillsText] = useState(profile.skills ? profile.skills.join(", ") : "");
+    const [languagesText, setLanguagesText] = useState(profile.languages ? profile.languages.join(", ") : "");
+    const [availability, setAvailability] = useState(profile.availableTimes || "");
+    const [stepError, setStepError] = useState("");
+
+    // Education State
+    const [eduLevels, setEduLevels] = useState<string[]>([]);
+
+    // Docs State
+    const [cvFile, setCvFile] = useState<File | null>(null);
+    const [idFrontFile, setIdFrontFile] = useState<File | null>(null);
+    const [idBackFile, setIdBackFile] = useState<File | null>(null);
 
     if (steps.length === 0) {
         return (
@@ -52,30 +98,7 @@ export default function ProfileCompletionWizard({ profile, onClose, onSaveStep, 
         );
     }
 
-    const [currentStepIndex, setCurrentStepIndex] = useState(0);
-    const [saving, setSaving] = useState(false);
-    
-    // Form States
-    const initialPhone = profile.phone ? profile.phone.replace(/^(\+94|0)/, '') : "";
-    const [phone, setPhone] = useState(initialPhone);
-    const [phoneError, setPhoneError] = useState("");
-    const [title, setTitle] = useState(profile.title || "");
-    const [aboutMe, setAboutMe] = useState(profile.aboutMe || "");
-    const [skillsText, setSkillsText] = useState(profile.skills ? profile.skills.join(", ") : "");
-    const [languagesText, setLanguagesText] = useState(profile.languages ? profile.languages.join(", ") : "");
-    const [availability, setAvailability] = useState(profile.availableTimes || "");
-    const [stepError, setStepError] = useState("");
-    
-    // Education State
-    const [eduLevels, setEduLevels] = useState<string[]>([]);
-
-    // Docs State
-    const [cvFile, setCvFile] = useState<File | null>(null);
-    const [idFrontFile, setIdFrontFile] = useState<File | null>(null);
-    const [idBackFile, setIdBackFile] = useState<File | null>(null);
-
     const activeStep = steps[currentStepIndex];
-    const isFirst = currentStepIndex === 0;
     const isLast = currentStepIndex === steps.length - 1;
 
     const currentProgress = Math.round(((currentStepIndex) / steps.length) * 100);
@@ -243,7 +266,7 @@ export default function ProfileCompletionWizard({ profile, onClose, onSaveStep, 
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 mb-2">Professional Summary</label>
                                         <textarea value={aboutMe} onChange={e => setAboutMe(e.target.value)} placeholder="I am a dedicated professional with experience in..." rows={4} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 outline-none focus:ring-2 focus:ring-[#6b8bff] focus:border-[#6b8bff] font-medium text-slate-900 transition-all resize-none"/>
-                                        <p className="text-xs text-slate-500 font-medium mt-2">Write a short paragraph highlighting your strengths and what kind of work you're looking for.</p>
+                                        <p className="text-xs text-slate-500 font-medium mt-2">Write a short paragraph highlighting your strengths and what kind of work you&apos;re looking for.</p>
                                     </div>
                                 </div>
                             )}

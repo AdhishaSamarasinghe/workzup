@@ -3,7 +3,7 @@
 // ============================================
 
 export type ApiResponse<T> =
-  | { success: boolean; data?: T; error?: string; message?: string;[key: string]: any };
+  | { success: boolean; data?: T; error?: string; message?: string;[key: string]: unknown };
 
 export interface User {
   id: string;
@@ -52,7 +52,7 @@ export interface JobDetails {
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Conversation {
@@ -77,13 +77,13 @@ export interface SendMessageRequest {
   text?: string;
   replyToId?: string;
   attachments?: Attachment[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface UpdateMessageRequest {
   content?: string;
   text?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface UpdateJobDetailsRequest {
@@ -94,7 +94,7 @@ export interface UpdateJobDetailsRequest {
   schedule?: string;
   description?: string;
   status?: "open" | "filled" | "closed";
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CreateConversationRequest {
@@ -102,7 +102,7 @@ export interface CreateConversationRequest {
   type?: "direct" | "job";
   jobId?: string;
   initialMessage?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Typing indicator
