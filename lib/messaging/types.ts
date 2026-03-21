@@ -8,6 +8,17 @@ export type MessagingUser = {
   role: string | null;
 };
 
+export type PresenceState = "online" | "offline";
+
+export type TypingState = {
+  conversationId: string;
+  userId: string;
+  userName: string;
+  isTyping: boolean;
+};
+
+export type MessageDeliveryStatus = "delivered" | "seen";
+
 export type ConversationRow = {
   id: string;
   user1_id: string;

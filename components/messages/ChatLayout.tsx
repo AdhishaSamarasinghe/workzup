@@ -1,14 +1,20 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useEffectEvent,
   useMemo,
+  useRef,
   useState,
   startTransition,
 } from "react";
 import { useSearchParams } from "next/navigation";
-import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
+import type {
+  RealtimeChannel,
+  RealtimePostgresInsertPayload,
+  RealtimePostgresUpdatePayload,
+} from "@supabase/supabase-js";
 import {
   fetchMessages,
   getCurrentMessagingUser,
@@ -23,12 +29,21 @@ import type {
   MessageRow,
   MessagingAudience,
   MessagingUser,
+  PresenceState,
+  TypingState,
 } from "@/lib/messaging/types";
 import ChatWindow from "./ChatWindow";
 import ConversationList from "./ConversationList";
 
 type ChatLayoutProps = {
   audience: MessagingAudience;
+};
+
+type TypingBroadcastPayload = {
+  conversationId?: string;
+  userId?: string;
+  userName?: string;
+  isTyping?: boolean;
 };
 
 function upsertMessage(list: MessageRow[], incoming: MessageRow) {
@@ -74,6 +89,20 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
   const [sending, setSending] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [screenError, setScreenError] = useState<string | null>(null);
+  const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
+  const [typingByConversation, setTypingByConversation] = useState<
+    Record<string, TypingState>
+  >({});
+
+  const realtimeChannelRef = useRef<RealtimeChannel | null>(null);
+  const localTypingConversationIdRef = useRef<string | null>(null);
+  const localTypingActiveRef = useRef(false);
+  const localTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const remoteTypingTimeoutsRef = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({});
 
   const selectedConversation = useMemo(() => {
     return (
@@ -112,6 +141,28 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     selectedConversation,
     selectedConversationId,
   ]);
+
+  const typingConversationIds = useMemo(() => {
+    return Object.keys(typingByConversation);
+  }, [typingByConversation]);
+
+  const activeTypingState = useMemo(() => {
+    if (!fallbackConversation) {
+      return null;
+    }
+
+    return typingByConversation[fallbackConversation.id] || null;
+  }, [fallbackConversation, typingByConversation]);
+
+  const activePresence = useMemo<PresenceState>(() => {
+    if (!fallbackConversation) {
+      return "offline";
+    }
+
+    return onlineUserIds.includes(fallbackConversation.other_user_id)
+      ? "online"
+      : "offline";
+  }, [fallbackConversation, onlineUserIds]);
 
   const loadConversations = useEffectEvent(
     async (preferredConversationId?: string | null) => {
@@ -173,6 +224,166 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     }
   });
 
+  const syncPresenceState = useEffectEvent(() => {
+    const channel = realtimeChannelRef.current;
+    if (!channel || !currentUser?.id) {
+      return;
+    }
+
+    const presenceState = channel.presenceState();
+    const nextOnlineUserIds = Object.keys(presenceState).filter(
+      (userId) => userId && userId !== currentUser.id,
+    );
+
+    setOnlineUserIds(nextOnlineUserIds);
+  });
+
+  const clearRemoteTypingTimeout = useEffectEvent((conversationId: string) => {
+    const timeout = remoteTypingTimeoutsRef.current[conversationId];
+    if (timeout) {
+      clearTimeout(timeout);
+      delete remoteTypingTimeoutsRef.current[conversationId];
+    }
+  });
+
+  const clearAllRemoteTypingTimeouts = useCallback(() => {
+    const activeTimeouts = remoteTypingTimeoutsRef.current;
+    Object.values(activeTimeouts).forEach((timeout) => {
+      clearTimeout(timeout);
+    });
+    remoteTypingTimeoutsRef.current = {};
+  }, []);
+
+  const handleTypingBroadcast = useEffectEvent(
+    (payload: TypingBroadcastPayload) => {
+      const conversationId = String(payload.conversationId || "");
+      const userId = String(payload.userId || "");
+
+      if (!conversationId || !userId || userId === currentUser?.id) {
+        return;
+      }
+
+      clearRemoteTypingTimeout(conversationId);
+
+      if (!payload.isTyping) {
+        setTypingByConversation((currentTyping) => {
+          if (!currentTyping[conversationId]) {
+            return currentTyping;
+          }
+
+          const nextTyping = { ...currentTyping };
+          delete nextTyping[conversationId];
+          return nextTyping;
+        });
+        return;
+      }
+
+      setTypingByConversation((currentTyping) => ({
+        ...currentTyping,
+        [conversationId]: {
+          conversationId,
+          userId,
+          userName: String(payload.userName || "Someone"),
+          isTyping: true,
+        },
+      }));
+
+      remoteTypingTimeoutsRef.current[conversationId] = setTimeout(() => {
+        setTypingByConversation((currentTyping) => {
+          if (!currentTyping[conversationId]) {
+            return currentTyping;
+          }
+
+          const nextTyping = { ...currentTyping };
+          delete nextTyping[conversationId];
+          return nextTyping;
+        });
+        delete remoteTypingTimeoutsRef.current[conversationId];
+      }, 2500);
+    },
+  );
+
+  const broadcastTypingState = useCallback(
+    async (conversationId: string, isTyping: boolean) => {
+      const channel = realtimeChannelRef.current;
+      if (!channel || !currentUser?.id) {
+        return;
+      }
+
+      await channel.send({
+        type: "broadcast",
+        event: "typing",
+        payload: {
+          conversationId,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          isTyping,
+        },
+      });
+    },
+    [currentUser?.id, currentUser?.name],
+  );
+
+  const stopLocalTyping = useCallback(async () => {
+    const activeConversationId = localTypingConversationIdRef.current;
+
+    if (localTypingTimeoutRef.current) {
+      clearTimeout(localTypingTimeoutRef.current);
+      localTypingTimeoutRef.current = null;
+    }
+
+    if (!activeConversationId || !localTypingActiveRef.current) {
+      localTypingConversationIdRef.current = null;
+      localTypingActiveRef.current = false;
+      return;
+    }
+
+    localTypingConversationIdRef.current = null;
+    localTypingActiveRef.current = false;
+
+    try {
+      await broadcastTypingState(activeConversationId, false);
+    } catch {
+      // Presence and typing should never break the core chat flow.
+    }
+  }, [broadcastTypingState]);
+
+  const handleTypingActivity = useCallback(async () => {
+    if (!selectedConversationId || !currentUser?.id) {
+      return;
+    }
+
+    if (
+      localTypingConversationIdRef.current &&
+      localTypingConversationIdRef.current !== selectedConversationId
+    ) {
+      await stopLocalTyping();
+    }
+
+    const shouldBroadcastStart =
+      !localTypingActiveRef.current ||
+      localTypingConversationIdRef.current !== selectedConversationId;
+
+    localTypingConversationIdRef.current = selectedConversationId;
+    localTypingActiveRef.current = true;
+
+    if (shouldBroadcastStart) {
+      try {
+        await broadcastTypingState(selectedConversationId, true);
+      } catch {
+        // Ignore transient typing broadcast failures.
+      }
+    }
+
+    if (localTypingTimeoutRef.current) {
+      clearTimeout(localTypingTimeoutRef.current);
+    }
+
+    localTypingTimeoutRef.current = setTimeout(() => {
+      void stopLocalTyping();
+    }, 1500);
+  }, [broadcastTypingState, currentUser?.id, selectedConversationId, stopLocalTyping]);
+
   const applyIncomingMessage = useEffectEvent(
     async (payload: RealtimePostgresInsertPayload<MessageRow>) => {
       const incomingMessage = payload.new;
@@ -187,6 +398,17 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
       const hasConversation = conversations.some(
         (conversation) => conversation.id === incomingMessage.conversation_id,
       );
+
+      clearRemoteTypingTimeout(incomingMessage.conversation_id);
+      setTypingByConversation((currentTyping) => {
+        if (!currentTyping[incomingMessage.conversation_id]) {
+          return currentTyping;
+        }
+
+        const nextTyping = { ...currentTyping };
+        delete nextTyping[incomingMessage.conversation_id];
+        return nextTyping;
+      });
 
       setConversations((currentConversations) => {
         const conversationIndex = currentConversations.findIndex(
@@ -227,6 +449,27 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
       } else if (!hasConversation) {
         await loadConversations(selectedConversationId);
       }
+    },
+  );
+
+  const applyUpdatedMessage = useEffectEvent(
+    (payload: RealtimePostgresUpdatePayload<MessageRow>) => {
+      const updatedMessage = payload.new;
+      if (!updatedMessage?.conversation_id) {
+        return;
+      }
+
+      setMessages((currentMessages) => {
+        const shouldUpdate =
+          updatedMessage.conversation_id === selectedConversationId ||
+          currentMessages.some((message) => message.id === updatedMessage.id);
+
+        if (!shouldUpdate) {
+          return currentMessages;
+        }
+
+        return upsertMessage(currentMessages, updatedMessage);
+      });
     },
   );
 
@@ -314,12 +557,22 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
 
   useEffect(() => {
     if (!selectedConversationId) {
+      void stopLocalTyping();
       setMessages([]);
       return;
     }
 
     void loadMessages(selectedConversationId);
-  }, [selectedConversationId]);
+  }, [selectedConversationId, stopLocalTyping]);
+
+  useEffect(() => {
+    if (
+      localTypingConversationIdRef.current &&
+      localTypingConversationIdRef.current !== selectedConversationId
+    ) {
+      void stopLocalTyping();
+    }
+  }, [selectedConversationId, stopLocalTyping]);
 
   useEffect(() => {
     if (!currentUser?.id) {
@@ -332,7 +585,16 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     }
 
     const channel = supabase
-      .channel(`messages-feed-${currentUser.id}`)
+      .channel("messaging-hub", {
+        config: {
+          broadcast: {
+            self: false,
+          },
+          presence: {
+            key: currentUser.id,
+          },
+        },
+      })
       .on(
         "postgres_changes",
         {
@@ -346,12 +608,53 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
           );
         },
       )
-      .subscribe();
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          applyUpdatedMessage(
+            payload as RealtimePostgresUpdatePayload<MessageRow>,
+          );
+        },
+      )
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        handleTypingBroadcast(payload as TypingBroadcastPayload);
+      })
+      .on("presence", { event: "sync" }, () => {
+        syncPresenceState();
+      })
+      .on("presence", { event: "join" }, () => {
+        syncPresenceState();
+      })
+      .on("presence", { event: "leave" }, () => {
+        syncPresenceState();
+      });
+
+    realtimeChannelRef.current = channel;
+    const subscription = channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        syncPresenceState();
+        void channel.track({
+          userId: currentUser.id,
+          userName: currentUser.name,
+          connectedAt: new Date().toISOString(),
+        });
+      }
+    });
 
     return () => {
-      void supabase.removeChannel(channel);
+      void stopLocalTyping();
+      clearAllRemoteTypingTimeouts();
+      setTypingByConversation({});
+      setOnlineUserIds([]);
+      realtimeChannelRef.current = null;
+      void supabase.removeChannel(subscription);
     };
-  }, [currentUser?.id]);
+  }, [clearAllRemoteTypingTimeouts, currentUser?.id, currentUser?.name, stopLocalTyping]);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversationId || !currentUser?.id) {
@@ -362,6 +665,7 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     setScreenError(null);
 
     try {
+      await stopLocalTyping();
       const insertedMessage = await sendMessage(
         selectedConversationId,
         currentUser.id,
@@ -437,6 +741,8 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
             loading={conversationsLoading}
             selectedConversationId={selectedConversationId}
             searchValue={searchValue}
+            onlineUserIds={onlineUserIds}
+            typingConversationIds={typingConversationIds}
             onSearchChange={setSearchValue}
             onSelectConversation={(conversationId) => {
               startTransition(() => {
@@ -454,6 +760,10 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
             error={screenError}
             messages={messages}
             onSendMessage={handleSendMessage}
+            onTypingActivity={handleTypingActivity}
+            onTypingStop={stopLocalTyping}
+            presence={activePresence}
+            typingName={activeTypingState?.userName || null}
           />
         </div>
       </div>

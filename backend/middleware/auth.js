@@ -1,3 +1,4 @@
+const jwt = require("jsonwebtoken");
 const prisma = require("../prismaClient");
 const { getSupabaseAdmin } = require("../lib/supabaseAdmin");
 
@@ -13,6 +14,79 @@ function normalizeRole(role) {
   if (key === "ADMIN") return "ADMIN";
 
   return key;
+}
+
+function isRecoverableSupabaseNetworkError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  const code = String(error?.code || error?.cause?.code || "").toUpperCase();
+  const causeMessage = String(error?.cause?.message || "").toLowerCase();
+
+  return (
+    code === "ENOTFOUND" ||
+    code === "ETIMEDOUT" ||
+    message.includes("fetch failed") ||
+    message.includes("enotfound") ||
+    causeMessage.includes("getaddrinfo enotfound")
+  );
+}
+
+async function tryDecodeSupabaseAccessToken(token) {
+  const decoded = jwt.decode(token);
+  if (!decoded || typeof decoded !== "object") {
+    return null;
+  }
+
+  const payload = decoded;
+  const userId =
+    payload.sub ||
+    payload.user_id ||
+    payload.userId ||
+    null;
+
+  if (!userId || typeof userId !== "string") {
+    return null;
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+    },
+  });
+
+  return {
+    userId,
+    id: userId,
+    sub: userId,
+    role: normalizeRole(dbUser?.role || payload.role) || "JOB_SEEKER",
+    email:
+      dbUser?.email ||
+      (typeof payload.email === "string" ? payload.email : null),
+    firstName:
+      dbUser?.firstName ||
+      (typeof payload.user_metadata?.first_name === "string"
+        ? payload.user_metadata.first_name
+        : null),
+    lastName:
+      dbUser?.lastName ||
+      (typeof payload.user_metadata?.last_name === "string"
+        ? payload.user_metadata.last_name
+        : null),
+    companyName:
+      typeof payload.user_metadata?.company_name === "string"
+        ? payload.user_metadata.company_name
+        : null,
+    phone:
+      dbUser?.phone ||
+      (typeof payload.user_metadata?.phone === "string"
+        ? payload.user_metadata.phone
+        : null),
+  };
 }
 
 async function authenticateToken(req, res, next) {
@@ -54,6 +128,21 @@ async function authenticateToken(req, res, next) {
     }
   } catch (err) {
     console.error("Supabase token verification failed:", err);
+
+    if (
+      process.env.NODE_ENV !== "production" &&
+      isRecoverableSupabaseNetworkError(err)
+    ) {
+      try {
+        const decodedUser = await tryDecodeSupabaseAccessToken(token);
+        if (decodedUser?.userId) {
+          req.user = decodedUser;
+          return next();
+        }
+      } catch (decodeError) {
+        console.error("Fallback token decode failed:", decodeError);
+      }
+    }
   }
 
   {
