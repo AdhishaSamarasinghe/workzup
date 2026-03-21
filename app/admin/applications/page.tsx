@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import StatusBadge from "@/components/admin/StatusBadge";
+import { getAdminApplications, updateApplicationStatus, AdminApplication } from "@/lib/admin/api";
 import {
   Search,
   Filter,
@@ -13,7 +14,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-type ApplicationStatus = "Pending" | "Under Review" | "Rejected" | "Flagged";
+type ApplicationStatus = "Pending" | "Under Review" | "Rejected" | "Flagged" | "NEW" | "CONTACTED" | "SHORTLISTED" | "HIRED" | "UNDER_REVIEW" | "FLAGGED" | "REJECTED";
 type RiskLevel = "Low" | "Medium" | "High";
 
 type ApplicationRow = {
@@ -25,50 +26,10 @@ type ApplicationRow = {
   status: ApplicationStatus;
   risk: RiskLevel;
   indicator: string;
+  raw?: AdminApplication;
 };
 
-const initialApplications: ApplicationRow[] = [
-  {
-    id: "APP-1001",
-    candidate: "John Doe",
-    jobTitle: "Senior React Developer",
-    company: "TechCorp",
-    appliedDate: "Oct 24, 2023",
-    status: "Pending",
-    risk: "Low",
-    indicator: "Normal Activity",
-  },
-  {
-    id: "APP-1002",
-    candidate: "Sarah Jenkins",
-    jobTitle: "UI/UX Designer",
-    company: "Creative Labs",
-    appliedDate: "Oct 23, 2023",
-    status: "Under Review",
-    risk: "Medium",
-    indicator: "Duplicate IP",
-  },
-  {
-    id: "APP-1003",
-    candidate: "Michael Scott",
-    jobTitle: "Backend Engineer",
-    company: "Data Systems",
-    appliedDate: "Oct 22, 2023",
-    status: "Rejected",
-    risk: "High",
-    indicator: "Spam Pattern Match",
-  },
-  {
-    id: "APP-1004",
-    candidate: "Nimal Perera",
-    jobTitle: "Marketing Executive",
-    company: "Growth Hub",
-    appliedDate: "Oct 21, 2023",
-    status: "Flagged",
-    risk: "High",
-    indicator: "Multi-account Behavior",
-  },
-];
+// Removed initial hardcoded apps
 
 function SummaryCard({
   label,
@@ -97,52 +58,59 @@ function SummaryCard({
 }
 
 export default function AdminApplicationsPage() {
-  const [applications, setApplications] =
-    useState<ApplicationRow[]>(initialApplications);
+  const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const loadApps = useCallback(async (q = "") => {
+    try {
+      setLoading(true);
+      const res = await getAdminApplications(q);
+      if (res.success && res.data) {
+        setApplications(res.data.map(app => ({
+          id: app.id,
+          candidate: `${app.applicant?.firstName || ""} ${app.applicant?.lastName || ""}`.trim() || "Unknown",
+          jobTitle: app.job?.title || "Unknown",
+          company: app.job?.company?.name || "Independent",
+          appliedDate: new Date(app.appliedAt).toLocaleDateString(),
+          status: app.status as ApplicationStatus,
+          risk: (app.riskLevel as RiskLevel) || "Low",
+          indicator: app.riskIndicator || "Standard Application",
+          raw: app
+        })));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadApps(search);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search, loadApps]);
 
   const filteredApplications = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return applications;
+    return applications; // For tabs, we'd add it here if tabs existed on this page
+  }, [applications]);
 
-    return applications.filter((item) =>
-      [
-        item.id,
-        item.candidate,
-        item.jobTitle,
-        item.company,
-        item.status,
-        item.risk,
-        item.indicator,
-      ].some((value) => value.toLowerCase().includes(q))
-    );
-  }, [applications, search]);
+  const handleCycleStatus = async (id: string, currentStatus: string) => {
+    let nextStatus = "UNDER_REVIEW";
+    if (currentStatus === "NEW" || currentStatus === "Pending") nextStatus = "UNDER_REVIEW";
+    if (currentStatus === "UNDER_REVIEW" || currentStatus === "Under Review") nextStatus = "FLAGGED";
+    if (currentStatus === "FLAGGED" || currentStatus === "Flagged") nextStatus = "REJECTED";
+    if (currentStatus === "REJECTED" || currentStatus === "Rejected") nextStatus = "NEW";
 
-  const handleCycleStatus = (id: string) => {
-    setApplications((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
-
-        const nextStatusMap: Record<ApplicationStatus, ApplicationStatus> = {
-          Pending: "Under Review",
-          "Under Review": "Rejected",
-          Rejected: "Flagged",
-          Flagged: "Pending",
-        };
-
-        return {
-          ...item,
-          status: nextStatusMap[item.status],
-        };
-      })
-    );
+    const res = await updateApplicationStatus(id, nextStatus);
+    if (res.success) {
+      loadApps(search);
+    }
   };
 
-  const flaggedCount = applications.filter((a) => a.status === "Flagged").length;
-  const underReviewCount = applications.filter(
-    (a) => a.status === "Under Review"
-  ).length;
-  const rejectedCount = applications.filter((a) => a.status === "Rejected").length;
+  const flaggedCount = applications.filter((a) => a.status === "FLAGGED" || a.status === "Flagged").length;
+  const underReviewCount = applications.filter((a) => a.status === "UNDER_REVIEW" || a.status === "Under Review").length;
+  const rejectedCount = applications.filter((a) => a.status === "REJECTED" || a.status === "Rejected").length;
 
   return (
     <>
@@ -252,7 +220,13 @@ export default function AdminApplicationsPage() {
                 </thead>
 
                 <tbody>
-                  {filteredApplications.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-10 text-center text-slate-500">
+                        Loading applications...
+                      </td>
+                    </tr>
+                  ) : filteredApplications.length === 0 ? (
                     <tr>
                       <td
                         colSpan={7}
@@ -305,11 +279,11 @@ export default function AdminApplicationsPage() {
                           <StatusBadge
                             status={item.status}
                             type={
-                              item.status === "Pending"
+                              item.status === "Pending" || item.status === "NEW"
                                 ? "warning"
-                                : item.status === "Under Review"
+                                : item.status === "Under Review" || item.status === "UNDER_REVIEW"
                                 ? "default"
-                                : item.status === "Rejected"
+                                : item.status === "Rejected" || item.status === "REJECTED"
                                 ? "error"
                                 : "error"
                             }
@@ -327,14 +301,14 @@ export default function AdminApplicationsPage() {
                             <button
                               className="rounded-lg bg-rose-50 p-2 text-rose-500 hover:bg-rose-100"
                               title="Block"
-                              onClick={() => handleCycleStatus(item.id)}
+                              onClick={() => handleCycleStatus(item.id, item.status)}
                             >
                               <Ban size={14} />
                             </button>
                             <button
                               className="rounded-lg bg-emerald-50 p-2 text-emerald-500 hover:bg-emerald-100"
                               title="Approve"
-                              onClick={() => handleCycleStatus(item.id)}
+                              onClick={() => handleCycleStatus(item.id, item.status)}
                             >
                               <CheckCircle2 size={14} />
                             </button>

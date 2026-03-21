@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import StatusBadge from "@/components/admin/StatusBadge";
 import { Search, Filter, ChevronDown, ArrowUpRight } from "lucide-react";
+import { getAdminReports, updateReportStatus, AdminReport } from "@/lib/admin/api";
 
 type ReportStatus = "Open" | "In Review" | "Resolved";
 type ReportPriority = "High" | "Medium" | "Low";
@@ -17,47 +18,10 @@ type ReportRow = {
   date: string;
   priority: ReportPriority;
   status: ReportStatus;
+  raw?: AdminReport;
 };
 
-const initialReports: ReportRow[] = [
-  {
-    id: "RPT-1001",
-    reporter: "John Doe",
-    entity: "Remote Data Entry Specialist",
-    reason: "Suspicious / Spam Listing",
-    date: "Oct 24, 2023",
-    priority: "High",
-    status: "Open",
-  },
-  {
-    id: "RPT-1002",
-    reporter: "Jane Smith",
-    entity: "Alex Johnson",
-    reason: "Harassment Complaint",
-    date: "Oct 23, 2023",
-    priority: "Medium",
-    status: "In Review",
-  },
-  {
-    id: "RPT-1003",
-    reporter: "Nimal Perera",
-    entity: "Creative Agency",
-    reason: "Fake Company Profile",
-    date: "Oct 22, 2023",
-    priority: "High",
-    status: "Resolved",
-  },
-  {
-    id: "RPT-1004",
-    reporter: "Sarah Jenkins",
-    entity: "Michael Scott",
-    reason: "Suspicious Application",
-    date: "Oct 21, 2023",
-    priority: "Low",
-    status: "Open",
-  },
-];
-
+// Initial reports removed
 const tabs: ReportTab[] = ["Open", "In Review", "Resolved", "All Tickets"];
 
 function SummaryCard({
@@ -87,9 +51,38 @@ function SummaryCard({
 }
 
 export default function AdminReportsPage() {
-  const [reports, setReports] = useState<ReportRow[]>(initialReports);
+  const [reports, setReports] = useState<ReportRow[]>([]);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<ReportTab>("Open");
+  const [loading, setLoading] = useState(true);
+
+  const loadReports = useCallback(async (q = "") => {
+    try {
+      setLoading(true);
+      const res = await getAdminReports(q);
+      if (res.success && res.data) {
+        setReports(res.data.map(r => ({
+          id: r.id,
+          reporter: `${r.reporter?.firstName || ""} ${r.reporter?.lastName || ""}`.trim() || "Unknown",
+          entity: r.reportedName || "Unknown",
+          reason: r.reason || "No Reason",
+          date: new Date(r.createdAt).toLocaleDateString(),
+          priority: r.priority as ReportPriority,
+          status: r.status as ReportStatus,
+          raw: r
+        })));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadReports(search);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search, loadReports]);
 
   const filteredReports = useMemo(() => {
     let result = [...reports];
@@ -98,39 +91,23 @@ export default function AdminReportsPage() {
       result = result.filter((item) => item.status === activeTab);
     }
 
-    const q = search.trim().toLowerCase();
-    if (q) {
-      result = result.filter((item) =>
-        [item.id, item.reporter, item.entity, item.reason, item.priority, item.status].some(
-          (value) => value.toLowerCase().includes(q)
-        )
-      );
-    }
-
     return result;
-  }, [reports, activeTab, search]);
+  }, [reports, activeTab]);
 
   const openCount = reports.filter((r) => r.status === "Open").length;
   const inReviewCount = reports.filter((r) => r.status === "In Review").length;
   const resolvedCount = reports.filter((r) => r.status === "Resolved").length;
 
-  const handleCycleStatus = (id: string) => {
-    setReports((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
+  const handleCycleStatus = async (id: string, currentStatus: string) => {
+    let nextStatus = "In Review";
+    if (currentStatus === "Open") nextStatus = "In Review";
+    if (currentStatus === "In Review") nextStatus = "Resolved";
+    if (currentStatus === "Resolved") nextStatus = "Open";
 
-        const nextStatusMap: Record<ReportStatus, ReportStatus> = {
-          Open: "In Review",
-          "In Review": "Resolved",
-          Resolved: "Open",
-        };
-
-        return {
-          ...item,
-          status: nextStatusMap[item.status],
-        };
-      })
-    );
+    const res = await updateReportStatus(id, nextStatus);
+    if (res.success) {
+      loadReports(search);
+    }
   };
 
   return (
@@ -262,7 +239,13 @@ export default function AdminReportsPage() {
                 </thead>
 
                 <tbody>
-                  {filteredReports.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-10 text-center text-slate-500">
+                        Loading reports...
+                      </td>
+                    </tr>
+                  ) : filteredReports.length === 0 ? (
                     <tr>
                       <td
                         colSpan={8}
@@ -321,7 +304,7 @@ export default function AdminReportsPage() {
 
                         <td className="px-6 py-4">
                           <button
-                            onClick={() => handleCycleStatus(item.id)}
+                            onClick={() => handleCycleStatus(item.id, item.status)}
                             className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-100"
                           >
                             View Details

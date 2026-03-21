@@ -1,8 +1,12 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import StatCard from "@/components/admin/StatCard";
 import StatusBadge from "@/components/admin/StatusBadge";
+import { getAdminMetrics, AdminMetrics } from "@/lib/admin/api";
 
-const recentActivity = [
+const defaultActivity = [
   {
     initials: "JD",
     name: "Jane Doe",
@@ -17,32 +21,29 @@ const recentActivity = [
     status: "Pending",
     date: "45 mins ago",
   },
-  {
-    initials: "AL",
-    name: "Amy Lee",
-    action: "Password reset successful",
-    status: "Success",
-    date: "1 hour ago",
-  },
-  {
-    initials: "RK",
-    name: "Ryan Kim",
-    action: "Job application submitted",
-    status: "Success",
-    date: "3 hours ago",
-  },
-  {
-    initials: "BT",
-    name: "Ben Taylor",
-    action: "Security alert - Unusual login",
-    status: "Critical",
-    date: "5 hours ago",
-  },
 ];
 
 const trafficBars = [48, 72, 58, 84, 100, 50, 37];
 
 export default function AdminDashboardPage() {
+  const [metrics, setMetrics] = useState<AdminMetrics>({
+    users: 0,
+    jobs: 0,
+    active_jobs: 0,
+    applications: 0,
+    payouts_completed: 0,
+  });
+
+  useEffect(() => {
+    async function fetchMetrics() {
+      const res = await getAdminMetrics();
+      if (res.success && res.data) {
+        setMetrics(res.data.metrics);
+      }
+    }
+    fetchMetrics();
+  }, []);
+
   return (
     <>
       <AdminHeader title="Dashboard" />
@@ -51,28 +52,28 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Total Users"
-            value="12,840"
+            value={metrics.users.toLocaleString()}
             change="+12%"
             icon="👥"
             changeType="positive"
           />
           <StatCard
             label="Active Jobs"
-            value="452"
+            value={metrics.active_jobs.toLocaleString()}
             change="+5.2%"
             icon="💼"
             changeType="positive"
           />
           <StatCard
-            label="Pending Verifications"
-            value="28"
-            change="-8%"
+            label="Total Applications"
+            value={metrics.applications.toLocaleString()}
+            change="+18%"
             icon="🛡️"
-            changeType="negative"
+            changeType="positive"
           />
           <StatCard
-            label="Revenue"
-            value="LKR 24,500"
+            label="Payouts"
+            value={`LKR ${metrics.payouts_completed.toLocaleString()}`}
             change="+15%"
             icon="💲"
             changeType="positive"
@@ -110,7 +111,7 @@ export default function AdminDashboardPage() {
                 </thead>
 
                 <tbody>
-                  {recentActivity.map((item) => (
+                  {defaultActivity.map((item) => (
                     <tr
                       key={`${item.name}-${item.date}`}
                       className="border-t border-slate-100"

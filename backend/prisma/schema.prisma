@@ -31,6 +31,8 @@ model User {
   termsAccepted      Boolean @default(false)
   emailNotifications Boolean @default(false)
   isVerified         Boolean @default(false) // System verified user/recruiter
+  verificationStatus String  @default("PENDING") // PENDING, APPROVED, REJECTED
+  verificationNotes  String?
   isBanned           Boolean @default(false) // Admin control
 
   createdAt DateTime @default(now())
@@ -54,6 +56,9 @@ model User {
 
   // Notifications
   notifications Notification[]
+
+  // Reports
+  filedReports Report[] @relation("Reporter")
 }
 
 model SeekerProfile {
@@ -139,7 +144,10 @@ model Application {
 
   matchScore          Int?
   relevantSkillsCount Int?
-  status              String @default("NEW") // NEW, CONTACTED, SHORTLISTED, HIRED, REJECTED
+  status              String @default("NEW") // NEW, CONTACTED, SHORTLISTED, HIRED, REJECTED, FLAGGED, UNDER_REVIEW
+  
+  riskLevel           String? // Low, Medium, High
+  riskIndicator       String? // Internal note on why it was flagged
 
   appliedAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -236,4 +244,22 @@ model Payment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Report {
+  id              String   @id @default(uuid())
+  reporterId      String
+  reporter        User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  
+  reportedType    String   // "USER", "JOB", "COMPANY", "APPLICATION"
+  reportedId      String   // The ID of the reported entity
+  reportedName    String?  // Snapshotted name of the entity for easy display
+
+  reason          String
+  description     String?
+  status          String   @default("Open") // Open, In Review, Resolved
+  priority        String   @default("Medium") // High, Medium, Low
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

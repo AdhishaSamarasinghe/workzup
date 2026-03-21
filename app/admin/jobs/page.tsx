@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import StatusBadge from "@/components/admin/StatusBadge";
+import { getAdminJobs, toggleJobStatus as apiToggleJobStatus } from "@/lib/admin/api";
 import {
   Search,
   Filter,
@@ -13,8 +14,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-type JobStatus = "Published" | "Flagged" | "Closed";
-type JobTab = "All Jobs" | "Published" | "Flagged" | "Closed";
+type JobStatus = "Published" | "Flagged" | "Closed" | "PUBLIC" | "PRIVATE" | "DRAFT" | "CANCELLED" | "COMPLETED" | "FLAGGED";
+type JobTab = "All Jobs" | "PUBLIC" | "FLAGGED" | "COMPLETED" | "DRAFT";
 
 type JobRow = {
   id: string;
@@ -26,43 +27,7 @@ type JobRow = {
   boosted?: boolean;
 };
 
-const initialJobs: JobRow[] = [
-  {
-    id: "1",
-    title: "Senior Frontend Engineer",
-    company: "TechFlow Systems Inc.",
-    postedDate: "Oct 24, 2023",
-    applicants: 142,
-    status: "Published",
-  },
-  {
-    id: "2",
-    title: "Remote Data Entry Specialist",
-    company: "Global Gig Co.",
-    postedDate: "Oct 26, 2023",
-    applicants: 8,
-    status: "Flagged",
-  },
-  {
-    id: "3",
-    title: "Senior Product Designer",
-    company: "Creative Agency",
-    postedDate: "Sep 12, 2023",
-    applicants: 89,
-    status: "Closed",
-  },
-  {
-    id: "4",
-    title: "Backend Developer (Go)",
-    company: "FinTech Hub",
-    postedDate: "Oct 28, 2023",
-    applicants: 24,
-    status: "Published",
-    boosted: true,
-  },
-];
-
-const tabs: JobTab[] = ["All Jobs", "Published", "Flagged", "Closed"];
+const tabs: JobTab[] = ["All Jobs", "PUBLIC", "FLAGGED", "COMPLETED", "DRAFT"];
 
 function MetricCard({
   label,
@@ -91,47 +56,48 @@ function MetricCard({
 }
 
 export default function AdminJobsPage() {
-  const [jobs, setJobs] = useState<JobRow[]>(initialJobs);
+  const [jobs, setJobs] = useState<JobRow[]>([]);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<JobTab>("All Jobs");
+  const [loading, setLoading] = useState(true);
 
-  const filteredJobs = useMemo(() => {
-    let result = [...jobs];
-
-    if (activeTab !== "All Jobs") {
-      result = result.filter((job) => job.status === activeTab);
+  const loadJobs = useCallback(async (q = "", tab: JobTab = "All Jobs") => {
+    try {
+      setLoading(true);
+      const res = await getAdminJobs(q, tab === "All Jobs" ? "" : tab);
+      if (res.success && res.data) {
+        setJobs(res.data.map(job => ({
+          id: job.id,
+          title: job.title,
+          company: job.company?.name || "Independent",
+          postedDate: new Date(job.createdAt).toLocaleDateString(),
+          applicants: job._count?.applications || 0,
+          status: job.status as JobStatus,
+        })));
+      }
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    const q = search.trim().toLowerCase();
-    if (q) {
-      result = result.filter((job) =>
-        [job.title, job.company, job.status].some((value) =>
-          value.toLowerCase().includes(q)
-        )
-      );
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadJobs(search, activeTab);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search, activeTab, loadJobs]);
+
+  const flaggedCount = jobs.filter((job) => job.status === "FLAGGED").length;
+
+  const handlePrimaryAction = async (id: string, currentStatus: string) => {
+    let newStatus = "PUBLIC";
+    if (currentStatus === "PUBLIC") newStatus = "FLAGGED";
+    else if (currentStatus === "FLAGGED") newStatus = "PUBLIC";
+
+    const res = await apiToggleJobStatus(id, newStatus);
+    if (res.success) {
+      loadJobs(search, activeTab);
     }
-
-    return result;
-  }, [jobs, activeTab, search]);
-
-  const flaggedCount = jobs.filter((job) => job.status === "Flagged").length;
-
-  const handlePrimaryAction = (id: string) => {
-    setJobs((prev) =>
-      prev.map((job) => {
-        if (job.id !== id) return job;
-
-        if (job.status === "Flagged") {
-          return { ...job, status: "Published" };
-        }
-
-        if (job.status === "Closed") {
-          return { ...job, status: "Published" };
-        }
-
-        return { ...job, status: "Flagged" };
-      })
-    );
   };
 
   return (
@@ -175,7 +141,7 @@ export default function AdminJobsPage() {
                 {tabs.map((tab) => {
                   const isActive = activeTab === tab;
                   const count =
-                    tab === "Flagged" ? flaggedCount : undefined;
+                    tab === "FLAGGED" ? flaggedCount : undefined;
 
                   return (
                     <button
@@ -240,7 +206,13 @@ export default function AdminJobsPage() {
               </thead>
 
               <tbody>
-                {filteredJobs.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center text-slate-500">
+                      Loading jobs...
+                    </td>
+                  </tr>
+                ) : jobs.length === 0 ? (
                   <tr>
                     <td
                       colSpan={5}
@@ -250,7 +222,7 @@ export default function AdminJobsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredJobs.map((job) => (
+                  jobs.map((job) => (
                     <tr key={job.id} className="border-t border-slate-100">
                       <td className="px-6 py-4">
                         <div className="flex items-start gap-3">
@@ -287,9 +259,9 @@ export default function AdminJobsPage() {
                         <StatusBadge
                           status={job.status}
                           type={
-                            job.status === "Published"
+                            job.status === "PUBLIC"
                               ? "success"
-                              : job.status === "Flagged"
+                              : job.status === "FLAGGED"
                               ? "error"
                               : "default"
                           }
@@ -298,16 +270,16 @@ export default function AdminJobsPage() {
 
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          {job.status === "Flagged" ? (
+                          {job.status === "FLAGGED" ? (
                             <button
-                              onClick={() => handlePrimaryAction(job.id)}
+                              onClick={() => handlePrimaryAction(job.id, job.status)}
                               className="rounded-lg bg-rose-500 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-600"
                             >
                               Review Flag
                             </button>
-                          ) : job.status === "Closed" ? (
+                          ) : job.status === "COMPLETED" || job.status === "CANCELLED" ? (
                             <button
-                              onClick={() => handlePrimaryAction(job.id)}
+                              onClick={() => handlePrimaryAction(job.id, job.status)}
                               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                             >
                               Reopen
@@ -315,7 +287,7 @@ export default function AdminJobsPage() {
                           ) : (
                             <>
                               <button
-                                onClick={() => handlePrimaryAction(job.id)}
+                                onClick={() => handlePrimaryAction(job.id, job.status)}
                                 className="rounded-lg bg-blue-50 p-2 text-blue-600 hover:bg-blue-100"
                                 title="Flag Job"
                               >
@@ -336,7 +308,7 @@ export default function AdminJobsPage() {
                             </>
                           )}
 
-                          {job.status !== "Closed" && job.status !== "Flagged" ? (
+                          {job.status !== "COMPLETED" && job.status !== "FLAGGED" ? (
                             <button
                               className="rounded-lg bg-slate-50 p-2 text-slate-500 hover:bg-slate-100"
                               title="Reopen"
@@ -354,7 +326,7 @@ export default function AdminJobsPage() {
           </div>
 
           <div className="flex flex-col gap-3 border-t border-slate-100 px-6 py-4 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-            <p>Showing 1 to {filteredJobs.length} of 1,284 entries</p>
+            <p>Showing 1 to {jobs.length} of {jobs.length} entries</p>
 
             <div className="flex items-center gap-2">
               <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-400">

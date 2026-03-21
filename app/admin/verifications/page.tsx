@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import StatusBadge from "@/components/admin/StatusBadge";
 import { CheckCircle2, X, Download, ShieldCheck } from "lucide-react";
+import { getAdminVerifications, updateVerificationStatus, AdminUser } from "@/lib/admin/api";
 
-type QueueStatus = "Pending" | "Approved" | "Rejected";
+type QueueStatus = "PENDING" | "APPROVED" | "REJECTED";
 type QueuePriority = "High Priority" | "Standard";
 
 type VerificationItem = {
@@ -16,83 +17,69 @@ type VerificationItem = {
   timeAgo: string;
   status: QueueStatus;
   priority: QueuePriority;
+  rawData?: AdminUser;
 };
 
-const initialQueue: VerificationItem[] = [
-  {
-    id: "1",
-    name: "Alex Johnson",
-    type: "Identity Verification & Background",
-    category: "ID Card",
-    timeAgo: "2m ago",
-    status: "Pending",
-    priority: "High Priority",
-  },
-  {
-    id: "2",
-    name: "Maria Garcia",
-    type: "CV & Professional Experience",
-    category: "Standard",
-    timeAgo: "15m ago",
-    status: "Pending",
-    priority: "Standard",
-  },
-  {
-    id: "3",
-    name: "David Chen",
-    type: "Academic Credentials",
-    category: "Diploma",
-    timeAgo: "45m ago",
-    status: "Pending",
-    priority: "Standard",
-  },
-  {
-    id: "4",
-    name: "Sarah Miller",
-    type: "Work Authorization",
-    category: "Passport",
-    timeAgo: "1h ago",
-    status: "Pending",
-    priority: "Standard",
-  },
-];
-
-const tabs: QueueStatus[] = ["Pending", "Approved", "Rejected"];
+const tabs: QueueStatus[] = ["PENDING", "APPROVED", "REJECTED"];
 
 export default function AdminVerificationsPage() {
-  const [queue, setQueue] = useState<VerificationItem[]>(initialQueue);
-  const [activeTab, setActiveTab] = useState<QueueStatus>("Pending");
-  const [selectedId, setSelectedId] = useState<string>("1");
+  const [queue, setQueue] = useState<VerificationItem[]>([]);
+  const [activeTab, setActiveTab] = useState<QueueStatus>("PENDING");
+  const [selectedId, setSelectedId] = useState<string>("");
   const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const loadVerifications = useCallback(async (tab: QueueStatus = "PENDING") => {
+    try {
+      setLoading(true);
+      const res = await getAdminVerifications(tab);
+      if (res.success && res.data) {
+        setQueue(res.data.map(user => ({
+          id: user.id,
+          name: user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+          type: "Identity Verification & Background",
+          category: "ID Card",
+          timeAgo: new Date(user.createdAt).toLocaleDateString(),
+          status: (user as any).verificationStatus as QueueStatus || "PENDING",
+          priority: "Standard",
+          rawData: user
+        })));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadVerifications(activeTab);
+  }, [activeTab, loadVerifications]);
 
   const filteredQueue = useMemo(() => {
-    return queue.filter((item) => item.status === activeTab);
-  }, [queue, activeTab]);
+    return queue;
+  }, [queue]);
 
   const selectedItem =
-    queue.find((item) => item.id === selectedId) || filteredQueue[0] || queue[0];
+    queue.find((item) => item.id === selectedId) || queue[0];
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (!selectedItem) return;
-    setQueue((prev) =>
-      prev.map((item) =>
-        item.id === selectedItem.id ? { ...item, status: "Approved" } : item
-      )
-    );
-    setActiveTab("Approved");
+    const res = await updateVerificationStatus(selectedItem.id, "APPROVED");
+    if (res.success) {
+      loadVerifications(activeTab);
+      setSelectedId("");
+    }
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!selectedItem) return;
-    setQueue((prev) =>
-      prev.map((item) =>
-        item.id === selectedItem.id ? { ...item, status: "Rejected" } : item
-      )
-    );
-    setActiveTab("Rejected");
+    const res = await updateVerificationStatus(selectedItem.id, "REJECTED");
+    if (res.success) {
+      loadVerifications(activeTab);
+      setSelectedId("");
+    }
   };
 
-  const pendingCount = queue.filter((item) => item.status === "Pending").length;
+  const pendingCount = activeTab === "PENDING" ? queue.length : 0;
 
   return (
     <>
@@ -128,7 +115,15 @@ export default function AdminVerificationsPage() {
             </div>
 
             <div className="divide-y divide-slate-100">
-              {filteredQueue.map((item) => {
+              {loading ? (
+                <div className="p-8 text-center text-sm text-slate-500">
+                  Loading verifications...
+                </div>
+              ) : filteredQueue.length === 0 ? (
+                <div className="p-8 text-center text-sm text-slate-500">
+                  No verifications found in this queue.
+                </div>
+              ) : filteredQueue.map((item) => {
                 const isActive = item.id === selectedItem?.id;
 
                 return (
@@ -143,12 +138,14 @@ export default function AdminVerificationsPage() {
                       <span className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-blue-600" />
                     ) : null}
 
-                    <div className="mt-0.5 h-11 w-11 shrink-0 rounded-full bg-orange-200" />
+                    <div className="mt-0.5 h-11 w-11 shrink-0 rounded-full bg-orange-200 flex items-center justify-center font-bold text-orange-700 text-sm">
+                      {item.name.charAt(0)}
+                    </div>
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="font-semibold text-slate-900">{item.name}</p>
-                        <span className="text-xs text-slate-400">{item.timeAgo}</span>
+                        <p className="font-semibold text-slate-900 truncate">{item.name}</p>
+                        <span className="text-xs text-slate-400 shrink-0">{item.timeAgo}</span>
                       </div>
 
                       <p className="mt-1 text-xs text-slate-500">{item.type}</p>

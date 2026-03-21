@@ -24,8 +24,8 @@ router.get("/users", authenticateToken, requireRole(["ADMIN"]), async (req, res)
     }
 });
 
-// PATCH /api/admin/users/:id/ban - Toggle Ban Status
-router.patch("/users/:id/ban", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+// PUT /api/admin/users/:id - Toggle Ban Status
+router.put("/users/:id", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
     try {
         const { id } = req.params;
         const { isBanned } = req.body;
@@ -35,10 +35,10 @@ router.patch("/users/:id/ban", authenticateToken, requireRole(["ADMIN"]), async 
             data: { isBanned }
         });
 
-        res.json({ message: "User ban status updated", user: updated });
+        res.json({ success: true, message: "User ban status updated", data: updated });
     } catch (error) {
         console.error("Admin Ban Error:", error);
-        res.status(500).json({ message: "Server Error" });
+        res.status(500).json({ success: false, message: "Server Error" });
     }
 });
 
@@ -100,6 +100,164 @@ router.get("/conversations/:id/messages", authenticateToken, requireRole(["ADMIN
         res.json({ success: true, data: messages });
     } catch (error) {
         console.error("Admin Messages Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
+// GET /api/admin/jobs - View all job postings
+router.get("/jobs", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const { search, status } = req.query;
+        const whereclause = {};
+        if (search) {
+            whereclause.OR = [
+                { title: { contains: search, mode: "insensitive" } },
+                { company: { name: { contains: search, mode: "insensitive" } } }
+            ];
+        }
+        if (status && status !== "All Jobs") {
+            whereclause.status = status;
+        }
+
+        const jobs = await prisma.job.findMany({
+            where: whereclause,
+            include: { company: true, _count: { select: { applications: true } } },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json({ success: true, data: jobs });
+    } catch (error) {
+        console.error("Admin Jobs Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
+// PATCH /api/admin/jobs/:id/status
+router.patch("/jobs/:id/status", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const updated = await prisma.job.update({ where: { id }, data: { status } });
+        res.json({ success: true, data: updated });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
+// GET /api/admin/verifications - Verification queue
+router.get("/verifications", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const { status } = req.query;
+        const whereclause = {};
+        if (status) {
+            whereclause.verificationStatus = status;
+        } else {
+            // Because our UI has tabs: Pending, Approved, Rejected. We should fetch them based on verificationStatus.
+            // If they are missing verificationStatus entirely, they might be "PENDING"
+            // Let's just fetch all or filter by the requested status
+        }
+
+        const users = await prisma.user.findMany({
+            where: whereclause,
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json({ success: true, data: users });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
+// PATCH /api/admin/verifications/:id/status
+router.patch("/verifications/:id/status", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        
+        // Also update the boolean isVerified if they are approved
+        const isVerified = status === "APPROVED" ? true : false;
+        
+        const updated = await prisma.user.update({
+            where: { id },
+            data: { verificationStatus: status, isVerified }
+        });
+        res.json({ success: true, data: updated });
+    } catch (error) {
+        console.error("Verifications Update Error", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
+// GET /api/admin/applications 
+router.get("/applications", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const { search } = req.query;
+        const whereclause = {};
+        if (search) {
+            whereclause.OR = [
+                { applicant: { firstName: { contains: search, mode: "insensitive" } } },
+                { applicant: { lastName: { contains: search, mode: "insensitive" } } },
+                { job: { title: { contains: search, mode: "insensitive" } } }
+            ];
+        }
+
+        const applications = await prisma.application.findMany({
+            where: whereclause,
+            include: { 
+                applicant: true,
+                job: { include: { company: true } }
+            },
+            orderBy: { appliedAt: 'desc' }
+        });
+        res.json({ success: true, data: applications });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
+// PATCH /api/admin/applications/:id/status
+router.patch("/applications/:id/status", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const updated = await prisma.application.update({ where: { id }, data: { status } });
+        res.json({ success: true, data: updated });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
+// GET /api/admin/reports 
+router.get("/reports", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const { search } = req.query;
+        const whereclause = {};
+        if (search) {
+            whereclause.OR = [
+                { reportedName: { contains: search, mode: "insensitive" } },
+                { reason: { contains: search, mode: "insensitive" } }
+            ];
+        }
+
+        const reports = await prisma.report.findMany({
+            where: whereclause,
+            include: { reporter: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json({ success: true, data: reports });
+    } catch (error) {
+        console.error("Admin Reports Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
+// PATCH /api/admin/reports/:id/status
+router.patch("/reports/:id/status", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const updated = await prisma.report.update({ where: { id }, data: { status } });
+        res.json({ success: true, data: updated });
+    } catch (error) {
         res.status(500).json({ success: false, message: "Server Error" });
     }
 });
