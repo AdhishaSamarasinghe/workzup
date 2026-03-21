@@ -448,7 +448,9 @@ function JobChatPage() {
       <JobEditModal
         isOpen={jobEditModalOpen}
         onClose={() => setJobEditModalOpen(false)}
-        onSave={handleJobUpdate}
+        onSave={(updates) => {
+          void handleJobUpdate(updates as Partial<JobDetails>);
+        }}
         job={jobDetails || null}
       />
     </>

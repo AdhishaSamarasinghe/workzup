@@ -16,7 +16,10 @@ export interface ProfileCompletionData {
     isAvailable?: boolean;
 }
 
-type EducationLevel = { level: string };
+type EducationItem = {
+    level?: string;
+    [key: string]: unknown;
+};
 
 export interface ProfileDataProp {
     phone?: string;
@@ -28,7 +31,7 @@ export interface ProfileDataProp {
     cv?: string;
     idFront?: string;
     idBack?: string;
-    education?: EducationLevel[];
+    education?: EducationItem[];
 }
 
 type SaveUpdates =
@@ -37,7 +40,7 @@ type SaveUpdates =
     | { skills: string[] }
     | { languages: string[] }
     | { availableTimes: string }
-    | { education: EducationLevel[] };
+    | { education: EducationItem[] };
 
 interface ProfileCompletionWizardProps {
     profile: ProfileDataProp;

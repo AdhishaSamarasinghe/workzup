@@ -41,27 +41,26 @@ async function findFileByBasename(
   const search = async (currentDir: string, depth: number): Promise<string | null> => {
     if (depth > maxDepth) return null;
 
-    let entries: Awaited<ReturnType<typeof readdir>> = [];
     try {
-      entries = await readdir(currentDir, { withFileTypes: true });
+      const entries = await readdir(currentDir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(currentDir, entry.name);
+        if (entry.isFile() && entry.name.toLowerCase() === lowerName) {
+          return fullPath;
+        }
+      }
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const found = await search(path.join(currentDir, entry.name), depth + 1);
+        if (found) return found;
+      }
+
+      return null;
     } catch {
       return null;
     }
-
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name);
-      if (entry.isFile() && entry.name.toLowerCase() === lowerName) {
-        return fullPath;
-      }
-    }
-
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const found = await search(path.join(currentDir, entry.name), depth + 1);
-      if (found) return found;
-    }
-
-    return null;
   };
 
   for (const root of roots) {
@@ -107,40 +106,40 @@ async function findBestLegacyFallback(
   const search = async (currentDir: string, depth: number): Promise<void> => {
     if (depth > maxDepth) return;
 
-    let entries: Awaited<ReturnType<typeof readdir>> = [];
     try {
-      entries = await readdir(currentDir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+      const entries = await readdir(currentDir, { withFileTypes: true });
 
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name);
+      for (const entry of entries) {
+        const fullPath = path.join(currentDir, entry.name);
 
-      if (entry.isFile()) {
-        const samePrefix = entry.name.startsWith(`${legacy.prefix}-`);
-        const sameExt = path.extname(entry.name).toLowerCase() === legacy.ext;
-        if (!samePrefix || !sameExt) continue;
+        if (entry.isFile()) {
+          const samePrefix = entry.name.startsWith(`${legacy.prefix}-`);
+          const sameExt = path.extname(entry.name).toLowerCase() === legacy.ext;
+          if (!samePrefix || !sameExt) continue;
 
-        const parsed = parseLegacyName(entry.name);
-        if (!parsed) continue;
+          const parsed = parseLegacyName(entry.name);
+          if (!parsed) continue;
 
-        try {
-          const details = await stat(fullPath);
-          matches.push({
-            fullPath,
-            timestamp: parsed.timestamp,
-            modifiedAt: details.mtimeMs,
-          });
-        } catch {
-          // Skip unreadable candidate
+          try {
+            const details = await stat(fullPath);
+            matches.push({
+              fullPath,
+              timestamp: parsed.timestamp,
+              modifiedAt: details.mtimeMs,
+            });
+          } catch {
+            // Skip unreadable candidate
+          }
         }
       }
-    }
 
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      await search(path.join(currentDir, entry.name), depth + 1);
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        await search(path.join(currentDir, entry.name), depth + 1);
+      }
+      return;
+    } catch {
+      return;
     }
   };
 

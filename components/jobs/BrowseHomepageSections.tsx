@@ -429,7 +429,7 @@ export function RecommendedJobsSection({
               : "Uncategorized";
 
           const cat = typeof job.category === 'object' && job.category !== null 
-            ? categoryObj?.name
+            ? (categoryObj?.name || "Uncategorized")
             : typeof job.category === 'string' 
               ? job.category 
               : derivedCategory;

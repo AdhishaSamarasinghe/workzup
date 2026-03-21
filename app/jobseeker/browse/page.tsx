@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import SearchBar from "@/components/jobs/SearchBar";
 import StatsSection from "@/components/jobs/StatsSection";
@@ -101,7 +101,7 @@ function applyFilterToUrl(
   router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
 }
 
-export default function BrowseJobsPage() {
+function BrowseJobsPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -383,5 +383,13 @@ export default function BrowseJobsPage() {
       <ReviewSection />
       <ChatWidget />
     </div>
+  );
+}
+
+export default function BrowseJobsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f7f9fc]" />}>
+      <BrowseJobsPageContent />
+    </Suspense>
   );
 }

@@ -329,7 +329,7 @@ export default function JobSeekerProfile() {
                 <ProfileCompletionWizard 
                     profile={profile} 
                     onClose={() => setShowWizard(false)}
-                    onSaveStep={handleSaveProfile}
+                    onSaveStep={(updates) => handleSaveProfile(updates as Partial<JobSeekerProfileData>)}
                     onUploadDocs={async (cv, idFront, idBack) => {
                         const formData = new FormData();
                         if (cv) formData.append("cv", cv);

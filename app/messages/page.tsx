@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { getCurrentMessagingUser } from "@/lib/messaging/api";
@@ -11,7 +11,7 @@ const normalizeRole = (role?: string) =>
     .toUpperCase()
     .replace(/[\s-]+/g, "_");
 
-export default function MessagesPage() {
+function MessagesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -52,5 +52,13 @@ export default function MessagesPage() {
     <div className="mt-[80px] flex h-[calc(100vh-80px)] items-center justify-center bg-[#f9fafb]">
       <p className="text-gray-500">{loading ? "Opening your messages..." : "Redirecting..."}</p>
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div className="mt-[80px] h-[calc(100vh-80px)] bg-[#f9fafb]" />}>
+      <MessagesPageContent />
+    </Suspense>
   );
 }

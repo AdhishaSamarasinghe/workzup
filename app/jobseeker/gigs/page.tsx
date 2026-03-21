@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import GigFilters from "@/components/gigs/GigFilters";
 import GigHeader from "@/components/gigs/GigHeader";
@@ -21,7 +21,7 @@ type Job = {
     createdAt: string;
 };
 
-export default function FindGigPage() {
+function FindGigPageContent() {
     const searchParams = useSearchParams();
     const requestedCategory = searchParams.get("category") || "";
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -174,5 +174,13 @@ export default function FindGigPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function FindGigPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-[linear-gradient(180deg,#f5f8ff_0%,#eef3f8_36%,#f7f9fc_100%)] pt-24 pb-12" />}>
+            <FindGigPageContent />
+        </Suspense>
     );
 }
