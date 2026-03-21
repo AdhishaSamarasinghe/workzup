@@ -1,0 +1,65 @@
+name: WorkzUp CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend:
+    name: Frontend Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      # Get the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # Install frontend dependencies from root
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # Run lint only if script exists
+      - name: Run frontend lint
+        run: npm run lint --if-present
+
+      # Build Next.js frontend
+      - name: Build frontend
+        run: npm run build
+
+  backend:
+    name: Backend Dependency Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      # Get the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # Install backend dependencies
+      - name: Install backend dependencies
+        run: npm ci
+
+      # Show backend scripts for verification
+      - name: Check backend scripts
+        run: npm run
