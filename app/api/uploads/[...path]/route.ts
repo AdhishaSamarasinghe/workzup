@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readdir, readFile, stat } from "fs/promises";
+import type { Dirent } from "node:fs";
 import path from "path";
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -41,8 +42,9 @@ async function findFileByBasename(
   const search = async (currentDir: string, depth: number): Promise<string | null> => {
     if (depth > maxDepth) return null;
 
+    let entries: Dirent[] = [];
     try {
-      const entries = await readdir(currentDir, { withFileTypes: true });
+      entries = (await readdir(currentDir, { withFileTypes: true })) as Dirent[];
 
       for (const entry of entries) {
         const fullPath = path.join(currentDir, entry.name);
@@ -106,8 +108,9 @@ async function findBestLegacyFallback(
   const search = async (currentDir: string, depth: number): Promise<void> => {
     if (depth > maxDepth) return;
 
+    let entries: Dirent[] = [];
     try {
-      const entries = await readdir(currentDir, { withFileTypes: true });
+      entries = (await readdir(currentDir, { withFileTypes: true })) as Dirent[];
 
       for (const entry of entries) {
         const fullPath = path.join(currentDir, entry.name);
