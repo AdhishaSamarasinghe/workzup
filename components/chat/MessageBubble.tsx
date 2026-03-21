@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 
 type BubbleMessage = {
   content?: string;
@@ -49,7 +50,14 @@ export default function MessageBubble({ msg, isMine, participantName }: { msg: B
           >
         {isImage ? (
           <div className="overflow-hidden rounded-lg mt-1 mb-2">
-            <img src={imageUrl} alt="Attachment" className="max-w-full h-auto max-h-[300px] object-contain" />
+            <Image
+              src={imageUrl}
+              alt="Attachment"
+              width={640}
+              height={360}
+              className="max-w-full h-auto max-h-[300px] object-contain"
+              unoptimized
+            />
           </div>
         ) : isLocation ? (
           <a 

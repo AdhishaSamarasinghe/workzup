@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
+import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useChat, useJobDetails } from "@/lib/hooks";
 import {
@@ -492,14 +493,17 @@ function MessageBubble({ message, participant, isOwn }: MessageBubbleProps) {
       >
         {/* Avatar */}
         <div className="flex-shrink-0 hidden xs:block">
-          <img
+          <Image
             src={
               isOwn
                 ? "/avatars/default.svg"
                 : participant.avatar || "/avatars/default.svg"
             }
             alt={isOwn ? "You" : participant.name}
+            width={40}
+            height={40}
             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover bg-gray-200"
+            unoptimized
           />
         </div>
 

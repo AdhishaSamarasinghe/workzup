@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ConversationList } from "@/components/message";
@@ -492,14 +493,17 @@ function MessageBubble({
       >
         {/* Avatar */}
         <div className="flex-shrink-0">
-          <img
+          <Image
             src={
               isOwn
                 ? "/avatars/default.svg"
                 : participant.avatar || "/avatars/default.svg"
             }
             alt={isOwn ? "You" : participant.name}
+            width={32}
+            height={32}
             className="w-8 h-8 rounded-full object-cover bg-gray-200"
+            unoptimized
           />
         </div>
 
@@ -544,11 +548,14 @@ function MessageBubble({
             <div className="mt-2 flex flex-col gap-2">
               {message.attachments.map((att) =>
                 att.type === "image" ? (
-                  <img
+                  <Image
                     key={att.id}
                     src={att.url}
                     alt={att.name}
+                    width={640}
+                    height={360}
                     className="max-w-full h-auto rounded-md object-cover border border-gray-100"
+                    unoptimized
                   />
                 ) : (
                   <a

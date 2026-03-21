@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ExternalLink, FileText, X } from "lucide-react";
@@ -97,10 +98,13 @@ function DocumentCard({
     >
       <div className="h-36 overflow-hidden bg-[#F8FAFC] p-2">
         {kind === "image" ? (
-          <img
+          <Image
             src={url}
             alt={label}
+            width={1200}
+            height={800}
             className="h-full w-full rounded-xl object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+            unoptimized
           />
         ) : kind === "pdf" ? (
           <div className="h-full w-full overflow-hidden rounded-xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
@@ -480,10 +484,13 @@ export default function ApplicationDetailsPage() {
 
             <div className="min-h-0 flex-1 bg-[#F5F8FC] p-4">
               {activePreview.kind === "image" ? (
-                <img
+                <Image
                   src={activePreview.url}
                   alt={activePreview.title}
+                  width={1600}
+                  height={1200}
                   className="h-full max-h-[72vh] w-full rounded-2xl object-contain"
+                  unoptimized
                 />
               ) : activePreview.kind === "pdf" ? (
                 <iframe
