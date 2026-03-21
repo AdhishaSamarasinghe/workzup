@@ -29,6 +29,7 @@ export default function MyJobPostingsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
 
   // Custom simple debounce hook to avoid needing to install new packages
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
@@ -104,6 +105,29 @@ export default function MyJobPostingsPage() {
       );
     } finally {
       setUpdatingJobId(null);
+    }
+  };
+
+  const handleDeleteJob = async (jobId: string) => {
+    const confirmed = window.confirm("Are you sure you want to delete this job posting?");
+    if (!confirmed) return;
+
+    setError("");
+    setDeletingJobId(jobId);
+
+    try {
+      await apiFetch(`/api/employer/my-postings/${jobId}`, {
+        method: "DELETE",
+      });
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete job. Please try again.",
+      );
+    } finally {
+      setDeletingJobId(null);
     }
   };
 
@@ -245,10 +269,23 @@ export default function MyJobPostingsPage() {
                     >
                       View Applicants
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteJob(job.id)}
+                      disabled={deletingJobId === job.id}
+                      className="flex-1 sm:flex-none text-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {deletingJobId === job.id ? "Deleting..." : "Delete Job"}
+                    </button>
                   </div>
                   {updatingJobId === job.id && (
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                       Updating status...
+                    </p>
+                  )}
+                  {deletingJobId === job.id && (
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-red-600">
+                      Deleting job...
                     </p>
                   )}
 
