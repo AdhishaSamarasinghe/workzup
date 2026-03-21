@@ -317,9 +317,9 @@ export default function JobApplicantsPage() {
                                     <div
                                         key={app.applicationId}
                                         onClick={() => setSelectedApplicantId(app.applicantId)}
-                                        className={`bg-white rounded-2xl shadow-sm border p-5 flex items-center justify-between cursor-pointer transition-all duration-200 ${selectedApplicantId === app.applicantId
-                                            ? 'border-[#cfd8ff] bg-[#f8faff]'
-                                            : 'border-slate-200 hover:border-slate-300'
+                                        className={`rounded-2xl border p-5 flex items-center justify-between cursor-pointer transition-all duration-200 ${selectedApplicantId === app.applicantId
+                                            ? 'bg-[#F4F7FF] border-[#9AAAF8] ring-1 ring-[#D8E0FF] shadow-sm'
+                                            : 'bg-white border-slate-200 shadow-sm hover:border-slate-300 hover:bg-slate-50'
                                             }`}
                                     >
                                         <div className="flex items-center">
