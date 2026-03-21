@@ -73,7 +73,7 @@ function CompleteJobContent() {
 
             setSuccess(true);
             setTimeout(() => {
-                router.push("/recruiter/posted-jobs");
+                router.push("/employer/create-job/my-postings");
             }, 2000);
         } catch (err: any) {
             alert(err.message);
@@ -165,7 +165,7 @@ function CompleteJobContent() {
                         </div>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-500">Final payment</span>
-                            <span className="text-[#111827] font-black text-lg">$ {summary.finalPayment.toFixed(2)}</span>
+                            <span className="text-[#111827] font-black text-lg">LKR {summary.finalPayment.toFixed(2)}</span>
                         </div>
                     </div>
 

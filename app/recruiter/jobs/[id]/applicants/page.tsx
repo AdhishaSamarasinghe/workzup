@@ -206,6 +206,21 @@ export default function JobApplicantsPage() {
         void openConversation();
     };
 
+    const handleComplete = () => {
+        const selectedApplicant = applicants.find(
+            (app) => app.applicantId === selectedApplicantId,
+        );
+
+        if (!selectedApplicant) {
+            setErrorMsg("Please select an applicant first.");
+            return;
+        }
+
+        router.push(
+            `/recruiter/jobs/${jobId}/complete?workerId=${selectedApplicant.applicantId}`,
+        );
+    };
+
     // [UI] Helper: Status Badge Colors
     const getStatusStyles = (status: string) => {
         switch (status) {
@@ -222,6 +237,11 @@ export default function JobApplicantsPage() {
     const formatStatusDisplay = (status: string) => {
         return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
     };
+
+    const selectedApplicant = applicants.find(
+        (app) => app.applicantId === selectedApplicantId,
+    );
+    const isSelectedApplicantHired = selectedApplicant?.status === "HIRED";
 
     return (
         <div className="min-h-screen bg-slate-50 px-4 py-8 font-sans sm:px-6 lg:px-8">
@@ -381,13 +401,23 @@ export default function JobApplicantsPage() {
                                             <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 4l-8 5-8-5V6l8 5 8-5v2z" /></svg>
                                             {messaging ? "Opening..." : "Message"}
                                         </button>
-                                        <button
-                                            onClick={() => updateStatus("HIRED")}
-                                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-semibold border border-slate-200 flex items-center justify-center gap-3 transition-all active:scale-95"
-                                        >
-                                            <svg className="w-5 h-5 fill-slate-700" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2m-6 0h-4V4h4v2z" /></svg>
-                                            Hire
-                                        </button>
+                                        {isSelectedApplicantHired ? (
+                                            <button
+                                                onClick={handleComplete}
+                                                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold border border-green-600 flex items-center justify-center gap-3 transition-all active:scale-95"
+                                            >
+                                                <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                                                Complete Job
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => updateStatus("HIRED")}
+                                                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-semibold border border-slate-200 flex items-center justify-center gap-3 transition-all active:scale-95"
+                                            >
+                                                <svg className="w-5 h-5 fill-slate-700" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.9-2-2-2m-6 0h-4V4h4v2z" /></svg>
+                                                Hire
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div className="space-y-8">

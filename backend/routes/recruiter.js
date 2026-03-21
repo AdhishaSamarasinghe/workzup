@@ -64,6 +64,68 @@ const mapJobIcon = (category) => {
     return "tool";
 };
 
+const parseTimeToMinutes = (timeValue) => {
+    if (!timeValue || typeof timeValue !== "string") return null;
+    const trimmed = timeValue.trim();
+    const match = /^(\d{1,2}):(\d{2})$/.exec(trimmed);
+    if (!match) return null;
+
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+
+    return hours * 60 + minutes;
+};
+
+const getHoursWorkedFromJob = (job) => {
+    const startMinutes = parseTimeToMinutes(job?.startTime);
+    const endMinutes = parseTimeToMinutes(job?.endTime);
+
+    if (startMinutes == null || endMinutes == null) {
+        return 8;
+    }
+
+    let diff = endMinutes - startMinutes;
+    if (diff <= 0) {
+        diff += 24 * 60;
+    }
+
+    const hours = diff / 60;
+    return hours > 0 ? Number(hours.toFixed(2)) : 8;
+};
+
+const getCompletionDateFromJob = (job) => {
+    const dates = Array.isArray(job?.jobDates) ? job.jobDates : [];
+
+    for (const rawDate of dates) {
+        const parsed = new Date(rawDate);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toISOString().split("T")[0];
+        }
+    }
+
+    const fallbackDate = job?.updatedAt || job?.createdAt || new Date();
+    const parsedFallback = new Date(fallbackDate);
+    if (!Number.isNaN(parsedFallback.getTime())) {
+        return parsedFallback.toISOString().split("T")[0];
+    }
+
+    return new Date().toISOString().split("T")[0];
+};
+
+const getFinalPayment = (job, hoursWorked) => {
+    const pay = Number(job?.pay || 0);
+    if (!Number.isFinite(pay)) return 0;
+
+    const payType = String(job?.payType || "").toLowerCase();
+    if (payType.includes("hour")) {
+        return Number((pay * hoursWorked).toFixed(2));
+    }
+
+    return Number(pay.toFixed(2));
+};
+
 // GET /api/recruiter/profile
 router.get("/profile", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
     try {
@@ -431,17 +493,36 @@ router.get("/jobs/:jobId/completion-summary", authenticateToken, requireRole(["E
         if (!job) return res.status(404).json({ message: "Job not found" });
         if (job.employerId !== userId) return res.status(403).json({ message: "Unauthorized" });
 
+        const application = await prisma.application.findFirst({
+            where: {
+                jobId,
+                applicantId: workerId,
+            },
+        });
+
+        if (!application) {
+            return res.status(404).json({ message: "Application not found for this worker and job" });
+        }
+
+        if (application.status !== "HIRED") {
+            return res.status(400).json({ message: "Worker must be hired before job completion" });
+        }
+
         const worker = await prisma.user.findUnique({ where: { id: workerId } });
         if (!worker) return res.status(404).json({ message: "Worker not found" });
+
+        const hoursWorked = getHoursWorkedFromJob(job);
+        const completionDate = getCompletionDateFromJob(job);
+        const finalPayment = getFinalPayment(job, hoursWorked);
 
         res.json({
             jobId,
             workerId,
             jobTitle: job.title,
             workerName: `${worker.firstName || ""} ${worker.lastName || ""}`.trim() || worker.email,
-            completionDate: new Date().toISOString().split('T')[0],
-            hoursWorked: 8, // fallback
-            finalPayment: job.pay
+            completionDate,
+            hoursWorked,
+            finalPayment
         });
     } catch (error) {
         console.error("Error completion summary:", error);
@@ -472,6 +553,7 @@ router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER",
                 jobId,
                 workerId,
                 amount: Number(finalPayment),
+                currency: "LKR",
                 status: "COMPLETED",
                 completionDate: new Date(completionDate),
                 hoursWorked: Number(hoursWorked)
