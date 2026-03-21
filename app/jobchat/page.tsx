@@ -69,7 +69,7 @@ function JobChatPage() {
   } = useChat(conversationId);
 
   // Use the job details hook
-  const { job, updateJob, refreshJob } = useJobDetails(
+  const { job, updateJob } = useJobDetails(
     conversation?.jobId || null,
   );
 

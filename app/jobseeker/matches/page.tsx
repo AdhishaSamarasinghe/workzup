@@ -40,9 +40,6 @@ export default function AIMatchesPage() {
         return () => { isMounted = false; };
     }, [authLoading, isAuthenticated, router]);
 
-    const handleJobClick = (jobId: string) => {
-        window.open(`/jobseeker/jobs/${jobId}`, "_blank");
-    };
 
     return (
         <div className="min-h-screen bg-[linear-gradient(180deg,#f5f8ff_0%,#eef3f8_36%,#f7f9fc_100%)] pt-24 pb-12">
@@ -73,7 +70,7 @@ export default function AIMatchesPage() {
                     </div>
                 ) : (
                     <div className="rounded-[32px] border border-white/70 bg-white/85 p-2 shadow-[0_18px_50px_rgba(15,23,42,0.06)] backdrop-blur-sm sm:p-4">
-                        <RecommendedJobsSection jobs={recommendedJobs} onJobClick={handleJobClick} />
+                        <RecommendedJobsSection jobs={recommendedJobs} />
                     </div>
                 )}
             </div>

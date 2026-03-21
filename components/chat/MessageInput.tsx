@@ -12,12 +12,11 @@ type InputMessage = {
 
 interface MessageInputProps {
   conversationId: string;
-  currentUserId: string;
   onMessageSent?: (message: InputMessage) => void;
   onTyping?: (isTyping: boolean) => void;
 }
 
-export default function MessageInput({ conversationId, currentUserId, onMessageSent, onTyping }: MessageInputProps) {
+export default function MessageInput({ conversationId, onMessageSent, onTyping }: MessageInputProps) {
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

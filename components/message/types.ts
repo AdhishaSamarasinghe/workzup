@@ -38,7 +38,6 @@ export interface ConversationListProps {
   onDoubleClickConversation?: (conversationId: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  isMobileView?: boolean;
 }
 
 export interface ChatMessageProps {

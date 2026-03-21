@@ -243,7 +243,6 @@ export default function ChatArea({ conversation, currentUserId, socket, onlineUs
       {/* Input Area */}
       <MessageInput 
         conversationId={conversation.id} 
-        currentUserId={currentUserId} 
         onMessageSent={handleMessageSent} 
         onTyping={emitTyping}
       />

@@ -383,10 +383,8 @@ export function TopHiringCompaniesSection({
 
 export function RecommendedJobsSection({
   jobs,
-  onJobClick,
 }: {
   jobs: (BrowseJob & { matchScore?: number })[];
-  onJobClick?: (jobId: string) => void;
 }) {
   if (jobs.length === 0) {
     return (

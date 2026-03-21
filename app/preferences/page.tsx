@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, KeyboardEvent, useEffect } from "react";
+import React, { useState, KeyboardEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { updatePreferences } from "@/lib/api";

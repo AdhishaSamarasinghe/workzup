@@ -12,7 +12,6 @@ export default function ConversationList({
   onDoubleClickConversation,
   searchQuery,
   onSearchChange,
-  isMobileView = false,
 }: ConversationListProps) {
   const filteredConversations = conversations.filter(
     (conv) =>

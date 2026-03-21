@@ -109,7 +109,7 @@ export function useChat(conversationId: string | null) {
       if (msgResponse.success && msgResponse.data) {
         setMessages(msgResponse.data);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to load chat");
     }
 

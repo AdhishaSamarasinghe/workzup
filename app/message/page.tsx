@@ -242,7 +242,6 @@ export default function MessagePage() {
             onDoubleClickConversation={handleDoubleClickConversation}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            isMobileView={true}
           />
         </div>
 
