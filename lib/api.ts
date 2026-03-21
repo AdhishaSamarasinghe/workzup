@@ -22,6 +22,28 @@ export const API_BASE =
 
 let detectedBaseUrl: string | null = null;
 
+function getLocalFallbackUrl(baseUrl: string) {
+  try {
+    const parsed = new URL(baseUrl);
+    const isLocalHost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    if (!isLocalHost) return null;
+
+    if (parsed.port === "5000") {
+      parsed.port = "5001";
+      return parsed.toString().replace(/\/$/, "");
+    }
+
+    if (parsed.port === "5001") {
+      parsed.port = "5000";
+      return parsed.toString().replace(/\/$/, "");
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return String(error);
@@ -164,8 +186,8 @@ async function executeFetch(path: string, options: RequestInit = {}) {
       const res = await fetch(url, options);
       return res;
     } catch (error: unknown) {
-      const message = getErrorMessage(error);
-      if (error instanceof TypeError && message === "Failed to fetch") {
+      // Browsers and runtimes return different messages for network reachability failures.
+      if (error instanceof TypeError) {
         throw new Error("REACHABILITY_ERROR");
       }
       throw error;
@@ -190,10 +212,10 @@ async function executeFetch(path: string, options: RequestInit = {}) {
     const message = getErrorMessage(error);
 
     if (message === "REACHABILITY_ERROR") {
-      if (API_BASE.includes("localhost:5000")) {
-        const fallbackUrl = API_BASE.replace("5000", "5001");
+      const fallbackUrl = getLocalFallbackUrl(API_BASE);
+      if (fallbackUrl) {
         console.warn(
-          "[API] Localhost:5000 unreachable. Detecting if backend is on 5001...",
+          `[API] ${API_BASE} unreachable. Detecting if backend is on ${fallbackUrl}...`,
         );
 
         try {
