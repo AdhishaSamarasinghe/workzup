@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import CustomSelect from "@/components/ui/CustomSelect";
+import { DeleteConfirmModal } from "@/components/ui";
 import { useWorkzupAuth } from "@/lib/auth/useWorkzupAuth";
 
 // Safe mock Job type
@@ -30,6 +31,7 @@ export default function MyJobPostingsPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  const [pendingDeleteJob, setPendingDeleteJob] = useState<EmployerJob | null>(null);
 
   // Custom simple debounce hook to avoid needing to install new packages
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
@@ -109,9 +111,6 @@ export default function MyJobPostingsPage() {
   };
 
   const handleDeleteJob = async (jobId: string) => {
-    const confirmed = window.confirm("Are you sure you want to delete this job posting?");
-    if (!confirmed) return;
-
     setError("");
     setDeletingJobId(jobId);
 
@@ -271,7 +270,7 @@ export default function MyJobPostingsPage() {
                     </Link>
                     <button
                       type="button"
-                      onClick={() => handleDeleteJob(job.id)}
+                      onClick={() => setPendingDeleteJob(job)}
                       disabled={deletingJobId === job.id}
                       className="flex-1 sm:flex-none text-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -295,6 +294,22 @@ export default function MyJobPostingsPage() {
           </div>
         )}
       </main>
+
+      <DeleteConfirmModal
+        isOpen={Boolean(pendingDeleteJob)}
+        onClose={() => setPendingDeleteJob(null)}
+        onConfirm={() => {
+          if (pendingDeleteJob) {
+            void handleDeleteJob(pendingDeleteJob.id);
+          }
+        }}
+        title="Delete Job Posting"
+        message={
+          pendingDeleteJob
+            ? `Are you sure you want to delete \"${pendingDeleteJob.title}\"? This action cannot be undone.`
+            : "Are you sure you want to delete this job posting? This action cannot be undone."
+        }
+      />
     </div>
   );
 }
