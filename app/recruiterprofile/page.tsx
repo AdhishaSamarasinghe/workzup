@@ -203,7 +203,7 @@ export default function RecruiterProfilePage() {
 
           {/* RIGHT COLUMN */}
           <div>
-            <div className="bg-white rounded-[22px] border-[2px] border-[#0090FF] overflow-hidden shadow-[0_8px_30px_rgba(0,144,255,0.04)] min-h-[520px] flex flex-col">
+            <div className="bg-white rounded-[22px] border border-slate-200 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)] min-h-[520px] flex flex-col">
 
               {/* Tabs */}
               <div className="flex border-b border-[#E5E7EB] px-5 pt-3">
