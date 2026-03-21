@@ -9,6 +9,8 @@ type ConversationListProps = {
   loading: boolean;
   selectedConversationId: string | null;
   searchValue: string;
+  onlineUserIds: string[];
+  typingConversationIds: string[];
   onSearchChange: (value: string) => void;
   onSelectConversation: (conversationId: string) => void;
 };
@@ -40,6 +42,8 @@ export default function ConversationList({
   loading,
   selectedConversationId,
   searchValue,
+  onlineUserIds,
+  typingConversationIds,
   onSearchChange,
   onSelectConversation,
 }: ConversationListProps) {
@@ -91,6 +95,8 @@ export default function ConversationList({
           <div className="p-3">
             {filteredConversations.map((conversation) => {
               const isActive = conversation.id === selectedConversationId;
+              const isOnline = onlineUserIds.includes(conversation.other_user_id);
+              const isTyping = typingConversationIds.includes(conversation.id);
 
               return (
                 <button
@@ -103,23 +109,43 @@ export default function ConversationList({
                       : "hover:bg-slate-50"
                   }`}
                 >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#6b8bff] to-[#8be3c7] text-sm font-semibold text-white">
-                    {getInitials(conversation.other_user_name || "WU")}
+                  <div className="relative">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#6b8bff] to-[#8be3c7] text-sm font-semibold text-white">
+                      {getInitials(conversation.other_user_name || "WU")}
+                    </div>
+                    <span
+                      className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white ${
+                        isOnline ? "bg-emerald-500" : "bg-slate-300"
+                      }`}
+                    />
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="truncate text-sm font-semibold text-slate-900">
-                        {conversation.other_user_name}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {conversation.other_user_name}
+                        </p>
+                        <p
+                          className={`mt-0.5 text-[11px] ${
+                            isOnline ? "text-emerald-600" : "text-slate-400"
+                          }`}
+                        >
+                          {isOnline ? "Online" : "Offline"}
+                        </p>
+                      </div>
                       <span className="shrink-0 text-[11px] text-slate-400">
                         {formatConversationTime(conversation.last_message_at || conversation.created_at)}
                       </span>
                     </div>
 
                     <div className="mt-1 flex items-center justify-between gap-3">
-                      <p className="truncate text-sm text-slate-500">
-                        {conversation.last_message || "Start the conversation"}
+                      <p
+                        className={`truncate text-sm ${
+                          isTyping ? "font-medium text-emerald-600" : "text-slate-500"
+                        }`}
+                      >
+                        {isTyping ? "Typing..." : conversation.last_message || "Start the conversation"}
                       </p>
                       {conversation.unread_count > 0 ? (
                         <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[#6b8bff] px-2 py-1 text-[11px] font-semibold text-white">

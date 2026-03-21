@@ -94,6 +94,37 @@ async function createSupabaseUser({
 }
 
 async function getSupabaseUserById(userId) {
+  if (!userId) {
+    return null;
+  }
+
+  try {
+    const directResult = await db.query(
+      `
+        select
+          id::text as id,
+          email,
+          raw_user_meta_data,
+          raw_app_meta_data
+        from auth.users
+        where id = $1::uuid
+        limit 1
+      `,
+      [userId],
+    );
+
+    if (directResult.rows[0]) {
+      return {
+        id: directResult.rows[0].id,
+        email: directResult.rows[0].email,
+        user_metadata: directResult.rows[0].raw_user_meta_data || {},
+        app_metadata: directResult.rows[0].raw_app_meta_data || {},
+      };
+    }
+  } catch (_) {
+    // Fall back to the Supabase admin API if direct auth.users access is unavailable.
+  }
+
   const admin = getSupabaseAdmin();
   const { data, error } = await admin.auth.admin.getUserById(userId);
 
@@ -108,6 +139,33 @@ async function getSupabaseUserByEmail(email) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
   if (!normalizedEmail) {
     return null;
+  }
+
+  try {
+    const directResult = await db.query(
+      `
+        select
+          id::text as id,
+          email,
+          raw_user_meta_data,
+          raw_app_meta_data
+        from auth.users
+        where lower(email) = $1
+        limit 1
+      `,
+      [normalizedEmail],
+    );
+
+    if (directResult.rows[0]) {
+      return {
+        id: directResult.rows[0].id,
+        email: directResult.rows[0].email,
+        user_metadata: directResult.rows[0].raw_user_meta_data || {},
+        app_metadata: directResult.rows[0].raw_app_meta_data || {},
+      };
+    }
+  } catch (_) {
+    // Fall back to the Supabase admin API if direct auth.users access is unavailable.
   }
 
   const admin = getSupabaseAdmin();

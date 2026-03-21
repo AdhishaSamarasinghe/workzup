@@ -6,9 +6,17 @@ type MessageInputProps = {
   disabled: boolean;
   sending: boolean;
   onSend: (value: string) => Promise<void>;
+  onTypingActivity?: () => void;
+  onTypingStop?: () => void;
 };
 
-export default function MessageInput({ disabled, sending, onSend }: MessageInputProps) {
+export default function MessageInput({
+  disabled,
+  sending,
+  onSend,
+  onTypingActivity,
+  onTypingStop,
+}: MessageInputProps) {
   const [value, setValue] = useState("");
 
   const submit = async () => {
@@ -21,6 +29,7 @@ export default function MessageInput({ disabled, sending, onSend }: MessageInput
 
     try {
       await onSend(trimmedValue);
+      onTypingStop?.();
     } catch {
       setValue(trimmedValue);
     }
@@ -34,7 +43,11 @@ export default function MessageInput({ disabled, sending, onSend }: MessageInput
           value={value}
           disabled={disabled || sending}
           placeholder="Type a message"
-          onChange={(event) => setValue(event.target.value)}
+          onChange={(event) => {
+            setValue(event.target.value);
+            onTypingActivity?.();
+          }}
+          onBlur={() => onTypingStop?.()}
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();

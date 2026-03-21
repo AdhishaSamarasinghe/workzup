@@ -2,7 +2,12 @@
 
 import { format } from "date-fns";
 import { useEffect, useRef } from "react";
-import type { ConversationSummary, MessageRow } from "@/lib/messaging/types";
+import type {
+  ConversationSummary,
+  MessageDeliveryStatus,
+  MessageRow,
+  PresenceState,
+} from "@/lib/messaging/types";
 import MessageInput from "./MessageInput";
 
 type ChatWindowProps = {
@@ -13,6 +18,10 @@ type ChatWindowProps = {
   error: string | null;
   messages: MessageRow[];
   onSendMessage: (content: string) => Promise<void>;
+  onTypingActivity: () => void;
+  onTypingStop: () => void;
+  presence: PresenceState;
+  typingName: string | null;
 };
 
 function formatMessageTime(value: string) {
@@ -42,6 +51,15 @@ function getInitials(name: string) {
     .join("");
 }
 
+function getMessageStatus(message: MessageRow): MessageDeliveryStatus {
+  return message.is_seen ? "seen" : "delivered";
+}
+
+function formatMessageStatus(message: MessageRow) {
+  const status = getMessageStatus(message);
+  return status === "seen" ? "Seen" : "Delivered";
+}
+
 export default function ChatWindow({
   currentUserId,
   conversation,
@@ -50,6 +68,10 @@ export default function ChatWindow({
   error,
   messages,
   onSendMessage,
+  onTypingActivity,
+  onTypingStop,
+  presence,
+  typingName,
 }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -82,8 +104,20 @@ export default function ChatWindow({
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-slate-900">{conversation.other_user_name}</p>
-            <p className="truncate text-xs text-slate-500">
-              {conversation.other_user_email || "Direct conversation"}
+            <p
+              className={`truncate text-xs ${
+                typingName
+                  ? "font-medium text-emerald-600"
+                  : presence === "online"
+                    ? "text-emerald-600"
+                    : "text-slate-500"
+              }`}
+            >
+              {typingName
+                ? `${typingName} is typing...`
+                : presence === "online"
+                  ? "Online"
+                  : conversation.other_user_email || "Offline"}
             </p>
           </div>
         </div>
@@ -136,11 +170,20 @@ export default function ChatWindow({
                     >
                       <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.content}</p>
                       <div
-                        className={`mt-2 text-[11px] ${
+                        className={`mt-2 flex items-center justify-end gap-1.5 text-[11px] ${
                           isMine ? "text-white/70" : "text-slate-400"
                         }`}
                       >
-                        {formatMessageTime(message.created_at)}
+                        <span>{formatMessageTime(message.created_at)}</span>
+                        {isMine ? (
+                          <span
+                            className={
+                              message.is_seen ? "font-semibold text-white" : "text-white/70"
+                            }
+                          >
+                            {formatMessageStatus(message)}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -158,7 +201,13 @@ export default function ChatWindow({
         </div>
       ) : null}
 
-      <MessageInput disabled={!conversation} sending={sending} onSend={onSendMessage} />
+      <MessageInput
+        disabled={!conversation}
+        sending={sending}
+        onSend={onSendMessage}
+        onTypingActivity={onTypingActivity}
+        onTypingStop={onTypingStop}
+      />
     </section>
   );
 }
