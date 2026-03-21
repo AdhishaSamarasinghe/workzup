@@ -1,6 +1,12 @@
 const express = require("express");
 const prisma = require("../prismaClient");
 const { authenticateToken, requireRole } = require("../middleware/auth");
+const {
+    buildCheckoutHash,
+    getPayHereCheckoutUrl,
+    formatAmount,
+    getPayHereConfig,
+} = require("../utils/payhere");
 const router = express.Router();
 
 const buildPublicFileUrl = (req, storedPath) => {
@@ -541,54 +547,92 @@ router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER",
         if (!job) return res.status(404).json({ message: "Job not found" });
         if (job.employerId !== userId) return res.status(403).json({ message: "Unauthorized" });
 
-        // Update job status
-        await prisma.job.update({
-            where: { id: jobId },
-            data: { status: "COMPLETED" }
-        });
-
-        // Create payment record
-        await prisma.payment.create({
-            data: {
+        const application = await prisma.application.findFirst({
+            where: {
                 jobId,
-                workerId,
-                amount: Number(finalPayment),
-                currency: "LKR",
-                status: "COMPLETED",
-                completionDate: new Date(completionDate),
-                hoursWorked: Number(hoursWorked)
-            }
+                applicantId: workerId,
+            },
         });
 
-        // Add to Worker's Experience Profile
-        const workerProfile = await prisma.seekerProfile.findUnique({
-            where: { userId: workerId }
-        });
-        
-        if (workerProfile) {
-            const currentExp = workerProfile.experience || [];
-            
-            // Format dates
-            const dateObj = new Date(completionDate);
-            const formattedDate = dateObj.toLocaleString('default', { month: 'short', year: 'numeric' });
-            
-            const newExperience = {
-                id: Date.now().toString(),
-                title: job.title,
-                company: "Workzup Platform", // Alternatively we can fetch the company name connected to the Job
-                duration: `${formattedDate}`,
-                description: `Successfully completed hourly job via Workzup.`
-            };
-            
-            await prisma.seekerProfile.update({
-                where: { userId: workerId },
-                data: {
-                    experience: [...currentExp, newExperience]
-                }
+        if (!application) {
+            return res.status(404).json({ message: "Application not found for this worker and job" });
+        }
+
+        if (application.status !== "HIRED") {
+            return res.status(400).json({ message: "Worker must be hired before job completion" });
+        }
+
+        const payer = await prisma.user.findUnique({ where: { id: userId } });
+        const worker = await prisma.user.findUnique({ where: { id: workerId } });
+
+        if (!worker) return res.status(404).json({ message: "Worker not found" });
+
+        const { merchantId, merchantSecret, isSandbox } = getPayHereConfig();
+        if (!merchantId || !merchantSecret) {
+            const missing = [];
+            if (!merchantId) missing.push("PAYHERE_MERCHANT_ID");
+            if (!merchantSecret) missing.push("PAYHERE_MERCHANT_SECRET");
+            return res.status(500).json({
+                message: `PayHere is not configured on the server. Missing: ${missing.join(", ")}`,
             });
         }
 
-        res.json({ message: "Job marked as completed and payment recorded. Experience automatically added." });
+        const amount = Number(finalPayment);
+        const currency = "LKR";
+        const safeCompletionDate = completionDate ? new Date(completionDate) : new Date();
+
+        const payment = await prisma.payment.create({
+            data: {
+                jobId,
+                workerId,
+                amount,
+                currency,
+                status: "PENDING",
+                completionDate: Number.isNaN(safeCompletionDate.getTime()) ? new Date() : safeCompletionDate,
+                hoursWorked: Number(hoursWorked),
+            }
+        });
+
+        const orderId = payment.id;
+        const formattedAmount = formatAmount(amount);
+        const hash = buildCheckoutHash({
+            merchantId,
+            orderId,
+            amount: formattedAmount,
+            currency,
+            merchantSecret,
+        });
+
+        const apiBaseUrl = process.env.API_BASE_URL || `${req.protocol}://${req.get("host")}`;
+        const clientBaseUrl = process.env.CLIENT_URL || "http://localhost:3000";
+
+        res.json({
+            message: "Payment initiated. Complete checkout in PayHere.",
+            paymentId: payment.id,
+            payhereMode: isSandbox ? "SANDBOX" : "LIVE",
+            payhere: {
+                action: getPayHereCheckoutUrl(),
+                merchant_id: merchantId,
+                return_url: `${apiBaseUrl}/api/payhere/return`,
+                cancel_url: `${apiBaseUrl}/api/payhere/cancel`,
+                notify_url: `${apiBaseUrl}/api/payhere/notify`,
+                order_id: orderId,
+                items: job.title || "Workzup Job Payment",
+                currency,
+                amount: formattedAmount,
+                first_name: payer?.firstName || "Recruiter",
+                last_name: payer?.lastName || "",
+                email: payer?.email || "noreply@workzup.local",
+                phone: payer?.phone || "0770000000",
+                address: "Workzup",
+                city: "Colombo",
+                country: "Sri Lanka",
+                custom_1: jobId,
+                custom_2: workerId,
+                hash,
+            },
+            clientReturnUrl: `${clientBaseUrl}/recruiter/payment-result?paymentId=${payment.id}`,
+        });
     } catch (error) {
         console.error("Error completing job:", error);
         res.status(500).json({ message: "Server Error" });

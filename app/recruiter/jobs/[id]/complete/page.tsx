@@ -17,6 +17,31 @@ interface CompletionSummary {
     finalPayment: number;
 }
 
+type PayHerePayload = {
+    action: string;
+    [key: string]: string;
+};
+
+function submitPayHereForm(payload: PayHerePayload) {
+    if (typeof document === "undefined") return;
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = payload.action;
+
+    Object.entries(payload).forEach(([key, value]) => {
+        if (key === "action") return;
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
 // [UI] Content Component that uses useSearchParams
 function CompleteJobContent() {
     const params = useParams();
@@ -61,7 +86,7 @@ function CompleteJobContent() {
         if (!summary) return;
         setSubmitting(true);
         try {
-            await apiFetch(`/api/recruiter/jobs/${jobId}/complete`, {
+            const data = await apiFetch(`/api/recruiter/jobs/${jobId}/complete`, {
                 method: "POST",
                 body: JSON.stringify({
                     workerId: summary.workerId,
@@ -71,10 +96,12 @@ function CompleteJobContent() {
                 }),
             });
 
+            if (!data?.payhere?.action) {
+                throw new Error("PayHere checkout payload missing from server response");
+            }
+
             setSuccess(true);
-            setTimeout(() => {
-                router.push("/employer/create-job/my-postings");
-            }, 2000);
+            submitPayHereForm(data.payhere as PayHerePayload);
         } catch (err: any) {
             alert(err.message);
         } finally {

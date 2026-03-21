@@ -7,7 +7,9 @@ const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const path = require("path");
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, ".env") });
+dotenv.config({ path: path.resolve(__dirname, "../.env.local"), override: false });
+dotenv.config({ path: path.resolve(__dirname, "../.env"), override: false });
 
 const { initSocket } = require("./socket");
 
@@ -81,6 +83,13 @@ try {
   const savedJobsRoutes = require("./routes/savedJobs");
   app.use("/api/saved-jobs", savedJobsRoutes);
 } catch (_) {}
+
+try {
+  const payHereRoutes = require("./routes/payhere");
+  app.use("/api/payhere", payHereRoutes);
+} catch (err) {
+  console.error("Failed to load payhere routes:", err);
+}
 
 /**
  * IMPORTANT:
