@@ -8,6 +8,7 @@
 
 const express = require("express");
 const prisma = require("../prismaClient");
+const db = require("../models/db");
 const { authenticateToken, requireRole } = require("../middleware/auth");
 const { buildBrowseJob, buildCategorySummary, getBrowseHomeData } = require("../utils/publicBrowseData");
 
@@ -15,6 +16,78 @@ const router = express.Router();
 
 // Ensures a value is always an array.
 const toArray = (val) => (Array.isArray(val) ? val : []);
+
+function normalizeRawJob(job) {
+  return {
+    id: job.id,
+    employerId: job.employerId || null,
+    companyId: job.companyId || null,
+    title: job.title || "",
+    description: job.description || "",
+    pay: Number(job.pay || 0),
+    payType: job.payType || "hour",
+    category: job.category || "",
+    locations: toArray(job.locations),
+    jobDates: toArray(job.jobDates),
+    startTime: job.startTime || null,
+    endTime: job.endTime || null,
+    requirements: toArray(job.requirements),
+    status: job.status || "DRAFT",
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+  };
+}
+
+async function fetchJobsFromSqlFallback(statuses = null) {
+  const hasStatuses = Array.isArray(statuses) && statuses.length > 0;
+  const sql = hasStatuses
+    ? `
+      select
+        id,
+        "employerId",
+        "companyId",
+        title,
+        description,
+        pay,
+        "payType",
+        category,
+        locations,
+        "jobDates",
+        "startTime",
+        "endTime",
+        requirements,
+        status,
+        "createdAt",
+        "updatedAt"
+      from "Job"
+      where status = any($1)
+      order by "createdAt" desc
+    `
+    : `
+      select
+        id,
+        "employerId",
+        "companyId",
+        title,
+        description,
+        pay,
+        "payType",
+        category,
+        locations,
+        "jobDates",
+        "startTime",
+        "endTime",
+        requirements,
+        status,
+        "createdAt",
+        "updatedAt"
+      from "Job"
+      order by "createdAt" desc
+    `;
+
+  const result = hasStatuses ? await db.query(sql, [statuses]) : await db.query(sql);
+  return result.rows.map(normalizeRawJob);
+}
 
 // GET /api/jobs — returns all jobs sorted newest-first
 router.get("/", async (req, res) => {
@@ -24,8 +97,14 @@ router.get("/", async (req, res) => {
     });
     res.json(jobs);
   } catch (err) {
-    console.error("Error fetching jobs:", err);
-    res.status(500).json({ message: "Failed to fetch jobs" });
+    console.error("Error fetching jobs with Prisma:", err);
+    try {
+      const fallbackJobs = await fetchJobsFromSqlFallback();
+      return res.json(fallbackJobs);
+    } catch (fallbackErr) {
+      console.error("Error fetching jobs with SQL fallback:", fallbackErr);
+      res.status(500).json({ message: "Failed to fetch jobs" });
+    }
   }
 });
 
@@ -34,7 +113,30 @@ router.get("/browse/home", async (req, res) => {
     const data = await getBrowseHomeData(prisma);
     res.json(data);
   } catch (err) {
-    console.error("Error fetching browse home data:", err);
+    console.error("Error fetching browse home data with Prisma:", err);
+    try {
+      const fallbackJobs = await fetchJobsFromSqlFallback(["PUBLIC", "ACTIVE"]);
+      const browseJobs = fallbackJobs.map(buildBrowseJob);
+      const categories = buildCategorySummary(browseJobs);
+
+      return res.json({
+        jobs: browseJobs,
+        categories,
+        topCompanies: [],
+        stats: {
+          totalJobs: browseJobs.length,
+          totalCategories: categories.length,
+          totalCompanies: 0,
+          totalSeekers: 0,
+          totalApplications: 0,
+        },
+        degraded: true,
+        message: "Loaded with SQL fallback due to Prisma query failure",
+      });
+    } catch (fallbackErr) {
+      console.error("Error fetching browse home data with SQL fallback:", fallbackErr);
+    }
+
     res.json({
       jobs: [],
       categories: [],
@@ -110,8 +212,50 @@ router.get("/public-search", async (req, res) => {
       maxPay: Number(maxPayAggregate._max.pay || 5000),
     });
   } catch (err) {
-    console.error("Error fetching public search jobs:", err);
-    res.status(500).json({ message: "Failed to fetch public search jobs" });
+    console.error("Error fetching public search jobs with Prisma:", err);
+
+    try {
+      const {
+        district = "",
+        date = "",
+        category = "",
+        minPay = "",
+        maxPay = "",
+      } = req.query;
+
+      const fallbackJobs = await fetchJobsFromSqlFallback(["PUBLIC", "ACTIVE"]);
+      const browseJobs = fallbackJobs.map(buildBrowseJob);
+      const categoryOptions = buildCategorySummary(browseJobs).map((item) => item.label);
+
+      const filteredJobs = browseJobs.filter((job) => {
+        const matchesDistrict = !district || job.locations.includes(String(district)) || job.location === String(district);
+        const matchesDate = !date || job.jobDates.includes(String(date)) || job.date === String(date);
+        const matchesCategory =
+          !category ||
+          category === "All Jobs" ||
+          category === "All Categories" ||
+          job.derivedCategory === String(category);
+        const matchesMinPay = minPay === "" || job.pay >= Number(minPay);
+        const matchesMaxPay = maxPay === "" || job.pay <= Number(maxPay);
+
+        return matchesDistrict && matchesDate && matchesCategory && matchesMinPay && matchesMaxPay;
+      });
+
+      const fallbackMaxPay = filteredJobs.reduce(
+        (maxValue, job) => (job.pay > maxValue ? job.pay : maxValue),
+        0,
+      );
+
+      return res.json({
+        jobs: filteredJobs,
+        categories: categoryOptions,
+        maxPay: Number(fallbackMaxPay || 5000),
+        degraded: true,
+      });
+    } catch (fallbackErr) {
+      console.error("Error fetching public search jobs with SQL fallback:", fallbackErr);
+      res.status(500).json({ message: "Failed to fetch public search jobs" });
+    }
   }
 });
 
