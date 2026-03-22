@@ -195,10 +195,10 @@ function buildTopCompanies(jobs) {
   jobs.forEach((job) => {
     if (!job.companyName || job.companyName === "Independent Employer") return;
 
-    const key = job.companyId || slugify(job.companyName);
+    const key = slugify(job.companyName);
     const existing = companyMap.get(key) || {
       companyId: job.companyId,
-      slug: slugify(job.companyName),
+      slug: key,
       companyName: job.companyName,
       logoUrl: job.companyLogoUrl,
       industry: job.companyIndustry,
