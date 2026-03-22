@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URLS } from "@/lib/api";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -12,7 +12,7 @@ async function fileToDataUrl(file: File) {
 }
 
 async function postApplicationToBackend(authHeader: string, body: Record<string, unknown>) {
-  if (!API_BASE_URL) {
+  if (API_BASE_URLS.length === 0) {
     throw new Error("NEXT_PUBLIC_API_URL is missing.");
   }
 
@@ -27,7 +27,7 @@ async function postApplicationToBackend(authHeader: string, body: Record<string,
 
   const candidateBases = [
     detectedBackendBase,
-    API_BASE_URL,
+    ...API_BASE_URLS,
   ].filter((value, index, array): value is string => !!value && array.indexOf(value) === index);
 
   let lastError: unknown = null;

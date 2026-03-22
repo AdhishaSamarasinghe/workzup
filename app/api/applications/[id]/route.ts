@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URLS } from "@/lib/api";
 
 export async function GET(
   request: NextRequest,
@@ -11,6 +11,10 @@ export async function GET(
 
     if (!applicationId) {
       return NextResponse.json({ message: "Missing application id." }, { status: 400 });
+    }
+
+    if (API_BASE_URLS.length === 0) {
+      return NextResponse.json({ message: "Backend API URL is not configured." }, { status: 500 });
     }
 
     const authHeader = request.headers.get("authorization");
@@ -25,7 +29,21 @@ export async function GET(
       cache: "no-store" as RequestCache,
     };
 
-    const detailsResponse = await fetch(`${API_BASE_URL}/api/applications/${applicationId}`, fetchOptions);
+    const tryFetchAcrossBases = async (path: string) => {
+      let lastError: unknown = null;
+
+      for (const baseUrl of API_BASE_URLS) {
+        try {
+          return await fetch(`${baseUrl}${path}`, fetchOptions);
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      throw lastError instanceof Error ? lastError : new Error("Backend unreachable");
+    };
+
+    const detailsResponse = await tryFetchAcrossBases(`/api/applications/${applicationId}`);
     const detailsPayload = await detailsResponse.json().catch(() => ({}));
 
     if (detailsResponse.ok) {
@@ -34,7 +52,7 @@ export async function GET(
 
     // Fallback for a backend instance that has not yet reloaded the new details route.
     if (detailsResponse.status === 404) {
-      const listResponse = await fetch(`${API_BASE_URL}/api/applications/my-applications`, fetchOptions);
+      const listResponse = await tryFetchAcrossBases("/api/applications/my-applications");
       const listPayload = await listResponse.json().catch(() => ({}));
 
       if (!listResponse.ok) {

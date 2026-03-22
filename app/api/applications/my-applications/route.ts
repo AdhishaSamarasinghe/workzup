@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URLS } from "@/lib/api";
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,12 +8,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/applications/my-applications`, {
-      headers: {
-        Authorization: authHeader,
-      },
-      cache: "no-store",
-    });
+    if (API_BASE_URLS.length === 0) {
+      return NextResponse.json({ message: "Backend API URL is not configured." }, { status: 500 });
+    }
+
+    let response: Response | null = null;
+    let lastError: unknown = null;
+
+    for (const baseUrl of API_BASE_URLS) {
+      try {
+        response = await fetch(`${baseUrl}/api/applications/my-applications`, {
+          headers: {
+            Authorization: authHeader,
+          },
+          cache: "no-store",
+        });
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (!response) {
+      throw lastError instanceof Error ? lastError : new Error("Backend unreachable");
+    }
 
     const payload = await response.json().catch(() => ({}));
 

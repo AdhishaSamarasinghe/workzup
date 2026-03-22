@@ -16,6 +16,7 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const LOCAL_DEV_API_BASE_URL = "http://localhost:5000";
+const PRODUCTION_EMERGENCY_API_BASE_URL = "https://workzup-production.up.railway.app";
 
 function normalizeApiBaseUrl(rawValue: string | undefined) {
   let value = String(rawValue || "")
@@ -46,6 +47,13 @@ function normalizeApiBaseUrl(rawValue: string | undefined) {
   return withProtocol.replace(/\/api$/i, "");
 }
 
+function normalizeApiBaseUrls(rawValue: string | undefined) {
+  return String(rawValue || "")
+    .split(",")
+    .map((entry) => normalizeApiBaseUrl(entry))
+    .filter(Boolean);
+}
+
 function isLocalhostHost(hostname: string) {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
@@ -60,21 +68,37 @@ function isLocalhostBaseUrl(baseUrl: string | null | undefined) {
   }
 }
 
-function resolveApiBaseUrl() {
-  const configuredBase = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+function dedupeBaseUrls(urls: Array<string | null | undefined>) {
+  return Array.from(new Set(urls.filter((value): value is string => Boolean(value))));
+}
+
+function resolveApiBaseUrls() {
+  const configuredBases = normalizeApiBaseUrls(process.env.NEXT_PUBLIC_API_URL);
+  const configuredFallbackBases = normalizeApiBaseUrls(
+    process.env.NEXT_PUBLIC_API_FALLBACK_URL,
+  );
 
   if (process.env.NODE_ENV !== "production") {
-    if (!configuredBase) {
-      return LOCAL_DEV_API_BASE_URL;
-    }
-
-    // In local development, prefer local backend even if env is set to a remote deploy.
-    if (!isLocalhostBaseUrl(configuredBase)) {
-      return LOCAL_DEV_API_BASE_URL;
-    }
+    return [LOCAL_DEV_API_BASE_URL];
   }
 
-  return configuredBase;
+  const baseUrls = dedupeBaseUrls([...configuredBases, ...configuredFallbackBases]);
+
+  // Safety net for current production setup: if custom api.workzup.lk is configured,
+  // keep Railway domain as failover to avoid complete outages during DNS/SSL issues.
+  const hasWorkzupCustomApi = baseUrls.some((url) => {
+    try {
+      return new URL(url).hostname === "api.workzup.lk";
+    } catch {
+      return false;
+    }
+  });
+
+  if (hasWorkzupCustomApi) {
+    baseUrls.push(PRODUCTION_EMERGENCY_API_BASE_URL);
+  }
+
+  return dedupeBaseUrls(baseUrls);
 }
 
 function normalizeApiPath(path: string) {
@@ -93,7 +117,8 @@ function normalizeApiPath(path: string) {
   return normalizedPath;
 }
 
-export const API_BASE_URL = resolveApiBaseUrl();
+export const API_BASE_URLS = resolveApiBaseUrls();
+export const API_BASE_URL = API_BASE_URLS[0] || "";
 
 // Backward-compatible alias while migrating call sites.
 export const API_BASE = API_BASE_URL;
@@ -244,7 +269,7 @@ export async function getCurrentUserRole() {
 // CORE FETCH ENGINE (with 5001 fallback)
 // ============================================
 async function executeFetch(path: string, options: RequestInit = {}) {
-  if (!API_BASE_URL) {
+  if (API_BASE_URLS.length === 0) {
     throw new Error(
       "NEXT_PUBLIC_API_URL is missing. Define it in your environment (for local dev, set it in .env.local).",
     );
@@ -270,7 +295,7 @@ async function executeFetch(path: string, options: RequestInit = {}) {
   };
 
   const runtimePreferredBase = getRuntimePreferredBaseUrl();
-  const candidateBases = [detectedBaseUrl, runtimePreferredBase, API_BASE_URL].filter(
+  const candidateBases = [detectedBaseUrl, runtimePreferredBase, ...API_BASE_URLS].filter(
     (value, index, array): value is string => !!value && array.indexOf(value) === index,
   );
 
