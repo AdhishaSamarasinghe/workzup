@@ -308,6 +308,36 @@ function startServer(portToTry) {
     console.error(`[startup] Server failed to start on port ${portToTry}: ${message}`);
     process.exit(1);
   });
+
+  return server;
 }
 
-startServer(PORT);
+const activeServer = startServer(PORT);
+
+let isShuttingDown = false;
+
+function shutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  console.log(`[startup] Received ${signal}. Shutting down gracefully...`);
+  activeServer.close((err) => {
+    if (err) {
+      console.error("[startup] Graceful shutdown failed:", err);
+      process.exit(1);
+      return;
+    }
+
+    console.log("[startup] HTTP server closed.");
+    process.exit(0);
+  });
+
+  // Force exit if something hangs during shutdown.
+  setTimeout(() => {
+    console.error("[startup] Force exiting after shutdown timeout.");
+    process.exit(1);
+  }, 10000).unref();
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
