@@ -11,7 +11,7 @@ import {
   JobCategoriesSection,
   TopHiringCompaniesSection,
 } from "@/components/jobs/BrowseHomepageSections";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URLS } from "@/lib/api";
 import {
   BrowseFilters,
   BrowseHomeData,
@@ -146,78 +146,84 @@ function buildFallbackHomeDataFromSearchPayload(data: unknown): BrowseHomeData {
 }
 
 async function fetchBrowseHomeViaPublicSearch(): Promise<BrowseHomeData> {
-  if (!API_BASE_URL) {
+  if (API_BASE_URLS.length === 0) {
     return EMPTY_BROWSE_DATA;
   }
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/jobs/public-search`, {
-      method: "GET",
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+  for (const baseUrl of API_BASE_URLS) {
+    try {
+      const res = await fetch(`${baseUrl}/api/jobs/public-search`, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    if (!res.ok) {
-      return EMPTY_BROWSE_DATA;
+      if (!res.ok) {
+        continue;
+      }
+
+      const data = await res.json().catch(() => null);
+      const normalized = buildFallbackHomeDataFromSearchPayload(data);
+      if (normalized.jobs.length > 0) {
+        return normalized;
+      }
+    } catch {
+      // Try next backend base URL.
     }
-
-    const data = await res.json().catch(() => null);
-    return buildFallbackHomeDataFromSearchPayload(data);
-  } catch {
-    return EMPTY_BROWSE_DATA;
   }
+
+  return EMPTY_BROWSE_DATA;
 }
 
 async function fetchBrowseHomeDataSafely(): Promise<BrowseHomeData> {
-  if (!API_BASE_URL) {
+  if (API_BASE_URLS.length === 0) {
     return EMPTY_BROWSE_DATA;
   }
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/jobs/browse/home`, {
-      method: "GET",
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+  for (const baseUrl of API_BASE_URLS) {
+    try {
+      const res = await fetch(`${baseUrl}/api/jobs/browse/home`, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    if (!res.ok) {
-      const errorData: { message?: string; error?: string } = await res
-        .clone()
-        .json()
-        .catch(() => ({}));
-      const message = errorData.message || errorData.error || `status ${res.status}`;
-      console.warn(`[Browse] Using fallback data because /api/jobs/browse/home failed: ${message}`);
-      return await fetchBrowseHomeViaPublicSearch();
-    }
-
-    const data = await res.json().catch(() => null);
-    if (!data || typeof data !== "object") {
-      return await fetchBrowseHomeViaPublicSearch();
-    }
-
-    const normalized: BrowseHomeData = {
-      jobs: Array.isArray(data.jobs) ? data.jobs : [],
-      categories: Array.isArray(data.categories) ? data.categories : [],
-      topCompanies: Array.isArray(data.topCompanies) ? data.topCompanies : [],
-      stats: data.stats || EMPTY_BROWSE_DATA.stats,
-    };
-
-    const isDegraded = Boolean((data as { degraded?: boolean }).degraded);
-    if (isDegraded || normalized.jobs.length === 0) {
-      const fallback = await fetchBrowseHomeViaPublicSearch();
-      if (fallback.jobs.length > 0) {
-        return fallback;
+      if (!res.ok) {
+        const errorData: { message?: string; error?: string } = await res
+          .clone()
+          .json()
+          .catch(() => ({}));
+        const message = errorData.message || errorData.error || `status ${res.status}`;
+        console.warn(`[Browse] /api/jobs/browse/home failed on ${baseUrl}: ${message}`);
+        continue;
       }
-    }
 
-    return normalized;
-  } catch {
-    return await fetchBrowseHomeViaPublicSearch();
+      const data = await res.json().catch(() => null);
+      if (!data || typeof data !== "object") {
+        continue;
+      }
+
+      const normalized: BrowseHomeData = {
+        jobs: Array.isArray(data.jobs) ? data.jobs : [],
+        categories: Array.isArray(data.categories) ? data.categories : [],
+        topCompanies: Array.isArray(data.topCompanies) ? data.topCompanies : [],
+        stats: data.stats || EMPTY_BROWSE_DATA.stats,
+      };
+
+      const isDegraded = Boolean((data as { degraded?: boolean }).degraded);
+      if (!isDegraded && normalized.jobs.length > 0) {
+        return normalized;
+      }
+    } catch {
+      // Try next backend base URL.
+    }
   }
+
+  return await fetchBrowseHomeViaPublicSearch();
 }
 
 function pickTextFilters(
