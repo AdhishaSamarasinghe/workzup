@@ -39,6 +39,137 @@ const EMPTY_BROWSE_DATA: BrowseHomeData = {
   },
 };
 
+function buildFallbackHomeDataFromSearchPayload(data: unknown): BrowseHomeData {
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  const jobs = Array.isArray(payload.jobs) ? (payload.jobs as BrowseJob[]) : [];
+
+  const categoryCountMap = new Map<string, number>();
+  jobs.forEach((job) => {
+    const label = String(job?.derivedCategory || "").trim();
+    if (!label) return;
+    categoryCountMap.set(label, (categoryCountMap.get(label) || 0) + 1);
+  });
+
+  const categoryLabelsFromApi = Array.isArray(payload.categories)
+    ? payload.categories
+        .map((item) => String(item || "").trim())
+        .filter(Boolean)
+    : [];
+
+  const categories = Array.from(
+    new Set([...categoryLabelsFromApi, ...Array.from(categoryCountMap.keys())]),
+  )
+    .map((label) => ({
+      slug: slugify(label),
+      label,
+      count: categoryCountMap.get(label) || 0,
+    }))
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.label.localeCompare(b.label);
+    });
+
+  const companyMap = new Map<
+    string,
+    {
+      companyId: string | null;
+      slug: string;
+      companyName: string;
+      logoUrl: string | null;
+      industry: string | null;
+      location: string | null;
+      jobCount: number;
+      categoryLabels: Set<string>;
+      latestCreatedAt: string;
+    }
+  >();
+
+  jobs.forEach((job) => {
+    const companyName = String(job?.companyName || "").trim();
+    if (!companyName || companyName === "Independent Employer") return;
+
+    const key = slugify(companyName);
+    if (!key) return;
+
+    const current = companyMap.get(key) || {
+      companyId: job.companyId || null,
+      slug: key,
+      companyName,
+      logoUrl: job.companyLogoUrl || null,
+      industry: job.companyIndustry || null,
+      location: job.companyLocation || null,
+      jobCount: 0,
+      categoryLabels: new Set<string>(),
+      latestCreatedAt: job.createdAt || "",
+    };
+
+    current.jobCount += 1;
+    if (job.derivedCategory) {
+      current.categoryLabels.add(String(job.derivedCategory));
+    }
+    if (!current.latestCreatedAt || new Date(job.createdAt) > new Date(current.latestCreatedAt)) {
+      current.latestCreatedAt = job.createdAt;
+    }
+
+    companyMap.set(key, current);
+  });
+
+  const topCompanies = Array.from(companyMap.values())
+    .map((company) => ({
+      companyId: company.companyId,
+      slug: company.slug,
+      companyName: company.companyName,
+      logoUrl: company.logoUrl,
+      industry: company.industry,
+      location: company.location,
+      jobCount: company.jobCount,
+      categoryCount: company.categoryLabels.size,
+      latestCreatedAt: company.latestCreatedAt,
+    }))
+    .sort((a, b) => {
+      if (b.jobCount !== a.jobCount) return b.jobCount - a.jobCount;
+      return new Date(b.latestCreatedAt).getTime() - new Date(a.latestCreatedAt).getTime();
+    });
+
+  return {
+    jobs,
+    categories,
+    topCompanies,
+    stats: {
+      totalJobs: jobs.length,
+      totalCategories: categories.length,
+      totalCompanies: topCompanies.length,
+      totalSeekers: 0,
+      totalApplications: 0,
+    },
+  };
+}
+
+async function fetchBrowseHomeViaPublicSearch(): Promise<BrowseHomeData> {
+  if (!API_BASE_URL) {
+    return EMPTY_BROWSE_DATA;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/jobs/public-search`, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      return EMPTY_BROWSE_DATA;
+    }
+
+    const data = await res.json().catch(() => null);
+    return buildFallbackHomeDataFromSearchPayload(data);
+  } catch {
+    return EMPTY_BROWSE_DATA;
+  }
+}
+
 async function fetchBrowseHomeDataSafely(): Promise<BrowseHomeData> {
   if (!API_BASE_URL) {
     return EMPTY_BROWSE_DATA;
@@ -60,22 +191,32 @@ async function fetchBrowseHomeDataSafely(): Promise<BrowseHomeData> {
         .catch(() => ({}));
       const message = errorData.message || errorData.error || `status ${res.status}`;
       console.warn(`[Browse] Using fallback data because /api/jobs/browse/home failed: ${message}`);
-      return EMPTY_BROWSE_DATA;
+      return await fetchBrowseHomeViaPublicSearch();
     }
 
     const data = await res.json().catch(() => null);
     if (!data || typeof data !== "object") {
-      return EMPTY_BROWSE_DATA;
+      return await fetchBrowseHomeViaPublicSearch();
     }
 
-    return {
+    const normalized: BrowseHomeData = {
       jobs: Array.isArray(data.jobs) ? data.jobs : [],
       categories: Array.isArray(data.categories) ? data.categories : [],
       topCompanies: Array.isArray(data.topCompanies) ? data.topCompanies : [],
       stats: data.stats || EMPTY_BROWSE_DATA.stats,
     };
+
+    const isDegraded = Boolean((data as { degraded?: boolean }).degraded);
+    if (isDegraded || normalized.jobs.length === 0) {
+      const fallback = await fetchBrowseHomeViaPublicSearch();
+      if (fallback.jobs.length > 0) {
+        return fallback;
+      }
+    }
+
+    return normalized;
   } catch {
-    return EMPTY_BROWSE_DATA;
+    return await fetchBrowseHomeViaPublicSearch();
   }
 }
 
