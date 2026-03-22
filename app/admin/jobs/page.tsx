@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
@@ -63,9 +63,9 @@ export default function AdminJobsPage() {
   const [error, setError] = useState("");
   const [actionJobId, setActionJobId] = useState<string | null>(null);
 
-  const loadJobs = useCallback(async (q = "", tab: JobTab = "All Jobs") => {
+  const loadJobs = useCallback(async (q = "", tab: JobTab = "All Jobs", silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError("");
       const res = await getAdminJobs(q, tab === "All Jobs" ? "" : tab);
       if (res.success && res.data) {
@@ -85,7 +85,7 @@ export default function AdminJobsPage() {
       setJobs([]);
       setError(error instanceof Error ? error.message : "Failed to load jobs.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -93,7 +93,15 @@ export default function AdminJobsPage() {
     const timer = setTimeout(() => {
       loadJobs(search, activeTab);
     }, 400);
-    return () => clearTimeout(timer);
+
+    const interval = setInterval(() => {
+      loadJobs(search, activeTab, true);
+    }, 4000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [search, activeTab, loadJobs]);
 
   const flaggedCount = jobs.filter((job) => job.status === "FLAGGED").length;

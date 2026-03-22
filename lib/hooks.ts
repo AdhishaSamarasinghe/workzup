@@ -84,14 +84,14 @@ export function useChat(conversationId: string | null) {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch conversation and messages
-  const fetchChat = useCallback(async () => {
+  const fetchChat = useCallback(async (silent = false) => {
     if (!conversationId) {
       setConversation(null);
       setMessages([]);
       return;
     }
 
-    setIsLoading(true);
+    if (!silent) setIsLoading(true);
     setError(null);
 
     try {
@@ -113,14 +113,22 @@ export function useChat(conversationId: string | null) {
       setError("Failed to load chat");
     }
 
-    setIsLoading(false);
+    if (!silent) setIsLoading(false);
   }, [conversationId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void fetchChat();
     }, 0);
-    return () => window.clearTimeout(timer);
+
+    const interval = setInterval(() => {
+      void fetchChat(true);
+    }, 4000);
+
+    return () => {
+      window.clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [fetchChat]);
 
   // Send a message
