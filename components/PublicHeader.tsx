@@ -58,16 +58,6 @@ export default function PublicHeader({ alwaysSolid = false }: { alwaysSolid?: bo
                 {/* Auth Buttons */}
                 <div className="col-start-2 flex items-center justify-end gap-3 md:col-start-3 md:gap-4 md:justify-self-end">
                     <Link
-                        href="/auth/login/recruiter"
-                        className={`px-5 py-2 md:px-6 md:py-2.5 rounded-md font-semibold text-xs md:text-sm tracking-wide transition-all duration-300 ${isScrolled
-                            ? 'bg-[#5b72c9] text-white shadow-md hover:bg-[#4a5fb8] hover:shadow-lg hover:-translate-y-0.5'
-                            : 'bg-white/10 text-white backdrop-blur-md border border-white/30 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-white/25 hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] hover:-translate-y-0.5'
-                            }`}
-                    >
-                        RECRUITERS LOGIN
-                    </Link>
-
-                    <Link
                         href="/auth/login"
                         className={`px-5 py-2 md:px-6 md:py-2.5 rounded-md font-semibold text-xs md:text-sm tracking-wide transition-all duration-300 ${isScrolled
                             ? 'bg-[#6b8cff] text-white shadow-md hover:bg-[#5b72c9] hover:shadow-lg hover:-translate-y-0.5'
@@ -75,6 +65,16 @@ export default function PublicHeader({ alwaysSolid = false }: { alwaysSolid?: bo
                             }`}
                     >
                         JOB SEEKER LOGIN
+                    </Link>
+
+                    <Link
+                        href="/auth/login/recruiter"
+                        className={`px-5 py-2 md:px-6 md:py-2.5 rounded-md font-semibold text-xs md:text-sm tracking-wide transition-all duration-300 ${isScrolled
+                            ? 'bg-[#5b72c9] text-white shadow-md hover:bg-[#4a5fb8] hover:shadow-lg hover:-translate-y-0.5'
+                            : 'bg-white/10 text-white backdrop-blur-md border border-white/30 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-white/25 hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] hover:-translate-y-0.5'
+                            }`}
+                    >
+                        RECRUITERS LOGIN
                     </Link>
                 </div>
             </div>
