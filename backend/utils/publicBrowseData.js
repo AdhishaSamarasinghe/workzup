@@ -269,11 +269,25 @@ async function getBrowseHomeData(prisma) {
   const categories = buildCategorySummary(browseJobs);
   const topCompanies = buildTopCompanies(browseJobs);
 
+  const safeCount = async (delegateName, args) => {
+    try {
+      const delegate = prisma?.[delegateName];
+      if (!delegate || typeof delegate.count !== "function") {
+        return 0;
+      }
+
+      const value = await delegate.count(args || {});
+      return Number(value || 0);
+    } catch {
+      return 0;
+    }
+  };
+
   const [totalSeekersResult, totalApplicationsResult, totalCompaniesResult] =
     await Promise.allSettled([
-      prisma.user.count({ where: { role: "JOB_SEEKER" } }),
-      prisma.application.count(),
-      prisma.company.count(),
+      safeCount("user", { where: { role: "JOB_SEEKER" } }),
+      safeCount("application"),
+      safeCount("company"),
     ]);
 
   const totalSeekers =
