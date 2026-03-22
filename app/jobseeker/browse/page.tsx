@@ -293,8 +293,8 @@ function BrowseJobsPageContent() {
 
   return (
     <div className="min-h-screen bg-[#f7fafc]">
-      <section className="relative h-[560px] w-full overflow-hidden">
-        <div className="absolute inset-0">
+      <section className="relative z-20 h-[560px] w-full">
+        <div className="absolute inset-0 overflow-hidden">
           <video
             autoPlay
             muted
