@@ -1,50 +1,65 @@
-const { createClient } = require("@supabase/supabase-js");
 const prisma = require("../prismaClient");
+const { getSupabaseAdmin } = require("../lib/supabaseAdmin");
+const { loadEnv } = require("../config/env");
 
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+loadEnv();
+
+function normalizeEmail(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
 
 async function authenticateToken(req, res, next) {
   try {
-    console.log("=== authenticateToken HIT ===");
+    const authHeader = String(req.headers.authorization || "").trim();
 
-    const authHeader = req.headers.authorization || "";
-
-    if (!authHeader.startsWith("Bearer ")) {
+    if (!/^Bearer\s+/i.test(authHeader)) {
       return res.status(401).json({
         success: false,
         message: "Missing or invalid authorization header",
       });
     }
 
-    const token = authHeader.slice(7).trim();
+    const token = authHeader
+      .replace(/^Bearer\s+/i, "")
+      .replace(/^"|"$/g, "")
+      .trim();
 
-    if (!token) {
+    if (!token || token === "null" || token === "undefined") {
       return res.status(401).json({
         success: false,
         message: "Access token is required",
       });
     }
 
+    const supabaseAdmin = getSupabaseAdmin();
     const { data, error } = await supabaseAdmin.auth.getUser(token);
 
     if (error || !data?.user) {
-      console.log("FAILED: Invalid token", error?.message);
+      console.warn("authenticateToken: token validation failed", error?.message);
       return res.status(401).json({
         success: false,
         message: "Invalid or expired token",
       });
     }
 
-    console.log("SUPABASE USER EMAIL:", data.user.email);
+    const authUser = data.user;
+    const authUserId = String(authUser.id || "").trim();
+    const authEmail = normalizeEmail(authUser.email);
 
-    const appUser = await prisma.user.findUnique({
-      where: { email: data.user.email },
-    });
+    let appUser = null;
 
-    console.log("DB APP USER:", appUser);
+    if (authUserId) {
+      appUser = await prisma.user.findUnique({
+        where: { id: authUserId },
+      });
+    }
+
+    if (!appUser && authEmail) {
+      appUser = await prisma.user.findUnique({
+        where: { email: authEmail },
+      });
+    }
+
 
     if (!appUser) {
       return res.status(403).json({
@@ -53,8 +68,15 @@ async function authenticateToken(req, res, next) {
       });
     }
 
-    req.authUser = data.user;
+    req.authUser = authUser;
     req.appUser = appUser;
+    req.user = {
+      userId: appUser.id,
+      id: appUser.id,
+      sub: appUser.id,
+      role: appUser.role,
+      email: appUser.email,
+    };
 
     next();
   } catch (error) {
