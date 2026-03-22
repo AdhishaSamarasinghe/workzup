@@ -1,3 +1,5 @@
+console.log("ADMIN USERS ROUTE FILE LOADED:", __filename);
+
 const express = require("express");
 const router = express.Router();
 
@@ -11,3 +13,5 @@ router.put("/:id", authenticateToken, requireAdmin, usersController.updateUser);
 router.delete("/:id", authenticateToken, requireAdmin, usersController.deleteUser);
 
 module.exports = router;
+
+console.log("MAIN USERS ROUTE FILE LOADED:", __filename);
