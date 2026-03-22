@@ -1,5 +1,5 @@
 [phases.install]
-cmds = ["npm --prefix backend ci"]
+cmds = ["npm --prefix backend ci --omit=dev"]
 
 [start]
-cmd = "npm --prefix backend start"
+cmd = "node backend/server.js"
