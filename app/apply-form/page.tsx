@@ -268,21 +268,6 @@ function ApplicationFormContent() {
         if (!(idFront instanceof File) || idFront.size === 0 || !(idBack instanceof File) || idBack.size === 0) {
           throw new Error("Please upload both the front and back of your NIC.");
         }
-
-        const docsFormData = new FormData();
-        docsFormData.append("idFront", idFront);
-        docsFormData.append("idBack", idBack);
-
-        await apiFetch("/api/auth/upload-docs", {
-          method: "POST",
-          body: docsFormData,
-        });
-
-        setProfileDocs((prev) => ({
-          ...prev,
-          nicFront: true,
-          nicBack: true,
-        }));
       }
 
       const response = await fetch("/api/apply-form", {
@@ -312,6 +297,12 @@ function ApplicationFormContent() {
       setCvFileName(null);
       setNicFrontFileName(null);
       setNicBackFileName(null);
+      setProfileDocs((prev) => ({
+        ...prev,
+        cv: prev.cv || Boolean(formData.get("cv") instanceof File && (formData.get("cv") as File).size > 0),
+        nicFront: prev.nicFront || Boolean(formData.get("idFront") instanceof File && (formData.get("idFront") as File).size > 0),
+        nicBack: prev.nicBack || Boolean(formData.get("idBack") instanceof File && (formData.get("idBack") as File).size > 0),
+      }));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Something went wrong.";
       setIsSuccess(false);

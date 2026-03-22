@@ -18,7 +18,12 @@ const normalizeApplicationStatus = (application) => {
 // POST /api/applications - Apply to a job
 router.post("/", authenticateToken, async (req, res) => {
     try {
-        const { jobId } = req.body;
+        const {
+            jobId,
+            submittedCv,
+            submittedIdFront,
+            submittedIdBack,
+        } = req.body;
         const applicantId = req.user.userId;
 
         if (!jobId) return res.status(400).json({ message: "jobId is required" });
@@ -48,6 +53,24 @@ router.post("/", authenticateToken, async (req, res) => {
                 relevantSkillsCount: 2
             }
         });
+
+        const userUpdate = {};
+        if (typeof submittedCv === "string" && submittedCv.trim()) {
+            userUpdate.cv = submittedCv;
+        }
+        if (typeof submittedIdFront === "string" && submittedIdFront.trim()) {
+            userUpdate.idFront = submittedIdFront;
+        }
+        if (typeof submittedIdBack === "string" && submittedIdBack.trim()) {
+            userUpdate.idBack = submittedIdBack;
+        }
+
+        if (Object.keys(userUpdate).length > 0) {
+            await prisma.user.update({
+                where: { id: applicantId },
+                data: userUpdate,
+            });
+        }
 
         // Trigger Notification to Employer
         await prisma.notification.create({

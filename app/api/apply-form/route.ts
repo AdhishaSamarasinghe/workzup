@@ -1,24 +1,14 @@
 import { NextResponse } from "next/server";
 import { API_BASE } from "@/lib/api";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
-import { randomUUID } from "crypto";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const APPLICATION_UPLOADS_DIR = path.join(process.cwd(), "backend", "uploads", "applications");
-
 let detectedBackendBase: string | null = null;
 
-async function persistUpload(file: File, prefix: string) {
-  const extension = path.extname(file.name) || "";
-  const safeName = `${prefix}-${Date.now()}-${randomUUID()}${extension}`;
-  const targetPath = path.join(APPLICATION_UPLOADS_DIR, safeName);
-
-  await mkdir(APPLICATION_UPLOADS_DIR, { recursive: true });
-  await writeFile(targetPath, Buffer.from(await file.arrayBuffer()));
-
-  return `uploads/applications/${safeName}`;
+async function fileToDataUrl(file: File) {
+  const mimeType = file.type || "application/octet-stream";
+  const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
+  return `data:${mimeType};base64,${base64}`;
 }
 
 async function postApplicationToBackend(authHeader: string, body: Record<string, unknown>) {
@@ -60,7 +50,8 @@ export async function POST(request: Request) {
     const email = String(formData.get("email") || "").trim();
     const phone = String(formData.get("phone") || "").trim();
     const cv = formData.get("cv");
-    const nic = formData.get("nic");
+    const idFront = formData.get("idFront");
+    const idBack = formData.get("idBack");
 
     const jobId = String(formData.get("jobId") || "").trim();
 
@@ -76,14 +67,11 @@ export async function POST(request: Request) {
     if (cv && cv instanceof File && cv.size > MAX_FILE_SIZE) {
       return NextResponse.json({ message: "CV must be under 5MB." }, { status: 400 });
     }
-    if (nic && nic instanceof File && nic.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ message: "NIC must be under 5MB." }, { status: 400 });
+    if (idFront && idFront instanceof File && idFront.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ message: "NIC front must be under 5MB." }, { status: 400 });
     }
-
-    let submittedCv: string | null = null;
-
-    if (cv instanceof File && cv.size > 0) {
-      submittedCv = await persistUpload(cv, "application-cv");
+    if (idBack && idBack instanceof File && idBack.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ message: "NIC back must be under 5MB." }, { status: 400 });
     }
 
     // Capture the user JWT from the incoming request headers to prove JobSeeker identity
@@ -93,12 +81,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized. Please login to apply." }, { status: 401 });
     }
 
+    const submittedCv =
+      cv instanceof File && cv.size > 0 ? await fileToDataUrl(cv) : null;
+    const submittedIdFront =
+      idFront instanceof File && idFront.size > 0 ? await fileToDataUrl(idFront) : null;
+    const submittedIdBack =
+      idBack instanceof File && idBack.size > 0 ? await fileToDataUrl(idBack) : null;
+
     const backendResponse = await postApplicationToBackend(authHeader, {
       jobId,
       fullName,
       email,
       phone,
       submittedCv,
+      submittedIdFront,
+      submittedIdBack,
     });
 
     const payload = await backendResponse.json();

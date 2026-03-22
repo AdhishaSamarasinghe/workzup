@@ -31,7 +31,7 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "30mb" }));
 app.use(cookieParser());
 
 // Serve static files from the uploads directory
