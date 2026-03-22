@@ -209,7 +209,7 @@ function CompleteJobContent() {
                         <button
                             onClick={handleConfirm}
                             disabled={submitting || success}
-                            className={`w-full py-3.5 rounded-xl font-bold transition-all ${success
+                            className={`w-full py-3.5 rounded-xl font-semibold transition-all ${success
                                 ? "bg-green-500 text-white"
                                 : "bg-[#6D83F2] hover:bg-[#5B73F1] text-white shadow-md shadow-[#6D83F2]/30"
                                 } disabled:opacity-70`}
