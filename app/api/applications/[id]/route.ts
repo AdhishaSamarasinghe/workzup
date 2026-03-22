@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api";
 
 export async function GET(
   request: NextRequest,
@@ -25,7 +25,7 @@ export async function GET(
       cache: "no-store" as RequestCache,
     };
 
-    const detailsResponse = await fetch(`${API_BASE}/api/applications/${applicationId}`, fetchOptions);
+    const detailsResponse = await fetch(`${API_BASE_URL}/api/applications/${applicationId}`, fetchOptions);
     const detailsPayload = await detailsResponse.json().catch(() => ({}));
 
     if (detailsResponse.ok) {
@@ -34,7 +34,7 @@ export async function GET(
 
     // Fallback for a backend instance that has not yet reloaded the new details route.
     if (detailsResponse.status === 404) {
-      const listResponse = await fetch(`${API_BASE}/api/applications/my-applications`, fetchOptions);
+      const listResponse = await fetch(`${API_BASE_URL}/api/applications/my-applications`, fetchOptions);
       const listPayload = await listResponse.json().catch(() => ({}));
 
       if (!listResponse.ok) {

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { apiFetch, API_BASE } from "@/lib/api";
+import { apiFetch, API_BASE_URL } from "@/lib/api";
 import { 
     User, Briefcase, FileText, Shield, Award, MapPin, Star, 
     Plus, Trash2, Edit2, Link as LinkIcon, Github, Linkedin, Target, CheckCircle2, Camera, LoaderCircle
@@ -802,7 +802,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
                             {profile.cv && (
-                                <a href={`${API_BASE}/${profile.cv.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-sm font-bold flex items-center">
+                                <a href={`${API_BASE_URL}/${profile.cv.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-sm font-bold flex items-center">
                                     <FileText className="w-4 h-4 mr-1" /> View Current
                                 </a>
                             )}
@@ -830,7 +830,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Front Side</span>
                                     {profile.idFront && (
-                                        <a href={`${API_BASE}/${profile.idFront.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-xs font-bold flex items-center">
+                                        <a href={`${API_BASE_URL}/${profile.idFront.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-xs font-bold flex items-center">
                                             <FileText className="w-3.5 h-3.5 mr-1" /> View Current
                                         </a>
                                     )}
@@ -846,7 +846,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Back Side</span>
                                     {profile.idBack && (
-                                        <a href={`${API_BASE}/${profile.idBack.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-xs font-bold flex items-center">
+                                        <a href={`${API_BASE_URL}/${profile.idBack.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-xs font-bold flex items-center">
                                             <FileText className="w-3.5 h-3.5 mr-1" /> View Current
                                         </a>
                                     )}

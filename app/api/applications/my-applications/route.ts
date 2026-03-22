@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api";
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
     }
 
-    const response = await fetch(`${API_BASE}/api/applications/my-applications`, {
+    const response = await fetch(`${API_BASE_URL}/api/applications/my-applications`, {
       headers: {
         Authorization: authHeader,
       },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_BASE } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api";
 
 type Review = {
   id: number | string;
@@ -17,7 +17,7 @@ export default function ReviewSection() {
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/reviews`)
+    fetch(`${API_BASE_URL}/reviews`)
       .then((res) => res.json())
       .then((data) => {
         setReviewsData(Array.isArray(data) ? data : []);

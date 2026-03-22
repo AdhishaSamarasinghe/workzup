@@ -15,34 +15,13 @@ import {
 } from "./types";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  "http://localhost:5000";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "") || "";
+
+// Backward-compatible alias while migrating call sites.
+export const API_BASE = API_BASE_URL;
 
 let detectedBaseUrl: string | null = null;
-
-function getLocalFallbackUrl(baseUrl: string) {
-  try {
-    const parsed = new URL(baseUrl);
-    const isLocalHost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-    if (!isLocalHost) return null;
-
-    if (parsed.port === "5000") {
-      parsed.port = "5001";
-      return parsed.toString().replace(/\/$/, "");
-    }
-
-    if (parsed.port === "5001") {
-      parsed.port = "5000";
-      return parsed.toString().replace(/\/$/, "");
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -177,6 +156,12 @@ export async function getCurrentUserRole() {
 // CORE FETCH ENGINE (with 5001 fallback)
 // ============================================
 async function executeFetch(path: string, options: RequestInit = {}) {
+  if (!API_BASE_URL) {
+    throw new Error(
+      "NEXT_PUBLIC_API_URL is missing. Define it in your environment (for local dev, set it in .env.local).",
+    );
+  }
+
   const performFetch = async (baseUrl: string) => {
     const url = `${baseUrl}${path}`;
     const method = options.method || "GET";
@@ -205,35 +190,15 @@ async function executeFetch(path: string, options: RequestInit = {}) {
   }
 
   try {
-    const res = await performFetch(API_BASE);
-    detectedBaseUrl = API_BASE;
+    const res = await performFetch(API_BASE_URL);
+    detectedBaseUrl = API_BASE_URL;
     return res;
   } catch (error: unknown) {
     const message = getErrorMessage(error);
 
     if (message === "REACHABILITY_ERROR") {
-      const fallbackUrl = getLocalFallbackUrl(API_BASE);
-      if (fallbackUrl) {
-        console.warn(
-          `[API] ${API_BASE} unreachable. Detecting if backend is on ${fallbackUrl}...`,
-        );
-
-        try {
-          const healthRes = await fetch(`${fallbackUrl}/health`);
-          if (healthRes.ok) {
-            console.log(
-              `[API] Backend detected on ${fallbackUrl}. Caching for future calls.`,
-            );
-            detectedBaseUrl = fallbackUrl;
-            return await performFetch(fallbackUrl);
-          }
-        } catch {
-          // Ignore fallback health check failure
-        }
-      }
-
       throw new Error(
-        "Backend not reachable. Check if server is running on port 5000 or 5001.",
+        `Backend not reachable at ${API_BASE_URL}. Check NEXT_PUBLIC_API_URL and backend availability.`,
       );
     }
 

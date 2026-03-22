@@ -1,4 +1,4 @@
-import { API_BASE } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api";
 
 export function resolveUploadUrl(pathValue?: string | null) {
   if (!pathValue) return null;
@@ -26,7 +26,7 @@ export function resolveUploadUrl(pathValue?: string | null) {
       return `/api/uploads/${noLeadingSlash}`;
     }
 
-    return `${API_BASE}/${noLeadingSlash}`;
+    return `${API_BASE_URL}/${noLeadingSlash}`;
   };
 
   if (/^https?:\/\//i.test(pathValue)) {

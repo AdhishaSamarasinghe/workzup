@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
   devIndicators: false,
   turbopack: {
@@ -30,25 +32,38 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
+    if (!API_BASE_URL) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          "NEXT_PUBLIC_API_URL is not set. API rewrites are disabled until it is defined.",
+        );
+      }
+
+      return {
+        beforeFiles: [],
+        fallback: [],
+      };
+    }
+
     return {
       beforeFiles: [
         {
           source: '/api/auth/:path(register|login|role|profile|upload-avatar|upload-docs|forgot-password)',
-          destination: 'http://localhost:5000/api/auth/:path',
+          destination: `${API_BASE_URL}/api/auth/:path`,
         },
         {
           source: '/api/auth/profile/:path*',
-          destination: 'http://localhost:5000/api/auth/profile/:path*',
+          destination: `${API_BASE_URL}/api/auth/profile/:path*`,
         },
         {
           source: '/api/auth/forgot-password/:path*',
-          destination: 'http://localhost:5000/api/auth/forgot-password/:path*',
+          destination: `${API_BASE_URL}/api/auth/forgot-password/:path*`,
         }
       ],
       fallback: [
         {
           source: '/api/:path*',
-          destination: 'http://localhost:5000/api/:path*',
+          destination: `${API_BASE_URL}/api/:path*`,
         },
       ],
     };

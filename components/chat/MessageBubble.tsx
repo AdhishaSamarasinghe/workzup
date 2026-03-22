@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { API_BASE_URL } from '@/lib/api';
 
 type BubbleMessage = {
   content?: string;
@@ -13,7 +14,9 @@ type BubbleMessage = {
 export default function MessageBubble({ msg, isMine, participantName }: { msg: BubbleMessage; isMine: boolean, participantName?: string }) {
   const content = msg.content || msg.text || '';
   const isImage = content.startsWith('[IMAGE]');
-  const imageUrl = isImage ? `http://localhost:5000${content.replace('[IMAGE]', '')}` : '';
+  const imageUrl = isImage && API_BASE_URL
+    ? `${API_BASE_URL}${content.replace('[IMAGE]', '')}`
+    : '';
   
   const isLocation = content.startsWith('[LOCATION]');
   const locationCoords = isLocation ? content.replace('[LOCATION]', '') : '';
