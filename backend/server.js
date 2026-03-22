@@ -15,7 +15,11 @@ const isProduction = runtimeEnv === "production";
 function parseOriginList(rawValue) {
   return String(rawValue || "")
     .split(",")
-    .map((entry) => entry.trim().replace(/^"|"$/g, ""))
+    .map((entry) => entry.trim().replace(/^"|"$/g, "").replace(/^'|'$/g, ""))
+    .map((entry) => {
+      const assignmentMatch = entry.match(/^[A-Z0-9_]+\s*=\s*(.+)$/i);
+      return assignmentMatch?.[1] ? assignmentMatch[1].trim() : entry;
+    })
     .filter(Boolean)
     .map((entry) => {
       let candidate = entry;

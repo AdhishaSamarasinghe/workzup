@@ -18,7 +18,19 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 const LOCAL_DEV_API_BASE_URL = "http://localhost:5000";
 
 function normalizeApiBaseUrl(rawValue: string | undefined) {
-  const value = String(rawValue || "").trim().replace(/\/$/, "");
+  let value = String(rawValue || "")
+    .trim()
+    .replace(/^"|"$/g, "")
+    .replace(/^'|'$/g, "")
+    .replace(/\/$/, "");
+
+  // Guard against accidentally pasting env assignment strings,
+  // e.g. NEXT_PUBLIC_API_URL=https://api.example.com
+  const assignmentMatch = value.match(/^[A-Z0-9_]+\s*=\s*(.+)$/i);
+  if (assignmentMatch?.[1]) {
+    value = assignmentMatch[1].trim().replace(/^"|"$/g, "").replace(/^'|'$/g, "");
+  }
+
   if (!value) return "";
 
   let withProtocol = value;
