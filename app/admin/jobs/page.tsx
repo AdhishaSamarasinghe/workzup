@@ -61,6 +61,7 @@ export default function AdminJobsPage() {
   const [activeTab, setActiveTab] = useState<JobTab>("All Jobs");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionJobId, setActionJobId] = useState<string | null>(null);
 
   const loadJobs = useCallback(async (q = "", tab: JobTab = "All Jobs") => {
     try {
@@ -97,15 +98,36 @@ export default function AdminJobsPage() {
 
   const flaggedCount = jobs.filter((job) => job.status === "FLAGGED").length;
 
-  const handlePrimaryAction = async (id: string, currentStatus: string) => {
-    let newStatus = "PUBLIC";
-    if (currentStatus === "PUBLIC") newStatus = "FLAGGED";
-    else if (currentStatus === "FLAGGED") newStatus = "PUBLIC";
+  const updateJobStatus = useCallback(
+    async (id: string, status: JobStatus) => {
+      try {
+        setActionJobId(id);
+        setError("");
+        const res = await apiToggleJobStatus(id, status);
+        if (!res.success) {
+          setError(res.error || res.message || "Failed to update the job status.");
+          return;
+        }
+        await loadJobs(search, activeTab);
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to update the job status."
+        );
+      } finally {
+        setActionJobId(null);
+      }
+    },
+    [activeTab, loadJobs, search]
+  );
 
-    const res = await apiToggleJobStatus(id, newStatus);
-    if (res.success) {
-      loadJobs(search, activeTab);
+  const handlePrimaryAction = async (id: string, currentStatus: JobStatus) => {
+    if (currentStatus === "FLAGGED") {
+      await updateJobStatus(id, "PUBLIC");
+      return;
     }
+    await updateJobStatus(id, "FLAGGED");
   };
 
   return (
@@ -292,6 +314,8 @@ export default function AdminJobsPage() {
                               ? "success"
                               : job.status === "FLAGGED"
                               ? "error"
+                              : job.status === "PRIVATE"
+                              ? "warning"
                               : "default"
                           }
                         />
@@ -299,16 +323,24 @@ export default function AdminJobsPage() {
 
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
+                          {actionJobId === job.id ? (
+                            <span className="text-xs font-medium text-slate-400">
+                              Saving...
+                            </span>
+                          ) : null}
+
                           {job.status === "FLAGGED" ? (
                             <button
                               onClick={() => handlePrimaryAction(job.id, job.status)}
+                              disabled={actionJobId === job.id}
                               className="rounded-lg bg-rose-500 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-600"
                             >
                               Review Flag
                             </button>
                           ) : job.status === "COMPLETED" || job.status === "CANCELLED" ? (
                             <button
-                              onClick={() => handlePrimaryAction(job.id, job.status)}
+                              onClick={() => updateJobStatus(job.id, "PUBLIC")}
+                              disabled={actionJobId === job.id}
                               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                             >
                               Reopen
@@ -317,13 +349,16 @@ export default function AdminJobsPage() {
                             <>
                               <button
                                 onClick={() => handlePrimaryAction(job.id, job.status)}
-                                className="rounded-lg bg-blue-50 p-2 text-blue-600 hover:bg-blue-100"
+                                disabled={actionJobId === job.id}
+                                className="rounded-lg bg-blue-50 p-2 text-blue-600 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
                                 title="Flag Job"
                               >
                                 <Flag size={14} />
                               </button>
                               <button
-                                className="rounded-lg bg-slate-50 p-2 text-slate-500 hover:bg-slate-100"
+                                onClick={() => updateJobStatus(job.id, "PRIVATE")}
+                                disabled={actionJobId === job.id}
+                                className="rounded-lg bg-slate-50 p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                                 title="Hide Job"
                               >
                                 <EyeOff size={14} />
@@ -337,9 +372,11 @@ export default function AdminJobsPage() {
                             </>
                           )}
 
-                          {job.status !== "COMPLETED" && job.status !== "FLAGGED" ? (
+                          {job.status !== "PUBLIC" ? (
                             <button
-                              className="rounded-lg bg-slate-50 p-2 text-slate-500 hover:bg-slate-100"
+                              onClick={() => updateJobStatus(job.id, "PUBLIC")}
+                              disabled={actionJobId === job.id}
+                              className="rounded-lg bg-slate-50 p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                               title="Reopen"
                             >
                               <RotateCcw size={14} />
