@@ -62,6 +62,10 @@ export default function AdminSidebar() {
   const handleSignOut = async () => {
     try {
       const supabase = getSupabaseBrowserClient();
+      if (!supabase) {
+        console.warn("Supabase auth is not configured in this environment.");
+        return;
+      }
       await supabase.auth.signOut();
       router.replace("/admin/login");
       router.refresh();
