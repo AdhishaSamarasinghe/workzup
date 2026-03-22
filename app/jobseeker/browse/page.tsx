@@ -11,7 +11,7 @@ import {
   JobCategoriesSection,
   TopHiringCompaniesSection,
 } from "@/components/jobs/BrowseHomepageSections";
-import { apiFetch } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api";
 import {
   BrowseFilters,
   BrowseHomeData,
@@ -25,6 +25,59 @@ import { useWorkzupAuth } from "@/lib/auth/useWorkzupAuth";
 
 const JOBS_PER_PAGE = 4;
 const CATEGORIES_PER_PAGE = 10;
+
+const EMPTY_BROWSE_DATA: BrowseHomeData = {
+  jobs: [],
+  categories: [],
+  topCompanies: [],
+  stats: {
+    totalJobs: 0,
+    totalCategories: 0,
+    totalCompanies: 0,
+    totalSeekers: 0,
+    totalApplications: 0,
+  },
+};
+
+async function fetchBrowseHomeDataSafely(): Promise<BrowseHomeData> {
+  if (!API_BASE_URL) {
+    return EMPTY_BROWSE_DATA;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/jobs/browse/home`, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const errorData: { message?: string; error?: string } = await res
+        .clone()
+        .json()
+        .catch(() => ({}));
+      const message = errorData.message || errorData.error || `status ${res.status}`;
+      console.warn(`[Browse] Using fallback data because /api/jobs/browse/home failed: ${message}`);
+      return EMPTY_BROWSE_DATA;
+    }
+
+    const data = await res.json().catch(() => null);
+    if (!data || typeof data !== "object") {
+      return EMPTY_BROWSE_DATA;
+    }
+
+    return {
+      jobs: Array.isArray(data.jobs) ? data.jobs : [],
+      categories: Array.isArray(data.categories) ? data.categories : [],
+      topCompanies: Array.isArray(data.topCompanies) ? data.topCompanies : [],
+      stats: data.stats || EMPTY_BROWSE_DATA.stats,
+    };
+  } catch {
+    return EMPTY_BROWSE_DATA;
+  }
+}
 
 function pickTextFilters(
   searchParams: URLSearchParams | ReturnType<typeof useSearchParams>,
@@ -107,18 +160,7 @@ function BrowseJobsPageContent() {
   const searchParams = useSearchParams();
   const { isAuthenticated } = useWorkzupAuth();
 
-  const [browseData, setBrowseData] = useState<BrowseHomeData>({
-    jobs: [],
-    categories: [],
-    topCompanies: [],
-    stats: {
-      totalJobs: 0,
-      totalCategories: 0,
-      totalCompanies: 0,
-      totalSeekers: 0,
-      totalApplications: 0,
-    },
-  });
+  const [browseData, setBrowseData] = useState<BrowseHomeData>(EMPTY_BROWSE_DATA);
   const [filters, setFilters] = useState<BrowseFilters>(DEFAULT_BROWSE_FILTERS);
   const [draftFilters, setDraftFilters] = useState<BrowseFilters>(
     DEFAULT_BROWSE_FILTERS,
@@ -141,30 +183,14 @@ function BrowseJobsPageContent() {
     const fetchBrowseData = async (silent = false) => {
       try {
         if (!silent) setIsLoading(true);
-        const data = await apiFetch("/api/jobs/browse/home");
+        const data = await fetchBrowseHomeDataSafely();
         if (!isMounted) return;
-        setBrowseData({
-          jobs: Array.isArray(data.jobs) ? data.jobs : [],
-          categories: Array.isArray(data.categories) ? data.categories : [],
-          topCompanies: Array.isArray(data.topCompanies)
-            ? data.topCompanies
-            : [],
-          stats: data.stats || {
-            totalJobs: 0,
-            totalCategories: 0,
-            totalCompanies: 0,
-            totalSeekers: 0,
-            totalApplications: 0,
-          },
-        });
+        setBrowseData(data);
         setLoadError("");
       } catch (error) {
         if (!isMounted) return;
-        setLoadError(
-          error instanceof Error
-            ? error.message
-            : "Failed to load browse homepage data",
-        );
+        setBrowseData(EMPTY_BROWSE_DATA);
+        setLoadError("");
       } finally {
         if (isMounted && !silent) setIsLoading(false);
       }

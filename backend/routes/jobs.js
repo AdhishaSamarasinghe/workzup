@@ -35,7 +35,20 @@ router.get("/browse/home", async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error("Error fetching browse home data:", err);
-    res.status(500).json({ message: "Failed to fetch browse home data" });
+    res.json({
+      jobs: [],
+      categories: [],
+      topCompanies: [],
+      stats: {
+        totalJobs: 0,
+        totalCategories: 0,
+        totalCompanies: 0,
+        totalSeekers: 0,
+        totalApplications: 0,
+      },
+      degraded: true,
+      message: "Failed to fetch browse home data",
+    });
   }
 });
 

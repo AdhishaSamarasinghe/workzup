@@ -33,6 +33,14 @@ export default function MyJobPostingsPage() {
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
   const [pendingDeleteJob, setPendingDeleteJob] = useState<EmployerJob | null>(null);
 
+  const getFriendlyError = (err: unknown, fallback: string) => {
+    const message = err instanceof Error ? err.message : String(err || "");
+    if (/Missing token|Invalid token|expired token/i.test(message)) {
+      return "Your session has expired. Please sign in again.";
+    }
+    return message || fallback;
+  };
+
   // Custom simple debounce hook to avoid needing to install new packages
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
 
@@ -64,7 +72,7 @@ export default function MyJobPostingsPage() {
       const data = await apiFetch(`/api/employer/my-postings?${queryParams.toString()}`);
       setJobs(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load jobs. The backend might be unreachable.");
+      setError(getFriendlyError(err, "Failed to load jobs. The backend might be unreachable."));
     } finally {
       setLoading(false);
     }
@@ -100,11 +108,7 @@ export default function MyJobPostingsPage() {
       setJobs((prev) =>
         prev.map((job) => (job.id === jobId ? { ...job, status: previousStatus } : job)),
       );
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to update status. Please try again.",
-      );
+      setError(getFriendlyError(err, "Failed to update status. Please try again."));
     } finally {
       setUpdatingJobId(null);
     }
@@ -120,11 +124,7 @@ export default function MyJobPostingsPage() {
       });
       setJobs((prev) => prev.filter((job) => job.id !== jobId));
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to delete job. Please try again.",
-      );
+      setError(getFriendlyError(err, "Failed to delete job. Please try again."));
     } finally {
       setDeletingJobId(null);
     }

@@ -15,6 +15,8 @@ import {
 } from "./types";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
+const LOCAL_DEV_API_BASE_URL = "http://localhost:5000";
+
 function normalizeApiBaseUrl(rawValue: string | undefined) {
   const value = String(rawValue || "").trim().replace(/\/$/, "");
   if (!value) return "";
@@ -30,6 +32,37 @@ function normalizeApiBaseUrl(rawValue: string | undefined) {
   }
 
   return withProtocol.replace(/\/api$/i, "");
+}
+
+function isLocalhostHost(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function isLocalhostBaseUrl(baseUrl: string | null | undefined) {
+  if (!baseUrl) return false;
+  try {
+    const parsed = new URL(baseUrl);
+    return isLocalhostHost(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function resolveApiBaseUrl() {
+  const configuredBase = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+
+  if (process.env.NODE_ENV !== "production") {
+    if (!configuredBase) {
+      return LOCAL_DEV_API_BASE_URL;
+    }
+
+    // In local development, prefer local backend even if env is set to a remote deploy.
+    if (!isLocalhostBaseUrl(configuredBase)) {
+      return LOCAL_DEV_API_BASE_URL;
+    }
+  }
+
+  return configuredBase;
 }
 
 function normalizeApiPath(path: string) {
@@ -48,12 +81,21 @@ function normalizeApiPath(path: string) {
   return normalizedPath;
 }
 
-export const API_BASE_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+export const API_BASE_URL = resolveApiBaseUrl();
 
 // Backward-compatible alias while migrating call sites.
 export const API_BASE = API_BASE_URL;
 
 let detectedBaseUrl: string | null = null;
+
+function getRuntimePreferredBaseUrl() {
+  if (typeof window === "undefined") return null;
+
+  const { hostname } = window.location;
+  if (!isLocalhostHost(hostname)) return null;
+
+  return LOCAL_DEV_API_BASE_URL;
+}
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -130,13 +172,15 @@ export async function getAuthToken() {
     return supabaseToken;
   }
 
-  // Fallback for legacy/intermittent session scenarios.
-  // This helps avoid transient "Missing token" errors if session hydration lags.
+  // Fallback for intermittent session hydration scenarios.
+  // Only trust the Supabase-backed cache key and clear legacy token keys.
   try {
     const fallbackToken = normalizeToken(
-      window.localStorage.getItem("workzup:access_token") ||
-        window.localStorage.getItem("token"),
+      window.localStorage.getItem("workzup:access_token"),
     );
+
+    // Do not use legacy custom token cache; it can hold stale non-Supabase JWTs.
+    window.localStorage.removeItem("token");
 
     if (fallbackToken && isLikelyJwt(fallbackToken)) {
       return fallbackToken;
@@ -213,31 +257,39 @@ async function executeFetch(path: string, options: RequestInit = {}) {
     }
   };
 
-  if (detectedBaseUrl) {
+  const runtimePreferredBase = getRuntimePreferredBaseUrl();
+  const candidateBases = [detectedBaseUrl, runtimePreferredBase, API_BASE_URL].filter(
+    (value, index, array): value is string => !!value && array.indexOf(value) === index,
+  );
+
+  let lastError: unknown = null;
+
+  for (const baseUrl of candidateBases) {
     try {
-      return await performFetch(detectedBaseUrl);
+      const res = await performFetch(baseUrl);
+      detectedBaseUrl = baseUrl;
+      return res;
     } catch (error: unknown) {
+      lastError = error;
       const message = getErrorMessage(error);
-      if (message !== "REACHABILITY_ERROR") throw error;
-      detectedBaseUrl = null;
+      if (message !== "REACHABILITY_ERROR") {
+        throw error;
+      }
+
+      if (detectedBaseUrl === baseUrl) {
+        detectedBaseUrl = null;
+      }
     }
   }
 
-  try {
-    const res = await performFetch(API_BASE_URL);
-    detectedBaseUrl = API_BASE_URL;
-    return res;
-  } catch (error: unknown) {
-    const message = getErrorMessage(error);
-
-    if (message === "REACHABILITY_ERROR") {
-      throw new Error(
-        `Backend not reachable at ${API_BASE_URL}. Check NEXT_PUBLIC_API_URL and backend availability.`,
-      );
-    }
-
-    throw error;
+  const lastMessage = getErrorMessage(lastError);
+  if (lastMessage === "REACHABILITY_ERROR") {
+    throw new Error(
+      `Backend not reachable. Checked: ${candidateBases.join(", ")}. Verify NEXT_PUBLIC_API_URL and backend availability.`,
+    );
   }
+
+  throw (lastError || new Error("Backend request failed."));
 }
 
 // ============================================
