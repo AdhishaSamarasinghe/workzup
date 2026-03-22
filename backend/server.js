@@ -12,6 +12,37 @@ loadEnv();
 const runtimeEnv = getEnv("NODE_ENV", "development");
 const isProduction = runtimeEnv === "production";
 
+function parseOriginList(rawValue) {
+  return String(rawValue || "")
+    .split(",")
+    .map((entry) => entry.trim().replace(/^"|"$/g, ""))
+    .filter(Boolean)
+    .map((entry) => {
+      let candidate = entry;
+      if (!/^https?:\/\//i.test(candidate)) {
+        candidate = candidate.startsWith("localhost") || candidate.startsWith("127.0.0.1")
+          ? `http://${candidate}`
+          : `https://${candidate}`;
+      }
+
+      try {
+        return new URL(candidate).origin;
+      } catch {
+        return "";
+      }
+    })
+    .filter(Boolean);
+}
+
+function isVercelOrigin(origin) {
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === "https:" && parsed.hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+}
+
 console.log(`[startup] WorkzUp backend booting (${runtimeEnv})`);
 
 try {
@@ -26,13 +57,27 @@ try {
   process.exit(1);
 }
 
-const frontendUrl = getEnv("FRONTEND_URL", "http://localhost:3000");
+const configuredOrigins = parseOriginList(
+  [
+    getEnv("FRONTEND_URL"),
+    getEnv("CLIENT_URL"),
+    getEnv("CORS_ORIGINS"),
+    getEnv("ALLOWED_ORIGINS"),
+  ]
+    .filter(Boolean)
+    .join(","),
+);
+
 const allowedOrigins = Array.from(
   new Set([
     "http://localhost:3000",
-    frontendUrl,
-  ].filter(Boolean)),
+    "http://127.0.0.1:3000",
+    ...configuredOrigins,
+  ]),
 );
+
+const allowVercelPreviews =
+  String(getEnv("ALLOW_VERCEL_PREVIEWS", isProduction ? "true" : "false")).toLowerCase() === "true";
 
 const { initSocket } = require("./socket");
 
@@ -41,7 +86,23 @@ const httpServer = http.createServer(app);
 initSocket(httpServer);
 
 app.set("trust proxy", 1);
-app.use(helmet());
+app.disable("x-powered-by");
+
+app.use(
+  helmet({
+    // Deployment-friendly defaults for Next/Vercel frontend + Railway backend.
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+    hsts: isProduction
+      ? {
+          maxAge: 15552000,
+          includeSubDomains: true,
+          preload: false,
+        }
+      : false,
+  })
+);
 
 app.use(
   cors({
@@ -50,6 +111,11 @@ app.use(
     origin: function (origin, callback) {
       // Allow requests with no origin (mobile apps, curl, server-to-server).
       if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowVercelPreviews && isVercelOrigin(origin)) {
         callback(null, true);
         return;
       }
@@ -230,6 +296,7 @@ function startServer(portToTry) {
     PORT = portToTry;
     console.log(`[startup] Backend listening on port ${PORT}`);
     console.log(`[startup] CORS allowed origins: ${allowedOrigins.join(", ")}`);
+    console.log(`[startup] CORS allow Vercel previews: ${allowVercelPreviews}`);
   });
 
   server.on("error", (err) => {

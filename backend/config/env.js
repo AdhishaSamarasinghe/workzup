@@ -81,7 +81,8 @@ function validateRequiredEnv() {
     }
   }
 
-  if (!process.env.FRONTEND_URL) {
+  const isProduction = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+  if (!process.env.FRONTEND_URL && !isProduction) {
     process.env.FRONTEND_URL = "http://localhost:3000";
   }
 
