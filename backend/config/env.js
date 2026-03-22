@@ -35,7 +35,14 @@ function getEnv(name, fallback = "") {
     return fallback;
   }
 
-  return String(value).trim();
+  return String(value)
+    .trim()
+    .replace(/^"|"$/g, "")
+    .replace(/^'|'$/g, "");
+}
+
+function isValidPostgresUrl(value) {
+  return /^postgres(?:ql)?:\/\//i.test(String(value || "").trim());
 }
 
 function getFirstAvailableEnv(names, fallback = "") {
@@ -89,6 +96,13 @@ function validateRequiredEnv() {
   if (missingErrors.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missingErrors.join(", ")}. Set these in Railway Variables for production or backend/.env for local development.`,
+    );
+  }
+
+  const databaseUrl = getEnv("DATABASE_URL");
+  if (!isValidPostgresUrl(databaseUrl)) {
+    throw new Error(
+      "DATABASE_URL is malformed. It must start with postgresql:// or postgres://. In Railway, set DATABASE_URL to your Postgres connection string value (not a placeholder like 'base').",
     );
   }
 
