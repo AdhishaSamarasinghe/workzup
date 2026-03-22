@@ -96,6 +96,7 @@ router.get("/metrics", authenticateToken, requireRole(["ADMIN"]), async (req, re
 router.get("/jobs", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
     try {
         const { search, status } = req.query;
+        console.log("ADMIN /jobs FETCHED! Params:", search, status);
         const whereclause = {};
         if (search) {
             whereclause.OR = [

@@ -60,10 +60,12 @@ export default function AdminJobsPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<JobTab>("All Jobs");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const loadJobs = useCallback(async (q = "", tab: JobTab = "All Jobs") => {
     try {
       setLoading(true);
+      setError("");
       const res = await getAdminJobs(q, tab === "All Jobs" ? "" : tab);
       if (res.success && res.data) {
         setJobs(res.data.map(job => ({
@@ -74,7 +76,13 @@ export default function AdminJobsPage() {
           applicants: job._count?.applications || 0,
           status: job.status as JobStatus,
         })));
+        return;
       }
+      setJobs([]);
+      setError(res.error || res.message || "Failed to load jobs.");
+    } catch (error) {
+      setJobs([]);
+      setError(error instanceof Error ? error.message : "Failed to load jobs.");
     } finally {
       setLoading(false);
     }
@@ -105,6 +113,12 @@ export default function AdminJobsPage() {
       <AdminHeader title="Jobs" />
 
       <div className="bg-slate-100 p-6 md:p-8">
+        {error ? (
+          <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+            {error}
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           <MetricCard
             label="Total Postings"
@@ -233,7 +247,7 @@ export default function AdminJobsPage() {
                       colSpan={5}
                       className="px-6 py-10 text-center text-slate-500"
                     >
-                      No jobs available
+                      {error ? "Unable to load jobs" : "No jobs available"}
                     </td>
                   </tr>
                 ) : (

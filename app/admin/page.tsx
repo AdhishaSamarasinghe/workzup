@@ -33,12 +33,22 @@ export default function AdminDashboardPage() {
     applications: 0,
     payouts_completed: 0,
   });
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function fetchMetrics() {
-      const res = await getAdminMetrics();
-      if (res.success && res.data) {
-        setMetrics(res.data.metrics);
+      try {
+        setError("");
+        const res = await getAdminMetrics();
+        if (res.success && res.data) {
+          setMetrics(res.data.metrics);
+          return;
+        }
+        setError(res.error || res.message || "Failed to load admin metrics.");
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : "Failed to load admin metrics."
+        );
       }
     }
     fetchMetrics();
@@ -49,6 +59,12 @@ export default function AdminDashboardPage() {
       <AdminHeader title="Dashboard" />
 
       <div className="bg-slate-100 p-6 md:p-8">
+        {error ? (
+          <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+            {error}
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Total Users"
