@@ -138,9 +138,9 @@ function BrowseJobsPageContent() {
   useEffect(() => {
     let isMounted = true;
 
-    const fetchBrowseData = async () => {
+    const fetchBrowseData = async (silent = false) => {
       try {
-        setIsLoading(true);
+        if (!silent) setIsLoading(true);
         const data = await apiFetch("/api/jobs/browse/home");
         if (!isMounted) return;
         setBrowseData({
@@ -166,14 +166,19 @@ function BrowseJobsPageContent() {
             : "Failed to load browse homepage data",
         );
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted && !silent) setIsLoading(false);
       }
     };
 
     fetchBrowseData();
 
+    const intervalId = setInterval(() => {
+      fetchBrowseData(true);
+    }, 4000);
+
     return () => {
       isMounted = false;
+      clearInterval(intervalId);
     };
   }, []);
 
