@@ -22,6 +22,12 @@ try {
 }
 
 const frontendUrl = getEnv("FRONTEND_URL", "http://localhost:3000");
+const allowedOrigins = Array.from(
+  new Set([
+    "http://localhost:3000",
+    frontendUrl,
+  ].filter(Boolean)),
+);
 
 const { initSocket } = require("./socket");
 
@@ -34,7 +40,17 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: frontendUrl,
+    // Railway: set FRONTEND_URL to your deployed frontend domain
+    // (e.g. https://your-frontend.up.railway.app) in service Variables.
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, server-to-server).
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   })
