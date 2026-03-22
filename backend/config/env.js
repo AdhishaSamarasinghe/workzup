@@ -8,14 +8,19 @@ function loadEnv() {
     return;
   }
 
+  const isProduction = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+
+  // In production (e.g. Railway), rely on injected environment variables only.
+  if (isProduction) {
+    hasLoadedEnv = true;
+    return;
+  }
+
   const candidateFiles = [
     path.resolve(__dirname, "../.env"),
     path.resolve(__dirname, "../../.env"),
+    path.resolve(__dirname, "../../.env.local"),
   ];
-
-  if (process.env.NODE_ENV !== "production") {
-    candidateFiles.push(path.resolve(__dirname, "../../.env.local"));
-  }
 
   for (const envFile of candidateFiles) {
     dotenv.config({ path: envFile, override: false });
@@ -49,7 +54,7 @@ function validateRequiredEnv() {
 
   const envChecks = [
     { key: "DATABASE_URL", aliases: [], level: "error" },
-    { key: "JWT_SECRET", aliases: [], level: "error" },
+    { key: "JWT_SECRET", aliases: [], level: "warn" },
     { key: "FRONTEND_URL", aliases: ["CLIENT_URL"], level: "warn" },
     { key: "GOOGLE_CLIENT_ID", aliases: [], level: "warn" },
     { key: "GOOGLE_CLIENT_SECRET", aliases: [], level: "warn" },

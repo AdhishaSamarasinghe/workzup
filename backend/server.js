@@ -9,15 +9,20 @@ const { loadEnv, getEnv, validateRequiredEnv } = require("./config/env");
 
 loadEnv();
 
+const runtimeEnv = getEnv("NODE_ENV", "development");
+const isProduction = runtimeEnv === "production";
+
+console.log(`[startup] WorkzUp backend booting (${runtimeEnv})`);
+
 try {
   const envReport = validateRequiredEnv();
   if (envReport.missingWarnings.length > 0) {
     console.warn(
-      `Environment warning: missing optional production variables: ${envReport.missingWarnings.join(", ")}.`,
+      `[startup] Environment warning: missing optional variables: ${envReport.missingWarnings.join(", ")}.`,
     );
   }
 } catch (error) {
-  console.error("Environment configuration error:", error.message);
+  console.error("[startup] Environment configuration error:", error.message);
   process.exit(1);
 }
 
@@ -60,14 +65,11 @@ app.use(express.json({ limit: "30mb" }));
 app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-console.log("SERVER FILE RUNNING:", __filename);
+console.log(`[startup] Server file: ${__filename}`);
 
 // IMPORTANT: explicitly load admin folder index.js
 const adminRoutes = require("./routes/admin/index");
-console.log(
-  "ADMIN ROUTES RESOLVED TO:",
-  require.resolve("./routes/admin/index")
-);
+console.log(`[startup] Admin routes: ${require.resolve("./routes/admin/index")}`);
 app.use("/api/admin", adminRoutes);
 
 // Optional / branch routes
@@ -132,10 +134,10 @@ app.use("/api/conversations", conversationsRoutes);
 
 let PORT = Number(getEnv("PORT", "5000"));
 
-app.get("/health", (req, res) => res.json({ ok: true, port: PORT }));
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
-app.get("/", (req, res) => {
-  res.send(`Workzup API is running on port ${PORT} ✅`);
+app.get("/", (_req, res) => {
+  res.send("WorkzUp backend is running");
 });
 
 app.get("/jobs", async (req, res) => {
@@ -226,22 +228,14 @@ app.use((err, req, res, next) => {
 function startServer(portToTry) {
   const server = httpServer.listen(portToTry, () => {
     PORT = portToTry;
-    console.log(`Backend running on http://localhost:${PORT}`);
+    console.log(`[startup] Backend listening on port ${PORT}`);
+    console.log(`[startup] CORS allowed origins: ${allowedOrigins.join(", ")}`);
   });
 
   server.on("error", (err) => {
-    if (err.code === "EADDRINUSE") {
-      if (portToTry === 5000) {
-        console.warn("Port 5000 is in use, falling back to 5001...");
-        startServer(5001);
-      } else {
-        console.error(`Port ${portToTry} is also in use. Could not start server.`);
-        process.exit(1);
-      }
-    } else {
-      console.error("Server error:", err);
-      process.exit(1);
-    }
+    const message = err?.message || String(err);
+    console.error(`[startup] Server failed to start on port ${portToTry}: ${message}`);
+    process.exit(1);
   });
 }
 
