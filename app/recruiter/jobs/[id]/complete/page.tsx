@@ -112,31 +112,6 @@ function CompleteJobContent() {
         }
     };
 
-    // [ACTIONS] Report Issue
-    const handleReportIssue = async () => {
-        if (!summary) return;
-        const note = prompt("Please describe the issue:");
-        if (!note) return;
-
-        setSubmitting(true);
-        try {
-            await apiFetch(`/api/recruiter/jobs/${jobId}/report-issue`, {
-                method: "POST",
-                body: JSON.stringify({
-                    workerId: summary.workerId,
-                    note,
-                }),
-            });
-
-            alert("Issue reported successfully");
-            router.back();
-        } catch (err: any) {
-            alert(err.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
     // [UI] Formatting
     const formatDate = (dateStr: string) => {
         const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -215,13 +190,6 @@ function CompleteJobContent() {
                                 } disabled:opacity-70`}
                         >
                             {success ? "Completed successfully" : submitting ? "Processing..." : "Confirm Completion"}
-                        </button>
-                        <button
-                            onClick={handleReportIssue}
-                            disabled={submitting || success}
-                            className="w-full py-3.5 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-70"
-                        >
-                            Report an issue
                         </button>
                     </div>
                 </div>
