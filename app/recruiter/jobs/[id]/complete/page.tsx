@@ -211,7 +211,7 @@ function CompleteJobContent() {
                             disabled={submitting || success}
                             className={`w-full py-3.5 rounded-xl font-bold transition-all ${success
                                 ? "bg-green-500 text-white"
-                                : "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-100"
+                                : "bg-[#6D83F2] hover:bg-[#5B73F1] text-white shadow-md shadow-[#6D83F2]/30"
                                 } disabled:opacity-70`}
                         >
                             {success ? "Completed successfully" : submitting ? "Processing..." : "Confirm Completion"}
