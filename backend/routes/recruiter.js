@@ -3,7 +3,6 @@ const prisma = require("../prismaClient");
 const { authenticateToken, requireRole } = require("../middleware/auth");
 const {
     buildCheckoutHash,
-    getPayHereCheckoutUrl,
     formatAmount,
     getPayHereConfig,
 } = require("../utils/payhere");
@@ -567,7 +566,7 @@ router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER",
 
         if (!worker) return res.status(404).json({ message: "Worker not found" });
 
-        const { merchantId, merchantSecret, isSandbox } = getPayHereConfig();
+        const { merchantId, merchantSecret, isSandbox, checkoutUrl } = getPayHereConfig();
         if (!merchantId || !merchantSecret) {
             const missing = [];
             if (!merchantId) missing.push("PAYHERE_MERCHANT_ID");
@@ -577,7 +576,18 @@ router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER",
             });
         }
 
-        const amount = Number(finalPayment);
+        if (!isSandbox) {
+            return res.status(400).json({
+                message: "Sandbox checkout requires PAYHERE_SANDBOX=true.",
+            });
+        }
+
+        const formattedAmount = formatAmount(finalPayment);
+        const amount = Number(formattedAmount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            return res.status(400).json({ message: "Invalid finalPayment amount" });
+        }
+
         const currency = "LKR";
         const safeCompletionDate = completionDate ? new Date(completionDate) : new Date();
 
@@ -594,7 +604,6 @@ router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER",
         });
 
         const orderId = payment.id;
-        const formattedAmount = formatAmount(amount);
         const hash = buildCheckoutHash({
             merchantId,
             orderId,
@@ -606,31 +615,36 @@ router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER",
         const apiBaseUrl = process.env.API_BASE_URL || `${req.protocol}://${req.get("host")}`;
         const clientBaseUrl = process.env.CLIENT_URL || "http://localhost:3000";
 
+        const payherePayload = {
+            action: checkoutUrl,
+            merchant_id: merchantId,
+            return_url: `${apiBaseUrl}/api/payhere/return`,
+            cancel_url: `${apiBaseUrl}/api/payhere/cancel`,
+            notify_url: `${apiBaseUrl}/api/payhere/notify`,
+            order_id: orderId,
+            items: job.title || "Workzup Job Payment",
+            currency,
+            amount: formattedAmount,
+            first_name: payer?.firstName || "Recruiter",
+            last_name: payer?.lastName || "",
+            email: payer?.email || "noreply@workzup.local",
+            phone: payer?.phone || "0770000000",
+            address: "Workzup",
+            city: "Colombo",
+            country: "Sri Lanka",
+            hash,
+        };
+
+        console.log("[PAYHERE][CHECKOUT] amount used in hash:", formattedAmount);
+        console.log("[PAYHERE][CHECKOUT] amount sent in payload:", payherePayload.amount);
+        console.log("[PAYHERE][CHECKOUT] generated hash:", hash);
+        console.log("[PAYHERE][CHECKOUT] full payload:", payherePayload);
+
         res.json({
             message: "Payment initiated. Complete checkout in PayHere.",
             paymentId: payment.id,
             payhereMode: isSandbox ? "SANDBOX" : "LIVE",
-            payhere: {
-                action: getPayHereCheckoutUrl(),
-                merchant_id: merchantId,
-                return_url: `${apiBaseUrl}/api/payhere/return`,
-                cancel_url: `${apiBaseUrl}/api/payhere/cancel`,
-                notify_url: `${apiBaseUrl}/api/payhere/notify`,
-                order_id: orderId,
-                items: job.title || "Workzup Job Payment",
-                currency,
-                amount: formattedAmount,
-                first_name: payer?.firstName || "Recruiter",
-                last_name: payer?.lastName || "",
-                email: payer?.email || "noreply@workzup.local",
-                phone: payer?.phone || "0770000000",
-                address: "Workzup",
-                city: "Colombo",
-                country: "Sri Lanka",
-                custom_1: jobId,
-                custom_2: workerId,
-                hash,
-            },
+            payhere: payherePayload,
             clientReturnUrl: `${clientBaseUrl}/recruiter/payment-result?paymentId=${payment.id}`,
         });
     } catch (error) {

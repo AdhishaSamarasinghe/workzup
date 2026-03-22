@@ -19,22 +19,25 @@ interface CompletionSummary {
 
 type PayHerePayload = {
     action: string;
-    [key: string]: string;
+    [key: string]: string | number | boolean | null | undefined;
 };
 
 function submitPayHereForm(payload: PayHerePayload) {
     if (typeof document === "undefined") return;
+    if (!payload?.action) {
+        throw new Error("PayHere action URL is missing");
+    }
 
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = payload.action;
+    form.action = String(payload.action);
 
     Object.entries(payload).forEach(([key, value]) => {
-        if (key === "action") return;
+        if (key === "action" || value == null) return;
         const input = document.createElement("input");
         input.type = "hidden";
         input.name = key;
-        input.value = value;
+        input.value = String(value);
         form.appendChild(input);
     });
 

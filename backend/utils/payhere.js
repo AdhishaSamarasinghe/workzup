@@ -6,7 +6,11 @@ function normalizeEnvValue(value) {
 }
 
 function formatAmount(amount) {
-  const num = Number(amount || 0);
+  const normalized = String(amount ?? "0").replace(/,/g, "").trim();
+  const num = Number(normalized);
+  if (!Number.isFinite(num)) {
+    throw new Error(`Invalid payment amount: ${amount}`);
+  }
   return num.toFixed(2);
 }
 
