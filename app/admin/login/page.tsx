@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  migrateLegacyUserToSupabase,
+  signInWithSupabasePassword,
+  signOutWorkzupAuth,
+} from "@/lib/auth/workzupAuth";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -18,26 +22,20 @@ export default function AdminLoginPage() {
       setLoading(true);
       setError("");
 
-      const supabase = getSupabaseBrowserClient();
-      if (!supabase) {
-        setError("Supabase auth is not configured for this environment.");
-        return;
-      }
+      const normalizedEmail = email.trim().toLowerCase();
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setError(error.message);
-        return;
+      try {
+        await signInWithSupabasePassword(normalizedEmail, password);
+      } catch {
+        await migrateLegacyUserToSupabase(normalizedEmail, password, "ADMIN");
+        await signInWithSupabasePassword(normalizedEmail, password);
       }
 
       router.replace("/admin");
     } catch (err) {
       console.error("Admin login error:", err);
-      setError("Failed to sign in");
+      await signOutWorkzupAuth();
+      setError(err instanceof Error ? err.message : "Failed to sign in");
     } finally {
       setLoading(false);
     }

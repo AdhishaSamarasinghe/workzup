@@ -1,4 +1,4 @@
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { apiFetch as sharedApiFetch } from "@/lib/api";
 
 export type ApiResponse<T> = {
   success: boolean;
@@ -57,9 +57,6 @@ export interface AdminReport {
   reporter?: { firstName: string; lastName: string };
 }
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return "Something went wrong";
@@ -69,50 +66,11 @@ async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const supabase = getSupabaseBrowserClient();
-
-  if (!supabase) {
-    throw new Error(
-      "Supabase browser client is not configured. Check .env.local."
-    );
-  }
-
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw new Error(sessionError.message);
-  }
-
-  if (!session?.access_token) {
-    throw new Error("No active Supabase session found");
-  }
-
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
-
-  const contentType = response.headers.get("content-type");
-  const isJson = contentType?.includes("application/json");
-  const payload: ApiResponse<T> | null = isJson ? await response.json() : null;
-
-  if (!response.ok) {
-    throw new Error(
-      payload?.message || `Request failed with status ${response.status}`
-    );
-  }
-
-  return payload || { success: false, error: "Empty response from server" };
+  const payload = await sharedApiFetch(path, options);
+  return payload as ApiResponse<T>;
 }
 
-const ADMIN_PREFIX = "/admin";
+const ADMIN_PREFIX = "/api/admin";
 
 export async function getAdminUsers(
   search = ""

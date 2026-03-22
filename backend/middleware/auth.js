@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const prisma = require("../prismaClient");
-const { getSupabaseAdmin } = require("../lib/supabaseAdmin");
+const { getSupabaseAdmin, migratePrismaUserId } = require("../lib/supabaseAdmin");
 
 function normalizeRole(role) {
   const key = String(role || "")
@@ -110,19 +110,74 @@ async function authenticateToken(req, res, next) {
     const { data, error } = await supabaseAdmin.auth.getUser(token);
 
     if (!error && data?.user?.id) {
+      const authUserId = data.user.id;
+      const authEmail =
+        typeof data.user.email === "string"
+          ? data.user.email.trim().toLowerCase()
+          : null;
+
+      let dbUser = await prisma.user.findUnique({
+        where: { id: authUserId },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+        },
+      });
+
+      if (!dbUser && authEmail) {
+        const legacyUser = await prisma.user.findUnique({
+          where: { email: authEmail },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        });
+
+        if (legacyUser && legacyUser.id !== authUserId) {
+          try {
+            await migratePrismaUserId(legacyUser.id, authUserId);
+            dbUser = await prisma.user.findUnique({
+              where: { id: authUserId },
+              select: {
+                id: true,
+                email: true,
+                role: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            });
+          } catch (migrationError) {
+            console.error("Legacy auth user migration failed:", migrationError);
+            dbUser = legacyUser;
+          }
+        }
+      }
+
       req.user = {
-        userId: data.user.id,
-        id: data.user.id,
-        sub: data.user.id,
+        userId: authUserId,
+        id: authUserId,
+        sub: authUserId,
         role:
+          normalizeRole(dbUser?.role) ||
           normalizeRole(data.user.app_metadata?.role) ||
           normalizeRole(data.user.user_metadata?.role) ||
           "JOB_SEEKER",
-        email: data.user.email || null,
-        firstName: data.user.user_metadata?.first_name || null,
-        lastName: data.user.user_metadata?.last_name || null,
+        email: dbUser?.email || data.user.email || null,
+        firstName:
+          dbUser?.firstName || data.user.user_metadata?.first_name || null,
+        lastName:
+          dbUser?.lastName || data.user.user_metadata?.last_name || null,
         companyName: data.user.user_metadata?.company_name || null,
-        phone: data.user.user_metadata?.phone || null,
+        phone: dbUser?.phone || data.user.user_metadata?.phone || null,
       };
       return next();
     }
@@ -164,8 +219,23 @@ function requireRole(allowedRoles) {
         return next();
       }
 
-      const allowsJobSeeker = normalizedAllowedRoles.includes("JOB_SEEKER");
       const userId = req.user.userId || req.user.id || req.user.sub;
+
+      // Fallback: check database directly in case Supabase token role is stale
+      if (userId) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true }
+        });
+        const dbRole = normalizeRole(dbUser?.role);
+        
+        if (normalizedAllowedRoles.includes(dbRole)) {
+            req.user.role = dbRole;
+            return next();
+        }
+      }
+
+      const allowsJobSeeker = normalizedAllowedRoles.includes("JOB_SEEKER");
 
       if (allowsJobSeeker && userId) {
         const dbUser = await prisma.user.findUnique({
