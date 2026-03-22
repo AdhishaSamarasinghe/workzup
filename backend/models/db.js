@@ -1,6 +1,15 @@
 const { Pool } = require("pg");
+const { loadEnv, getEnv } = require("../config/env");
 
-const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+loadEnv();
+
+const connectionString = getEnv("DATABASE_URL");
+
+if (!connectionString) {
+  throw new Error(
+    "DATABASE_URL is missing. Set it in Railway variables for production or backend/.env for local development.",
+  );
+}
 
 const pool = new Pool({
   connectionString,

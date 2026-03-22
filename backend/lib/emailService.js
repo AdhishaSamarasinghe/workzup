@@ -1,15 +1,24 @@
 const nodemailer = require('nodemailer');
-const dotenv = require('dotenv');
+const { loadEnv, getEnv } = require('../config/env');
 
-dotenv.config();
+loadEnv();
+
+const emailUser = getEnv('EMAIL_USER') || getEnv('SMTP_USER');
+const emailPass = getEnv('EMAIL_PASS') || getEnv('SMTP_PASS');
+
+if (!emailUser || !emailPass) {
+  console.error(
+    'Email configuration error: EMAIL_USER and EMAIL_PASS are required (SMTP_USER/SMTP_PASS are accepted as legacy fallbacks).',
+  );
+}
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: emailUser,
+    pass: emailPass,
   },
 });
 

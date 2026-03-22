@@ -613,7 +613,7 @@ router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER",
         });
 
         const apiBaseUrl = process.env.API_BASE_URL || `${req.protocol}://${req.get("host")}`;
-        const clientBaseUrl = process.env.CLIENT_URL || "http://localhost:3000";
+        const clientBaseUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:3000";
 
         const payherePayload = {
             action: checkoutUrl,

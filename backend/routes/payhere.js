@@ -13,7 +13,7 @@ function getApiBaseUrl(req) {
 }
 
 function getClientBaseUrl() {
-  return process.env.CLIENT_URL || "http://localhost:3000";
+  return process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:3000";
 }
 
 // POST /api/payhere/notify

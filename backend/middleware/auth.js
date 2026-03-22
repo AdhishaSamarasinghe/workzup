@@ -1,6 +1,9 @@
 const jwt = require("jsonwebtoken");
 const prisma = require("../prismaClient");
 const { getSupabaseAdmin, migratePrismaUserId } = require("../lib/supabaseAdmin");
+const { loadEnv, getEnv } = require("../config/env");
+
+loadEnv();
 
 function normalizeRole(role) {
   const key = String(role || "")
@@ -31,7 +34,21 @@ function isRecoverableSupabaseNetworkError(error) {
 }
 
 async function tryDecodeSupabaseAccessToken(token) {
-  const decoded = jwt.decode(token);
+  let decoded = null;
+
+  const jwtSecret = getEnv("JWT_SECRET");
+  if (jwtSecret) {
+    try {
+      decoded = jwt.verify(token, jwtSecret);
+    } catch {
+      decoded = null;
+    }
+  }
+
+  if (!decoded) {
+    decoded = jwt.decode(token);
+  }
+
   if (!decoded || typeof decoded !== "object") {
     return null;
   }

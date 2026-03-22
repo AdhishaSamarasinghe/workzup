@@ -1,5 +1,10 @@
 const { Server } = require("socket.io");
 const prisma = require('./prismaClient');
+const { loadEnv, getEnv } = require("./config/env");
+
+loadEnv();
+
+const frontendUrl = getEnv("FRONTEND_URL", "http://localhost:3000");
 
 let io;
 const onlineUsers = new Map(); // socket.id -> userId
@@ -7,7 +12,7 @@ const onlineUsers = new Map(); // socket.id -> userId
 const initSocket = (server) => {
     io = new Server(server, {
         cors: {
-            origin: process.env.CLIENT_URL || "http://localhost:3000",
+            origin: frontendUrl,
             methods: ["GET", "POST"],
             credentials: true
         }

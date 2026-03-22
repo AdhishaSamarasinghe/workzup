@@ -2,14 +2,26 @@
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const path = require("path");
+const { loadEnv, getEnv, validateRequiredEnv } = require("./config/env");
 
-dotenv.config({ path: path.join(__dirname, ".env") });
-dotenv.config({ path: path.resolve(__dirname, "../.env.local"), override: false });
-dotenv.config({ path: path.resolve(__dirname, "../.env"), override: false });
+loadEnv();
+
+try {
+  const envReport = validateRequiredEnv();
+  if (envReport.missingWarnings.length > 0) {
+    console.warn(
+      `Environment warning: missing optional production variables: ${envReport.missingWarnings.join(", ")}.`,
+    );
+  }
+} catch (error) {
+  console.error("Environment configuration error:", error.message);
+  process.exit(1);
+}
+
+const frontendUrl = getEnv("FRONTEND_URL", "http://localhost:3000");
 
 const { initSocket } = require("./socket");
 
@@ -22,7 +34,7 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: frontendUrl,
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -102,7 +114,7 @@ app.use("/api/jobs", jobsRoutes);
 app.use("/api/messages", messagesRoutes);
 app.use("/api/conversations", conversationsRoutes);
 
-let PORT = process.env.PORT || 5000;
+let PORT = Number(getEnv("PORT", "5000"));
 
 app.get("/health", (req, res) => res.json({ ok: true, port: PORT }));
 
