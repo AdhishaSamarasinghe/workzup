@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 
@@ -13,6 +13,14 @@ type PaymentState = {
 };
 
 export default function RecruiterPaymentResultPage() {
+  return (
+    <Suspense fallback={<PaymentResultLoadingFallback />}>
+      <RecruiterPaymentResultContent />
+    </Suspense>
+  );
+}
+
+function RecruiterPaymentResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("paymentId");
@@ -36,9 +44,11 @@ export default function RecruiterPaymentResultPage() {
         if (isMounted) {
           setPayment(data);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (isMounted) {
-          setError(err?.message || "Failed to load payment status");
+          const message =
+            err instanceof Error ? err.message : "Failed to load payment status";
+          setError(message);
         }
       } finally {
         if (isMounted) {
@@ -90,6 +100,17 @@ export default function RecruiterPaymentResultPage() {
             Refresh Status
           </button>
         </div>
+      </section>
+    </main>
+  );
+}
+
+function PaymentResultLoadingFallback() {
+  return (
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <section className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-gray-900">Payment Result</h1>
+        <p className="mt-2 text-sm text-gray-600">Loading payment status...</p>
       </section>
     </main>
   );
