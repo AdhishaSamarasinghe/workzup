@@ -45,6 +45,10 @@ function isValidPostgresUrl(value) {
   return /^postgres(?:ql)?:\/\//i.test(String(value || "").trim());
 }
 
+function isTruthyEnv(value) {
+  return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
+}
+
 function getFirstAvailableEnv(names, fallback = "") {
   for (const name of names) {
     const value = getEnv(name);
@@ -59,12 +63,14 @@ function getFirstAvailableEnv(names, fallback = "") {
 function validateRequiredEnv() {
   loadEnv();
 
+  const enableGoogleOAuth = isTruthyEnv(getEnv("ENABLE_GOOGLE_OAUTH", "false"));
+
   const envChecks = [
     { key: "DATABASE_URL", aliases: [], level: "error" },
     { key: "JWT_SECRET", aliases: [], level: "warn" },
     { key: "FRONTEND_URL", aliases: ["CLIENT_URL"], level: "warn" },
-    { key: "GOOGLE_CLIENT_ID", aliases: [], level: "warn" },
-    { key: "GOOGLE_CLIENT_SECRET", aliases: [], level: "warn" },
+    { key: "GOOGLE_CLIENT_ID", aliases: [], level: enableGoogleOAuth ? "warn" : "ignore" },
+    { key: "GOOGLE_CLIENT_SECRET", aliases: [], level: enableGoogleOAuth ? "warn" : "ignore" },
     { key: "EMAIL_USER", aliases: ["SMTP_USER"], level: "warn" },
     { key: "EMAIL_PASS", aliases: ["SMTP_PASS"], level: "warn" },
   ];
@@ -83,7 +89,7 @@ function validateRequiredEnv() {
 
     if (check.level === "error") {
       missingErrors.push(check.key);
-    } else {
+    } else if (check.level === "warn") {
       missingWarnings.push(check.key);
     }
   }
