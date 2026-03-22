@@ -36,9 +36,11 @@ export default function RecruiterPaymentResultPage() {
         if (isMounted) {
           setPayment(data);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (isMounted) {
-          setError(err?.message || "Failed to load payment status");
+          const message =
+            err instanceof Error ? err.message : "Failed to load payment status";
+          setError(message);
         }
       } finally {
         if (isMounted) {
