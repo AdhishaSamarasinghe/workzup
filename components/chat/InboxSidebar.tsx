@@ -21,7 +21,7 @@ export default function InboxSidebar({ onSelectConversation, selectedId, onlineU
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const data = await apiFetch('/conversations');
+        const data = await apiFetch('/api/conversations');
         if (data.success) {
           setConversations(data.data);
         }

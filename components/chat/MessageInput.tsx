@@ -35,7 +35,7 @@ export default function MessageInput({ conversationId, onMessageSent, onTyping }
         messageText: text,
       };
 
-      const data = await apiFetch(`/conversations/${conversationId}/messages`, {
+      const data = await apiFetch(`/api/conversations/${conversationId}/messages`, {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -60,7 +60,7 @@ export default function MessageInput({ conversationId, onMessageSent, onTyping }
       const formData = new FormData();
       formData.append('image', file);
 
-      const uploadData = await apiFetch('/messages/upload', {
+      const uploadData = await apiFetch('/api/messages/upload', {
         method: 'POST',
         body: formData
       });
@@ -70,7 +70,7 @@ export default function MessageInput({ conversationId, onMessageSent, onTyping }
           messageText: `[IMAGE]${uploadData.url}`,
         };
 
-        const data = await apiFetch(`/conversations/${conversationId}/messages`, {
+        const data = await apiFetch(`/api/conversations/${conversationId}/messages`, {
           method: 'POST',
           body: JSON.stringify(payload)
         });
@@ -98,7 +98,7 @@ export default function MessageInput({ conversationId, onMessageSent, onTyping }
           messageText: `[LOCATION]${latitude},${longitude}`,
         };
 
-        const data = await apiFetch(`/conversations/${conversationId}/messages`, {
+        const data = await apiFetch(`/api/conversations/${conversationId}/messages`, {
           method: 'POST',
           body: JSON.stringify(payload)
         });

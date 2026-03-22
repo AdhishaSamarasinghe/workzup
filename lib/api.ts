@@ -15,8 +15,40 @@ import {
 } from "./types";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "") || "";
+function normalizeApiBaseUrl(rawValue: string | undefined) {
+  const value = String(rawValue || "").trim().replace(/\/$/, "");
+  if (!value) return "";
+
+  let withProtocol = value;
+  if (!/^https?:\/\//i.test(withProtocol)) {
+    const lower = withProtocol.toLowerCase();
+    if (lower.startsWith("localhost") || lower.startsWith("127.0.0.1")) {
+      withProtocol = `http://${withProtocol}`;
+    } else {
+      withProtocol = `https://${withProtocol}`;
+    }
+  }
+
+  return withProtocol.replace(/\/api$/i, "");
+}
+
+function normalizeApiPath(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (normalizedPath.startsWith("/api/")) {
+    return normalizedPath;
+  }
+
+  // Legacy callsites still use these top-level paths; backend mounts them under /api.
+  const legacyApiRoots = ["/auth", "/users", "/jobs", "/messages", "/conversations"];
+  if (legacyApiRoots.some((root) => normalizedPath.startsWith(`${root}/`) || normalizedPath === root)) {
+    return `/api${normalizedPath}`;
+  }
+
+  return normalizedPath;
+}
+
+export const API_BASE_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
 
 // Backward-compatible alias while migrating call sites.
 export const API_BASE = API_BASE_URL;
@@ -162,8 +194,10 @@ async function executeFetch(path: string, options: RequestInit = {}) {
     );
   }
 
+  const requestPath = normalizeApiPath(path);
+
   const performFetch = async (baseUrl: string) => {
-    const url = `${baseUrl}${path}`;
+    const url = `${baseUrl}${requestPath}`;
     const method = options.method || "GET";
     console.log(`[API] ${method} ${url}`);
 
@@ -296,19 +330,19 @@ export async function fetchApi<T>(
 // CONVERSATION API
 // ============================================
 export async function getConversations(): Promise<ApiResponse<Conversation[]>> {
-  return fetchApi<Conversation[]>("/conversations");
+  return fetchApi<Conversation[]>("/api/conversations");
 }
 
 export async function getConversation(
   conversationId: string,
 ): Promise<ApiResponse<Conversation>> {
-  return fetchApi<Conversation>(`/conversations/${conversationId}`);
+  return fetchApi<Conversation>(`/api/conversations/${conversationId}`);
 }
 
 export async function createConversation(
   data: CreateConversationRequest,
 ): Promise<ApiResponse<Conversation>> {
-  return fetchApi<Conversation>("/conversations", {
+  return fetchApi<Conversation>("/api/conversations", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -317,7 +351,7 @@ export async function createConversation(
 export async function archiveConversation(
   conversationId: string,
 ): Promise<ApiResponse<Conversation>> {
-  return fetchApi<Conversation>(`/conversations/${conversationId}`, {
+  return fetchApi<Conversation>(`/api/conversations/${conversationId}`, {
     method: "PATCH",
     body: JSON.stringify({ action: "archive" }),
   });
@@ -327,7 +361,7 @@ export async function pinConversation(
   conversationId: string,
   isPinned: boolean,
 ): Promise<ApiResponse<Conversation>> {
-  return fetchApi<Conversation>(`/conversations/${conversationId}`, {
+  return fetchApi<Conversation>(`/api/conversations/${conversationId}`, {
     method: "PATCH",
     body: JSON.stringify({ action: "pin", isPinned }),
   });
@@ -336,7 +370,7 @@ export async function pinConversation(
 export async function markConversationAsRead(
   conversationId: string,
 ): Promise<ApiResponse<Conversation>> {
-  return fetchApi<Conversation>(`/conversations/${conversationId}/read`, {
+  return fetchApi<Conversation>(`/api/conversations/${conversationId}/read`, {
     method: "PATCH",
   });
 }
@@ -347,14 +381,14 @@ export async function markConversationAsRead(
 export async function getMessages(
   conversationId: string,
 ): Promise<ApiResponse<Message[]>> {
-  return fetchApi<Message[]>(`/conversations/${conversationId}/messages`);
+  return fetchApi<Message[]>(`/api/conversations/${conversationId}/messages`);
 }
 
 export async function sendMessage(
   conversationId: string,
   data: SendMessageRequest,
 ): Promise<ApiResponse<Message>> {
-  return fetchApi<Message>(`/conversations/${conversationId}/messages`, {
+  return fetchApi<Message>(`/api/conversations/${conversationId}/messages`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -365,7 +399,7 @@ export async function editMessage(
   messageId: string,
   data: UpdateMessageRequest,
 ): Promise<ApiResponse<Message>> {
-  return fetchApi<Message>(`/messages/${messageId}`, {
+  return fetchApi<Message>(`/api/messages/${messageId}`, {
     method: "PATCH",
     body: JSON.stringify({ ...data, conversationId }),
   });
@@ -375,7 +409,7 @@ export async function deleteMessage(
   conversationId: string,
   messageId: string,
 ): Promise<ApiResponse<null>> {
-  return fetchApi<null>(`/messages/${messageId}`, {
+  return fetchApi<null>(`/api/messages/${messageId}`, {
     method: "DELETE",
     body: JSON.stringify({ conversationId }),
   });
@@ -385,7 +419,7 @@ export async function markMessageAsRead(
   conversationId: string,
   messageId: string,
 ): Promise<ApiResponse<Message>> {
-  return fetchApi<Message>(`/messages/${messageId}`, {
+  return fetchApi<Message>(`/api/messages/${messageId}`, {
     method: "PATCH",
     body: JSON.stringify({ action: "markRead", conversationId }),
   });
@@ -398,7 +432,7 @@ export async function updateTypingStatus(
   conversationId: string,
   isTyping: boolean,
 ): Promise<ApiResponse<User[]>> {
-  return fetchApi<User[]>(`/conversations/${conversationId}/typing`, {
+  return fetchApi<User[]>(`/api/conversations/${conversationId}/typing`, {
     method: "POST",
     body: JSON.stringify({ isTyping }),
   });
@@ -407,7 +441,7 @@ export async function updateTypingStatus(
 export async function getTypingUsers(
   conversationId: string,
 ): Promise<ApiResponse<User[]>> {
-  return fetchApi<User[]>(`/conversations/${conversationId}/typing`);
+  return fetchApi<User[]>(`/api/conversations/${conversationId}/typing`);
 }
 
 // ============================================
@@ -416,7 +450,7 @@ export async function getTypingUsers(
 export async function getJobDetails(
   jobId: string,
 ): Promise<ApiResponse<JobDetails>> {
-  return fetchApi<JobDetails>(`/jobs/${jobId}`);
+  return fetchApi<JobDetails>(`/api/jobs/${jobId}`);
 }
 
 export async function updateJobDetails(
