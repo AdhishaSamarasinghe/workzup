@@ -1,6 +1,22 @@
 import type { NextConfig } from "next";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+function normalizeApiBaseUrl(rawValue: string | undefined) {
+  const value = String(rawValue || "").trim().replace(/\/$/, "");
+  if (!value) return "";
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  const lower = value.toLowerCase();
+  if (lower.startsWith("localhost") || lower.startsWith("127.0.0.1")) {
+    return `http://${value}`;
+  }
+
+  return `https://${value}`;
+}
+
+const API_BASE_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
 
 const nextConfig: NextConfig = {
   devIndicators: false,
