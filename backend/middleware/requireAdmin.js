@@ -1,4 +1,7 @@
 function requireAdmin(req, res, next) {
+  console.log("=== requireAdmin HIT ===");
+  console.log("REQ.APPUSER:", req.appUser);
+
   const appUser = req.appUser;
 
   if (!appUser) {
@@ -11,7 +14,7 @@ function requireAdmin(req, res, next) {
   if (appUser.role !== "ADMIN") {
     return res.status(403).json({
       success: false,
-      message: "Forbidden: Requires one of [ADMIN]",
+      message: `Forbidden: role is ${appUser.role}, expected ADMIN`,
     });
   }
 

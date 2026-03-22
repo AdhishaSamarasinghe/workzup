@@ -17,10 +17,7 @@ const app = express();
 const httpServer = http.createServer(app);
 initSocket(httpServer);
 
-// Trust reverse proxy (e.g., Heroku, Render, AWS, Nginx)
 app.set("trust proxy", 1);
-
-// Security Hardening
 app.use(helmet());
 
 app.use(
@@ -33,11 +30,19 @@ app.use(
 
 app.use(express.json({ limit: "30mb" }));
 app.use(cookieParser());
-
-// Serve static files from the uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ── profile-preferences routes ──
+console.log("SERVER FILE RUNNING:", __filename);
+
+// IMPORTANT: explicitly load admin folder index.js
+const adminRoutes = require("./routes/admin/index");
+console.log(
+  "ADMIN ROUTES RESOLVED TO:",
+  require.resolve("./routes/admin/index")
+);
+app.use("/api/admin", adminRoutes);
+
+// Optional / branch routes
 try {
   const preferencesRoutes = require("./routes/preferences");
   const recruitersRoutes = require("./routes/recruiters");
@@ -45,18 +50,6 @@ try {
   app.use("/recruiters", recruitersRoutes);
 } catch (_) {}
 
-// ── Chat-branch routes (messages, conversations, users, jobs) ──
-const usersRoutes = require("./routes/users");
-const jobsRoutes = require("./routes/jobs");
-const messagesRoutes = require("./routes/messages");
-const conversationsRoutes = require("./routes/conversations");
-
-app.use("/users", usersRoutes);
-app.use("/api/jobs", jobsRoutes);
-app.use("/messages", messagesRoutes);
-app.use("/conversations", conversationsRoutes);
-
-// ── Main-branch routes (auth, onboarding, recruiter) ──
 try {
   const authRoutes = require("./routes/auth");
   app.use("/api/auth", authRoutes);
@@ -91,20 +84,23 @@ try {
   console.error("Failed to load payhere routes:", err);
 }
 
-/**
- * IMPORTANT:
- * Do NOT silently swallow admin route loading errors.
- * If admin routes fail to load, we WANT the server to crash and show the real error.
- */
-const adminRoutes = require("./routes/admin");
-app.use("/api/admin", adminRoutes);
-
 try {
   const employerJobsRoute = require("./routes/employerJobs");
   app.use("/api/employer/my-postings", employerJobsRoute);
 } catch (err) {
   console.error("Failed to load employerJobsRoute:", err);
 }
+
+// Main app routes
+const usersRoutes = require("./routes/users");
+const jobsRoutes = require("./routes/jobs");
+const messagesRoutes = require("./routes/messages");
+const conversationsRoutes = require("./routes/conversations");
+
+app.use("/api/users", usersRoutes);
+app.use("/api/jobs", jobsRoutes);
+app.use("/api/messages", messagesRoutes);
+app.use("/api/conversations", conversationsRoutes);
 
 let PORT = process.env.PORT || 5000;
 
@@ -114,7 +110,6 @@ app.get("/", (req, res) => {
   res.send(`Workzup API is running on port ${PORT} ✅`);
 });
 
-// --- Legacy Backwards-Compatible Public Endpoints ---
 app.get("/jobs", async (req, res) => {
   try {
     const prisma = require("./prismaClient");
@@ -173,9 +168,10 @@ app.get("/reviews", async (req, res) => {
 
     res.json(formatted);
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to fetch reviews", error: err.message });
+    res.status(500).json({
+      message: "Failed to fetch reviews",
+      error: err.message,
+    });
   }
 });
 
@@ -191,7 +187,6 @@ app.get("/max-pay", async (req, res) => {
   }
 });
 
-// Global Error Handler
 app.use((err, req, res, next) => {
   console.error("Server Error:", err);
   res.status(err.status || 500).json({
@@ -209,12 +204,10 @@ function startServer(portToTry) {
   server.on("error", (err) => {
     if (err.code === "EADDRINUSE") {
       if (portToTry === 5000) {
-        console.warn(`Port 5000 is in use, falling back to 5001...`);
+        console.warn("Port 5000 is in use, falling back to 5001...");
         startServer(5001);
       } else {
-        console.error(
-          `Port ${portToTry} is also in use. Could not start server.`
-        );
+        console.error(`Port ${portToTry} is also in use. Could not start server.`);
         process.exit(1);
       }
     } else {

@@ -8,6 +8,8 @@ const supabaseAdmin = createClient(
 
 async function authenticateToken(req, res, next) {
   try {
+    console.log("=== authenticateToken HIT ===");
+
     const authHeader = req.headers.authorization || "";
 
     if (!authHeader.startsWith("Bearer ")) {
@@ -29,15 +31,20 @@ async function authenticateToken(req, res, next) {
     const { data, error } = await supabaseAdmin.auth.getUser(token);
 
     if (error || !data?.user) {
+      console.log("FAILED: Invalid token", error?.message);
       return res.status(401).json({
         success: false,
         message: "Invalid or expired token",
       });
     }
 
+    console.log("SUPABASE USER EMAIL:", data.user.email);
+
     const appUser = await prisma.user.findUnique({
       where: { email: data.user.email },
     });
+
+    console.log("DB APP USER:", appUser);
 
     if (!appUser) {
       return res.status(403).json({
