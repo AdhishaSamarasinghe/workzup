@@ -19,22 +19,25 @@ interface CompletionSummary {
 
 type PayHerePayload = {
     action: string;
-    [key: string]: string;
+    [key: string]: string | number | boolean | null | undefined;
 };
 
 function submitPayHereForm(payload: PayHerePayload) {
     if (typeof document === "undefined") return;
+    if (!payload?.action) {
+        throw new Error("PayHere action URL is missing");
+    }
 
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = payload.action;
+    form.action = String(payload.action);
 
     Object.entries(payload).forEach(([key, value]) => {
-        if (key === "action") return;
+        if (key === "action" || value == null) return;
         const input = document.createElement("input");
         input.type = "hidden";
         input.name = key;
-        input.value = value;
+        input.value = String(value);
         form.appendChild(input);
     });
 
@@ -102,31 +105,6 @@ function CompleteJobContent() {
 
             setSuccess(true);
             submitPayHereForm(data.payhere as PayHerePayload);
-        } catch (err: any) {
-            alert(err.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    // [ACTIONS] Report Issue
-    const handleReportIssue = async () => {
-        if (!summary) return;
-        const note = prompt("Please describe the issue:");
-        if (!note) return;
-
-        setSubmitting(true);
-        try {
-            await apiFetch(`/api/recruiter/jobs/${jobId}/report-issue`, {
-                method: "POST",
-                body: JSON.stringify({
-                    workerId: summary.workerId,
-                    note,
-                }),
-            });
-
-            alert("Issue reported successfully");
-            router.back();
         } catch (err: any) {
             alert(err.message);
         } finally {
@@ -206,19 +184,12 @@ function CompleteJobContent() {
                         <button
                             onClick={handleConfirm}
                             disabled={submitting || success}
-                            className={`w-full py-3.5 rounded-xl font-bold transition-all ${success
+                            className={`w-full py-3.5 rounded-xl font-semibold transition-all ${success
                                 ? "bg-green-500 text-white"
-                                : "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-100"
+                                : "bg-[#6D83F2] hover:bg-[#5B73F1] text-white shadow-md shadow-[#6D83F2]/30"
                                 } disabled:opacity-70`}
                         >
                             {success ? "Completed successfully" : submitting ? "Processing..." : "Confirm Completion"}
-                        </button>
-                        <button
-                            onClick={handleReportIssue}
-                            disabled={submitting || success}
-                            className="w-full py-3.5 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-70"
-                        >
-                            Report an issue
                         </button>
                     </div>
                 </div>
