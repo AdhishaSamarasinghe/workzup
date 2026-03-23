@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth/workzupAuth";
 
 import Logo from "@/components/Logo";
+import AuthVisualPanel from "@/components/AuthVisualPanel";
 
 export default function JobRecruiterLoginPage() {
     const router = useRouter();
@@ -61,8 +62,7 @@ export default function JobRecruiterLoginPage() {
         <div className="min-h-screen bg-[#f7fafc] flex flex-col font-sans">
 
             <div className="flex flex-1">
-                {/* Left Side - Placeholder/Image */}
-                <div className="hidden w-1/3 bg-[#D9D9D9] lg:block"></div>
+                <AuthVisualPanel title="Hire Better, Faster" subtitle="Publish jobs and connect with qualified candidates in one place." />
 
                 {/* Right Side - Form */}
                 <div className="flex w-full flex-col justify-center items-center bg-[#F9FAFB] p-8 lg:w-2/3 lg:p-12 relative overflow-y-auto">

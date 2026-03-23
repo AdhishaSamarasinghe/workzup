@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import Logo from "@/components/Logo";
 import SuccessModal from "@/components/SuccessModal";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
+import AuthVisualPanel from "@/components/AuthVisualPanel";
 import { startSupabaseOAuth } from "@/lib/auth/workzupAuth";
 
 const LocationMap = dynamic(() => import("@/components/LocationMap"), {
@@ -294,8 +295,7 @@ export default function RecruiterRegisterPage() {
 
 
             <div className="flex flex-1">
-                {/* Left Side - Placeholder/Image */}
-                <div className="hidden w-1/3 bg-[#D9D9D9] lg:block"></div>
+                <AuthVisualPanel title="Build Your Dream Team" subtitle="Register your company and attract top talent with WorkzUp." />
 
 
                 {/* Right Side - Form */}

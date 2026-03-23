@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 
 import Logo from "@/components/Logo";
 import SuccessModal from "@/components/SuccessModal";
+import AuthVisualPanel from "@/components/AuthVisualPanel";
 import { startSupabaseOAuth } from "@/lib/auth/workzupAuth";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -271,8 +272,7 @@ export default function JobSeekerRegisterPage() {
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 className="flex flex-1"
             >
-                {/* Left Side - Placeholder/Image */}
-                <div className="hidden w-1/3 bg-[#D9D9D9] lg:block"></div>
+                <AuthVisualPanel title="Start Building Your Career" subtitle="Create your profile and get matched with the right companies." />
 
 
                 {/* Right Side - Form */}

@@ -13,6 +13,7 @@ import {
 } from "@/lib/auth/workzupAuth";
 
 import Logo from "@/components/Logo";
+import AuthVisualPanel from "@/components/AuthVisualPanel";
 
 export default function JobSeekerLoginPage() {
     const router = useRouter();
@@ -66,8 +67,7 @@ export default function JobSeekerLoginPage() {
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 className="flex flex-1"
             >
-                {/* Left Side - Placeholder/Image */}
-                <div className="hidden w-1/3 bg-[#D9D9D9] lg:block"></div>
+                <AuthVisualPanel title="Land Your Next Role" subtitle="Discover opportunities from companies actively hiring through WorkzUp." />
 
                 {/* Right Side - Form */}
                 <div className="flex w-full flex-col justify-center items-center bg-[#F9FAFB] p-8 lg:w-2/3 lg:p-12 relative overflow-y-auto">
