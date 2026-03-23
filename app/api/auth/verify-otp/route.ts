@@ -1,49 +1,41 @@
-import { NextResponse } from 'next/server';
-import { otpStore, cleanupExpiredOtps } from '../otpStore';
+import { NextResponse } from "next/server";
+import { API_BASE_URLS } from "@/lib/api";
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { email, otp } = body;
 
-        if (!email || !otp) {
-            return NextResponse.json({ message: "Email and OTP are required" }, { status: 400 });
+        if (API_BASE_URLS.length === 0) {
+            return NextResponse.json({ message: "Backend API URL is not configured." }, { status: 500 });
         }
 
-        cleanupExpiredOtps();
-        const record = otpStore.get(email);
+        let response: Response | null = null;
+        let lastError: unknown = null;
 
-        if (!record) {
-            return NextResponse.json({
-                success: false,
-                message: "No OTP request found for this email. Please request a new code.",
-            }, { status: 400 });
+        for (const baseUrl of API_BASE_URLS) {
+            try {
+                response = await fetch(`${baseUrl}/api/auth/verify-otp`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(body),
+                    cache: "no-store",
+                });
+                break;
+            } catch (error) {
+                lastError = error;
+            }
         }
 
-        if (Date.now() > record.expiresAt) {
-            otpStore.delete(email);
-            return NextResponse.json({
-                success: false,
-                message: "OTP has expired. Please request a new one.",
-            }, { status: 400 });
-        }
+        if (!response) {
+            throw lastError instanceof Error ? lastError : new Error("Backend unreachable");
+    }
 
-        // Verify the code
-        if (record.otp === otp) {
-            // Valid, delete single-use code
-            otpStore.delete(email);
-            return NextResponse.json({
-                success: true,
-                message: "OTP verified successfully",
-            }, { status: 200 });
-        } else {
-            return NextResponse.json({
-                success: false,
-                message: "Invalid OTP",
-            }, { status: 400 });
-        }
+        const payload = await response.json().catch(() => ({}));
+        return NextResponse.json(payload, { status: response.status });
     } catch (error) {
-        console.error("verify-otp error:", error);
+        console.error("verify-otp proxy error:", error);
         return NextResponse.json({ message: "Internal server error" }, { status: 500 });
     }
 }

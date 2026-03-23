@@ -1,42 +1,48 @@
-import { NextResponse } from 'next/server';
-import { sendOTP } from '../../../lib/emailService';
-import { otpStore, cleanupExpiredOtps } from '../otpStore';
+import { NextResponse } from "next/server";
+import { API_BASE_URLS } from "@/lib/api";
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { email } = body;
 
-        if (!email) {
-            return NextResponse.json({ message: "Email is required" }, { status: 400 });
+        if (API_BASE_URLS.length === 0) {
+            return NextResponse.json({ message: "Backend API URL is not configured." }, { status: 500 });
         }
 
-        // Clean up expired OTPs to avoid memory leaks
-        cleanupExpiredOtps();
+        let response: Response | null = null;
+        let lastError: unknown = null;
 
-        // Generate a 6-digit random code
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-        // Save to store (expires in 10 minutes)
-        otpStore.set(email, {
-            otp,
-            expiresAt: Date.now() + 10 * 60 * 1000
-        });
-
-        // Send OTP via email
-        const emailSent = await sendOTP(email, otp);
-
-        if (!emailSent) {
-             return NextResponse.json({ message: "Failed to send OTP email" }, { status: 500 });
+        for (const baseUrl of API_BASE_URLS) {
+            try {
+                response = await fetch(`${baseUrl}/api/auth/send-otp`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(body),
+                    cache: "no-store",
+                });
+                break;
+            } catch (error) {
+                lastError = error;
+            }
         }
 
-        return NextResponse.json({
-            success: true,
-            message: "OTP sent successfully",
-        }, { status: 200 });
+        if (!response) {
+            throw lastError instanceof Error ? lastError : new Error("Backend unreachable");
+    }
 
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return NextResponse.json(
+                { message: payload.message || "Failed to send OTP email" },
+                { status: response.status },
+            );
+        }
+
+        return NextResponse.json(payload, { status: 200 });
     } catch (error) {
-        console.error("send-otp error:", error);
+        console.error("send-otp proxy error:", error);
         return NextResponse.json({ message: "Internal server error" }, { status: 500 });
     }
 }

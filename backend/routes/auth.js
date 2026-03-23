@@ -702,6 +702,81 @@ router.put("/password", authenticateToken, async (req, res) => {
 // Mock OTP storage (In production, use Redis or DB with expiry)
 const otpStore = new Map();
 
+// POST /api/auth/send-otp
+router.post("/send-otp", async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    otpStore.set(`REGISTER_${normalizedEmail}`, {
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    const emailSent = await sendOTP(normalizedEmail, otp, false);
+    if (!emailSent) {
+      return res.status(500).json({ message: "Failed to send OTP email" });
+    }
+
+    return res.json({ success: true, message: "OTP sent successfully" });
+  } catch (error) {
+    console.error("Send Register OTP Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// POST /api/auth/verify-otp
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body || {};
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedOtp = String(otp || "").trim();
+
+    if (!normalizedEmail || !normalizedOtp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
+    const key = `REGISTER_${normalizedEmail}`;
+    const record = otpStore.get(key);
+
+    if (!record) {
+      return res.status(400).json({
+        success: false,
+        message: "No OTP request found for this email. Please request a new code.",
+      });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(key);
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired. Please request a new one.",
+      });
+    }
+
+    if (record.otp !== normalizedOtp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    otpStore.delete(key);
+    return res.json({
+      success: true,
+      message: "OTP verified successfully",
+    });
+  } catch (error) {
+    console.error("Verify Register OTP Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // POST /api/auth/profile/send-email-otp
 router.post("/profile/send-email-otp", authenticateToken, async (req, res) => {
   try {
