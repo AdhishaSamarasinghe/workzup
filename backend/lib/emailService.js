@@ -5,6 +5,9 @@ loadEnv();
 
 const emailUser = getEnv('EMAIL_USER') || getEnv('SMTP_USER');
 const emailPass = getEnv('EMAIL_PASS') || getEnv('SMTP_PASS');
+const smtpHost = getEnv('SMTP_HOST', 'smtp.gmail.com');
+const smtpPort = Number.parseInt(getEnv('SMTP_PORT', '587'), 10);
+const smtpFrom = getEnv('SMTP_FROM', '"Workzup" <noreply@workzup.com>');
 
 if (!emailUser || !emailPass) {
   console.error(
@@ -12,22 +15,97 @@ if (!emailUser || !emailPass) {
   );
 }
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
-  auth: {
-    user: emailUser,
-    pass: emailPass,
-  },
-});
+function buildTransport(strategy) {
+  if (strategy.type === 'service') {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: emailUser,
+        pass: emailPass,
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000,
+    });
+  }
+
+  return nodemailer.createTransport({
+    host: strategy.host,
+    port: strategy.port,
+    secure: strategy.secure,
+    requireTLS: !strategy.secure,
+    auth: {
+      user: emailUser,
+      pass: emailPass,
+    },
+    // Railway environments can hit transient IPv6 route delays; prefer IPv4.
+    name: 'workzup.lk',
+    family: 4,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
+  });
+}
+
+function getTransportStrategies() {
+  const strategies = [];
+
+  if (smtpHost) {
+    strategies.push({
+      type: 'host',
+      host: smtpHost,
+      port: Number.isFinite(smtpPort) ? smtpPort : 587,
+      secure: (Number.isFinite(smtpPort) ? smtpPort : 587) === 465,
+      label: `host:${smtpHost}:${Number.isFinite(smtpPort) ? smtpPort : 587}`,
+    });
+  }
+
+  const lowerHost = String(smtpHost || '').toLowerCase();
+  const hostLooksLikeGmail = !lowerHost || lowerHost.includes('gmail');
+
+  if (hostLooksLikeGmail) {
+    strategies.push({
+      type: 'host',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      label: 'gmail:465:ssl',
+    });
+
+    strategies.push({
+      type: 'host',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      label: 'gmail:587:starttls',
+    });
+
+    strategies.push({
+      type: 'service',
+      label: 'gmail:service',
+    });
+  }
+
+  const seen = new Set();
+  return strategies.filter((item) => {
+    const key = `${item.type}:${item.host || ''}:${item.port || ''}:${item.secure || false}:${item.label}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 const sendOTP = async (to, otp, isPasswordReset = false) => {
+  if (!emailUser || !emailPass) {
+    console.error('OTP email send skipped: SMTP credentials are missing.');
+    return false;
+  }
+
   const subject = isPasswordReset ? 'Your Password Reset Code' : 'Your Email Verification Code';
   const purpose = isPasswordReset ? 'reset your password' : 'verify your new email address';
   
   const mailOptions = {
-    from: process.env.SMTP_FROM || '"Workzup" <noreply@workzup.com>',
+    from: smtpFrom,
     to,
     subject,
     html: `
@@ -50,14 +128,23 @@ const sendOTP = async (to, otp, isPasswordReset = false) => {
     `,
   };
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Message sent: %s', info.messageId);
-    return true;
-  } catch (error) {
-    console.error('Error sending email:', error);
-    return false;
+  const strategies = getTransportStrategies();
+  let lastError = null;
+
+  for (const strategy of strategies) {
+    try {
+      const transporter = buildTransport(strategy);
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`Message sent via ${strategy.label}: %s`, info.messageId);
+      return true;
+    } catch (error) {
+      lastError = error;
+      console.error(`Error sending email via ${strategy.label}:`, error?.message || error);
+    }
   }
+
+  console.error('Error sending email: all SMTP strategies failed.', lastError?.message || lastError);
+  return false;
 };
 
 module.exports = {
