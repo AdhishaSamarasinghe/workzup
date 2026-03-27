@@ -5,6 +5,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ApplicationSuccessPopup from "@/components/ApplicationSuccessPopup";
 import { apiFetch, getAuthToken } from "@/lib/api";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { BrowseJob, formatPay, formatDateLabel } from "@/lib/browse";
 import { CheckCircle2 } from "lucide-react";
 
@@ -40,6 +41,22 @@ function ApplicationFormContent() {
   const [missingFieldMap, setMissingFieldMap] = useState<Record<string, string>>({});
   const [showValidationPopup, setShowValidationPopup] = useState(false);
   const [firstMissingFieldId, setFirstMissingFieldId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        router.push("/jobseeker/browse");
+        router.refresh();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   useEffect(() => {
     if (!jobId) {

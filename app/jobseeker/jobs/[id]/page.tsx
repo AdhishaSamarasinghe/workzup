@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { BrowseJob, formatPay, formatDateLabel } from "@/lib/browse";
 import { MapPin, Calendar, DollarSign, Building2, BriefcaseBusiness } from "lucide-react";
 
 export default function JobApplyPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id as string;
 
   const [job, setJob] = useState<BrowseJob | null>(null);
@@ -16,6 +18,22 @@ export default function JobApplyPage() {
   const [error, setError] = useState("");
   const [isSaved, setIsSaved] = useState(false);
   const [savingLoading, setSavingLoading] = useState(false);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        router.push("/jobseeker/browse");
+        router.refresh();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   useEffect(() => {
     if (!id) return;
