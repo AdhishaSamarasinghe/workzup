@@ -10,7 +10,7 @@ export default function AuthHeader() {
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="fixed top-0 z-50 w-full bg-white/70 backdrop-blur-xl border-b border-white/20 py-4 shadow-sm"
+            className="fixed top-0 z-50 w-full bg-white border-b border-gray-200 py-4 shadow-sm"
         >
             <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex justify-center items-center">
                 <Link href="/" className="flex items-center">

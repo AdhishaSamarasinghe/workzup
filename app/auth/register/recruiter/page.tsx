@@ -278,7 +278,12 @@ export default function RecruiterRegisterPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+        <div className="min-h-screen auth-visual-panel relative flex flex-col font-sans overflow-hidden">
+            {/* Background elements */}
+            <div className="auth-visual-glow auth-visual-glow-top" />
+            <div className="auth-visual-glow auth-visual-glow-mid" />
+            <div className="auth-visual-grid" />
+
             {/* Success Modal */}
             <SuccessModal
                 isOpen={showSuccessModal}
@@ -293,15 +298,23 @@ export default function RecruiterRegisterPage() {
                 }
             />
 
+            {/* Floating Cards (Top Right) */}
+            <div className="auth-floating-card auth-floating-card-sm hidden lg:block" style={{ top: '100px', right: '8%' }}>
+                24k+ verified users
+            </div>
+            <div className="auth-floating-card auth-floating-card-lg hidden lg:block" style={{ top: '170px', right: '14%' }}>
+                Smart hiring workflows
+            </div>
 
-            <div className="flex flex-1">
-                <AuthVisualPanel title="Build Your Dream Team" subtitle="Register your company and attract top talent with WorkzUp." />
+            {/* Left Fixed Text */}
+            <div className="absolute z-20 bottom-16 left-12 text-white hidden lg:block max-w-[400px]">
+                <p className="text-[10px] uppercase tracking-[0.35em] text-blue-100/90 font-bold mb-1">WORKZUP</p>
+                <h3 className="text-[32px] font-bold leading-tight tracking-tight">Build Your Dream Team</h3>
+            </div>
 
-
-                {/* Right Side - Form */}
-                <div className="flex w-full flex-col justify-center items-center bg-[#F9FAFB] p-8 lg:w-2/3 lg:p-12 relative overflow-y-auto">
-                    {/* The Card Form container */}
-                    <div className="w-full max-w-[700px] bg-white rounded-xl shadow-lg shadow-gray-200/50 p-8 sm:p-10 mb-auto mt-4 sm:mt-8 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="relative z-10 flex flex-1 w-full flex-col justify-center items-center p-4 sm:p-8 pt-24 pb-12 overflow-y-auto w-full">
+                {/* The Card Form container */}
+                <div className="w-full max-w-[700px] bg-white rounded-xl shadow-2xl shadow-blue-900/20 p-8 sm:p-10 relative my-auto shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Tabs */}
                         <div className="flex justify-center mb-6">
                             <div className="flex w-fit">
@@ -685,7 +698,6 @@ export default function RecruiterRegisterPage() {
 
                         </form>
                     </div>
-                </div>
             </div>
         </div>
     );
