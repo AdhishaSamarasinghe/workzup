@@ -89,8 +89,54 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
       const supabase = getSupabaseBrowserClient();
       if (!supabase || !mounted) return;
 
+      const handleIncoming = (incomingMessage: MessageRow) => {
+        if (incomingMessage.sender_id === user.id) return; // Don't notify for our own messages
+
+        if (handledMessagesRef.current.has(incomingMessage.id)) {
+          return; // Prevent duplicates
+        }
+        handledMessagesRef.current.add(incomingMessage.id);
+
+        const isCurrentlyActive =
+          activeConversationIdRef.current === incomingMessage.conversation_id &&
+          typeof document !== "undefined" &&
+          !document.hidden;
+
+        if (!isCurrentlyActive) {
+          setUnreadCount((prev) => prev + 1);
+
+          // Play sound
+          try {
+            const audio = new Audio("/notification.mp3");
+            audio.play().catch((err) => console.warn("Failed to play notification audio", err));
+          } catch (err) {
+            // Ignore audio errors
+          }
+
+          // Show React Hot Toast
+          toast(`New message: ${incomingMessage.content.slice(0, 40)}${incomingMessage.content.length > 40 ? "..." : ""}`, {
+            icon: "💬",
+            duration: 5000,
+            position: "bottom-right",
+          });
+
+          // Show Browser Notification if hidden
+          if (
+            typeof document !== "undefined" &&
+            document.hidden &&
+            "Notification" in window &&
+            Notification.permission === "granted"
+          ) {
+            new Notification(`New message`, {
+              body: incomingMessage.content,
+              icon: "/logo_icon.png" // assuming standard icon exists
+            });
+          }
+        }
+      };
+
       const channel = supabase
-        .channel("global-message-notifications")
+        .channel("messaging-hub")
         .on(
           "postgres_changes",
           {
@@ -99,53 +145,14 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
             table: "messages",
           },
           (payload: RealtimePostgresInsertPayload<MessageRow>) => {
-            const incomingMessage = payload.new;
-
-            if (incomingMessage.sender_id === user.id) return; // Don't notify for our own messages
-
-            if (handledMessagesRef.current.has(incomingMessage.id)) {
-              return; // Prevent duplicates
-            }
-            handledMessagesRef.current.add(incomingMessage.id);
-
-            const isCurrentlyActive =
-              activeConversationIdRef.current === incomingMessage.conversation_id &&
-              typeof document !== "undefined" &&
-              !document.hidden;
-
-            if (!isCurrentlyActive) {
-              setUnreadCount((prev) => prev + 1);
-
-              // Play sound
-              try {
-                const audio = new Audio("/notification.mp3");
-                audio.play().catch((err) => console.warn("Failed to play notification audio", err));
-              } catch (err) {
-                // Ignore audio errors
-              }
-
-              // Show React Hot Toast
-              toast(`New message: ${incomingMessage.content.slice(0, 40)}${incomingMessage.content.length > 40 ? "..." : ""}`, {
-                icon: "💬",
-                duration: 5000,
-                position: "bottom-right",
-              });
-
-              // Show Browser Notification if hidden
-              if (
-                typeof document !== "undefined" &&
-                document.hidden &&
-                "Notification" in window &&
-                Notification.permission === "granted"
-              ) {
-                new Notification(`New message`, {
-                  body: incomingMessage.content,
-                  icon: "/logo_icon.png" // assuming standard icon exists
-                });
-              }
-            }
+            handleIncoming(payload.new);
           }
         )
+        .on("broadcast", { event: "new_message" }, ({ payload }) => {
+          if (payload && payload.message) {
+            handleIncoming(payload.message as MessageRow);
+          }
+        })
         .subscribe();
 
       return () => {
