@@ -14,6 +14,8 @@ export default function JobApplyPage() {
   const [job, setJob] = useState<BrowseJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingLoading, setSavingLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -31,8 +33,38 @@ export default function JobApplyPage() {
       }
     };
 
+    const checkSavedStatus = async () => {
+      try {
+        const data = await apiFetch(`/api/saved-jobs/${id}/status`);
+        setIsSaved(data.saved);
+      } catch (err) {
+        console.error("Failed to check saved status:", err);
+      }
+    };
+
     fetchJob();
+    checkSavedStatus();
   }, [id]);
+
+  const toggleSaveJob = async () => {
+    setSavingLoading(true);
+    try {
+      if (isSaved) {
+        await apiFetch(`/api/saved-jobs/${id}`, { method: "DELETE" });
+        setIsSaved(false);
+      } else {
+        await apiFetch(`/api/saved-jobs`, {
+          method: "POST",
+          body: JSON.stringify({ jobId: id }),
+        });
+        setIsSaved(true);
+      }
+    } catch (err) {
+      console.error("Failed to toggle save job:", err);
+    } finally {
+      setSavingLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -133,6 +165,14 @@ export default function JobApplyPage() {
                 >
                   Apply Now
                 </Link>
+                <button
+                  type="button"
+                  onClick={toggleSaveJob}
+                  disabled={savingLoading}
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-6 py-3.5 text-sm font-semibold text-[#4B5563] shadow-sm transition hover:bg-[#E5E7EB] disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {savingLoading ? "Loading..." : isSaved ? "Unsave Job" : "Save Job"}
+                </button>
                 <p className="text-center text-xs text-[#6B7280] pt-2">
                   Posted {formatDateLabel(job.date)}
                 </p>
