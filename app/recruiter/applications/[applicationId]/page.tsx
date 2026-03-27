@@ -87,7 +87,9 @@ export default function ViewApplication() {
     };
 
     const handleMessage = () => {
-        console.log("message", data?.applicant._id);
+        if (data?.applicant) {
+            router.push(`/recruiter/messages?recipientId=${data.applicant._id}&recipientName=${encodeURIComponent(data.applicant.name)}`);
+        }
     };
 
     const renderStars = (rating: number) => {
