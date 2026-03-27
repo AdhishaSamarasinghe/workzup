@@ -30,12 +30,7 @@ export function resolveUploadUrl(pathValue?: string | null) {
   };
 
   if (/^https?:\/\//i.test(pathValue)) {
-    try {
-      const parsed = new URL(pathValue);
-      return normalizeRelativeUploadPath(parsed.pathname);
-    } catch {
-      return pathValue;
-    }
+    return pathValue;
   }
 
   if (pathValue.startsWith("/")) {

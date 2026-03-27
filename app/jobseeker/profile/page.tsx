@@ -132,14 +132,10 @@ export default function JobSeekerProfile() {
 
         try {
             setUploadingAvatar(true);
-            const uploadResponse = await fetch("/api/profile-avatar", {
+            const response = await apiFetch("/api/auth/upload-avatar", {
                 method: "POST",
                 body: formData,
             });
-            const response = await uploadResponse.json().catch(() => ({}));
-            if (!uploadResponse.ok) {
-                throw new Error(response.message || "Failed to upload avatar.");
-            }
 
             const avatarPath = response?.data?.avatarPath || "";
             const nextAvatar = resolveProfileAvatar(response?.data?.avatarUrl || avatarPath || profile.avatar);
@@ -802,7 +798,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
                             {profile.cv && (
-                                <a href={`${API_BASE_URL}/${profile.cv.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-sm font-bold flex items-center">
+                                <a href={resolveUploadUrl(profile.cv) || "#"} target="_blank" className="text-[#6b8bff] hover:underline text-sm font-bold flex items-center">
                                     <FileText className="w-4 h-4 mr-1" /> View Current
                                 </a>
                             )}
@@ -830,7 +826,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Front Side</span>
                                     {profile.idFront && (
-                                        <a href={`${API_BASE_URL}/${profile.idFront.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-xs font-bold flex items-center">
+                                        <a href={resolveUploadUrl(profile.idFront) || "#"} target="_blank" className="text-[#6b8bff] hover:underline text-xs font-bold flex items-center">
                                             <FileText className="w-3.5 h-3.5 mr-1" /> View Current
                                         </a>
                                     )}
@@ -846,7 +842,7 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Back Side</span>
                                     {profile.idBack && (
-                                        <a href={`${API_BASE_URL}/${profile.idBack.replace(/\\/g, '/')}`} target="_blank" className="text-[#6b8bff] hover:underline text-xs font-bold flex items-center">
+                                        <a href={resolveUploadUrl(profile.idBack) || "#"} target="_blank" className="text-[#6b8bff] hover:underline text-xs font-bold flex items-center">
                                             <FileText className="w-3.5 h-3.5 mr-1" /> View Current
                                         </a>
                                     )}

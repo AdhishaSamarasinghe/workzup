@@ -1,5 +1,6 @@
 const prisma = require('../prismaClient');
 const { getIo } = require('../socket');
+const { uploadToSupabase } = require("../lib/storageService");
 
 // GET /api/messages?conversationId=...
 const getMessages = async (req, res) => {
@@ -230,9 +231,10 @@ const uploadImage = async (req, res) => {
             return res.status(400).json({ success: false, error: 'No image provided' });
         }
         
-        const imageUrl = `/uploads/${req.file.filename}`;
+        const imageUrl = await uploadToSupabase(req.file.buffer, req.file.originalname, "messages", req.file.mimetype);
         res.status(200).json({ success: true, url: imageUrl });
     } catch (error) {
+        console.error("Upload Image Error:", error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 };

@@ -16,6 +16,7 @@ const {
   normalizeRole: normalizeSupabaseRole,
   updateSupabaseUser,
 } = require("../lib/supabaseAdmin");
+const { uploadToSupabase } = require("../lib/storageService");
 
 const router = express.Router();
 
@@ -47,40 +48,9 @@ function buildAllowedRoles(expectedRole) {
   return normalized;
 }
 
-const ensureUploadDir = (dirPath) => {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-};
-
-// Configure Multer Storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = "uploads/";
-    ensureUploadDir(uploadDir);
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Unique filename: fieldname-timestamp-random.ext
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
-    );
-  },
-});
-
-const avatarStorage = multer.diskStorage({
-  destination: function (_req, _file, cb) {
-    const uploadDir = path.join("uploads", "avatars");
-    ensureUploadDir(uploadDir);
-    cb(null, uploadDir);
-  },
-  filename: function (_req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, "avatar-" + uniqueSuffix + path.extname(file.originalname));
-  },
-});
+// Configure Multer Storage for Supabase (Memory)
+const storage = multer.memoryStorage();
+const avatarStorage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -113,6 +83,7 @@ const avatarUpload = multer({
 
 const buildAvatarUrl = (req, storedPath, firstName, lastName) => {
   if (storedPath) {
+    if (storedPath.startsWith("http")) return storedPath; // Supabase URL
     const normalizedPath = String(storedPath).replace(/\\/g, "/").replace(/^\/+/, "");
     return `${req.protocol}://${req.get("host")}/${normalizedPath}`;
   }
@@ -188,8 +159,16 @@ router.post("/register", (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // Get file paths if uploaded
-    const cvPath = req.files && req.files['cv'] ? req.files['cv'][0].path.replace(/\\/g, "/") : null;
-    const companyLogoPath = req.files && req.files['companyLogo'] ? req.files['companyLogo'][0].path.replace(/\\/g, "/") : null;
+    let cvPath = null;
+    let companyLogoPath = null;
+    if (req.files && req.files['cv'] && req.files['cv'][0]) {
+      const f = req.files['cv'][0];
+      cvPath = await uploadToSupabase(f.buffer, f.originalname, "cvs", f.mimetype);
+    }
+    if (req.files && req.files['companyLogo'] && req.files['companyLogo'][0]) {
+      const f = req.files['companyLogo'][0];
+      companyLogoPath = await uploadToSupabase(f.buffer, f.originalname, "companyLogos", f.mimetype);
+    }
     let supabaseUser;
 
     try {
@@ -559,7 +538,7 @@ router.post("/upload-avatar", authenticateToken, avatarUpload.single("avatar"), 
       ? existingProfile.socialLinks
       : {};
 
-    const avatarPath = req.file.path.replace(/\\/g, "/");
+    const avatarPath = await uploadToSupabase(req.file.buffer, req.file.originalname, "avatars", req.file.mimetype);
 
     await prisma.seekerProfile.upsert({
       where: { userId: req.user.userId },
@@ -603,16 +582,20 @@ router.post("/upload-docs", authenticateToken, upload.fields([
   try {
     const updateData = {};
     if (req.files && req.files['cv'] && req.files['cv'][0]) {
-      updateData.cv = req.files['cv'][0].path;
+      const f = req.files['cv'][0];
+      updateData.cv = await uploadToSupabase(f.buffer, f.originalname, "cvs", f.mimetype);
     }
     if (req.files && req.files['idDocument'] && req.files['idDocument'][0]) {
-      updateData.idDocument = req.files['idDocument'][0].path;
+      const f = req.files['idDocument'][0];
+      updateData.idDocument = await uploadToSupabase(f.buffer, f.originalname, "idDocuments", f.mimetype);
     }
     if (req.files && req.files['idFront'] && req.files['idFront'][0]) {
-      updateData.idFront = req.files['idFront'][0].path;
+      const f = req.files['idFront'][0];
+      updateData.idFront = await uploadToSupabase(f.buffer, f.originalname, "idFronts", f.mimetype);
     }
     if (req.files && req.files['idBack'] && req.files['idBack'][0]) {
-      updateData.idBack = req.files['idBack'][0].path;
+      const f = req.files['idBack'][0];
+      updateData.idBack = await uploadToSupabase(f.buffer, f.originalname, "idBacks", f.mimetype);
     }
 
     if (Object.keys(updateData).length === 0) {
