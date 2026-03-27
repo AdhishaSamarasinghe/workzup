@@ -2,9 +2,10 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getCurrentMessagingUser, listConversations } from "./api";
-import type { MessageRow } from "./types";
+import type { MessageRow, ConversationSummary } from "./types";
 import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 
 interface NotificationContextType {
@@ -27,6 +28,8 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
   const [unreadCount, setUnreadCount] = useState(0);
   const activeConversationIdRef = useRef<string | null>(null);
   const handledMessagesRef = useRef<Set<string>>(new Set());
+  const conversationsRef = useRef<ConversationSummary[]>([]);
+  const router = useRouter();
 
   const refreshUnreadCount = useCallback(async () => {
     try {
@@ -36,6 +39,8 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
         return;
       }
       const conversations = await listConversations();
+      conversationsRef.current = conversations;
+      
       const totalUnread = conversations.reduce(
         (count, conversation) => count + conversation.unread_count,
         0
@@ -105,6 +110,15 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
         if (!isCurrentlyActive) {
           setUnreadCount((prev) => prev + 1);
 
+          // Find sender details
+          const conversation = conversationsRef.current.find(c => c.id === incomingMessage.conversation_id);
+          const senderName = conversation?.other_user_name || "Someone";
+          const senderAvatar = conversation?.other_user_avatar;
+          
+          const dashboardUrl = user.role === "recruiter" 
+            ? `/recruiter/messages?conversationId=${incomingMessage.conversation_id}`
+            : `/job-seeker/messages?conversationId=${incomingMessage.conversation_id}`;
+
           // Play sound
           try {
             const audio = new Audio("/notification.mp3");
@@ -113,12 +127,55 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
             // Ignore audio errors
           }
 
-          // Show React Hot Toast
-          toast(`New message: ${incomingMessage.content.slice(0, 40)}${incomingMessage.content.length > 40 ? "..." : ""}`, {
-            icon: "💬",
-            duration: 5000,
-            position: "bottom-right",
-          });
+          // Show Professional React Hot Toast
+          toast.custom((t) => (
+            <div
+              className={`${
+                t.visible ? 'animate-enter' : 'animate-leave'
+              } max-w-md w-full bg-white shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 cursor-pointer transform transition-all hover:scale-[1.02]`}
+              onClick={() => {
+                toast.dismiss(t.id);
+                router.push(dashboardUrl);
+              }}
+            >
+              <div className="flex-1 w-0 p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 pt-0.5">
+                    {senderAvatar ? (
+                      <img
+                        className="h-10 w-10 rounded-full object-cover"
+                        src={senderAvatar}
+                        alt={senderName}
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
+                        {senderName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      Message from {senderName}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                      {incomingMessage.content}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex border-l border-gray-200">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toast.dismiss(t.id);
+                  }}
+                  className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-gray-600 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ), { duration: 5000, position: "bottom-right" });
 
           // Show Browser Notification if hidden
           if (
@@ -127,10 +184,16 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
             "Notification" in window &&
             Notification.permission === "granted"
           ) {
-            new Notification(`New message`, {
+            const browserNotification = new Notification(`Message from ${senderName}`, {
               body: incomingMessage.content,
-              icon: "/logo_icon.png" // assuming standard icon exists
+              icon: senderAvatar || "/logo_icon.png"
             });
+            
+            browserNotification.onclick = () => {
+              window.focus();
+              router.push(dashboardUrl);
+              browserNotification.close();
+            };
           }
         }
       };
