@@ -77,7 +77,8 @@ export async function getCurrentMessagingUser() {
   const { data, error } = await supabase.auth.getUser();
 
   if (error) {
-    throw error;
+    // Gracefully handle missing sessions like AuthSessionMissingError during signout
+    return null;
   }
 
   if (!data.user) {
