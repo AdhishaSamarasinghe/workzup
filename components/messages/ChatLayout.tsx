@@ -339,6 +339,16 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
           event: "new_message",
           payload: { message },
         });
+
+        // Also broadcast to the global notifications channel to ensure instant cross-tab/page delivery
+        const supabase = getSupabaseBrowserClient();
+        if (supabase) {
+           await supabase.channel("global-message-notifications").send({
+             type: "broadcast",
+             event: "new_message",
+             payload: { message }
+           });
+        }
       } catch {
         // Ignore broadcast failure
       }

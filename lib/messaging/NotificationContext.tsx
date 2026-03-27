@@ -94,7 +94,7 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
       const supabase = getSupabaseBrowserClient();
       if (!supabase || !mounted) return;
 
-      const handleIncoming = (incomingMessage: MessageRow) => {
+      const handleIncoming = async (incomingMessage: MessageRow) => {
         if (incomingMessage.sender_id === user.id) return; // Don't notify for our own messages
 
         if (handledMessagesRef.current.has(incomingMessage.id)) {
@@ -108,16 +108,30 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
           !document.hidden;
 
         if (!isCurrentlyActive) {
+          // Find sender details
+          let conversation = conversationsRef.current.find(c => c.id === incomingMessage.conversation_id);
+          
+          // If conversation isn't in cache (e.g. brand new conversation), force refresh
+          if (!conversation) {
+             await refreshUnreadCount();
+             conversation = conversationsRef.current.find(c => c.id === incomingMessage.conversation_id);
+          }
+
+          // If STILL not found, this message is not for us! (Supabase postgres_changes might broadcast to all if RLS isn't strict)
+          if (!conversation) return;
+
           setUnreadCount((prev) => prev + 1);
 
-          // Find sender details
-          const conversation = conversationsRef.current.find(c => c.id === incomingMessage.conversation_id);
           const senderName = conversation?.other_user_name || "Someone";
           const senderAvatar = conversation?.other_user_avatar;
           
-          const dashboardUrl = user.role === "recruiter" 
+          const normalizeRole = (r?: string) => String(r || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+          const role = normalizeRole(user.role || "");
+          const isRecruiter = role === "RECRUITER" || role === "EMPLOYER";
+          
+          const dashboardUrl = isRecruiter
             ? `/recruiter/messages?conversationId=${incomingMessage.conversation_id}`
-            : `/job-seeker/messages?conversationId=${incomingMessage.conversation_id}`;
+            : `/jobseeker/messages?conversationId=${incomingMessage.conversation_id}`;
 
           // Play sound
           try {
@@ -199,7 +213,7 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
       };
 
       const channel = supabase
-        .channel("messaging-hub")
+        .channel("global-message-notifications")
         .on(
           "postgres_changes",
           {
@@ -208,12 +222,12 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
             table: "messages",
           },
           (payload: RealtimePostgresInsertPayload<MessageRow>) => {
-            handleIncoming(payload.new);
+            void handleIncoming(payload.new);
           }
         )
         .on("broadcast", { event: "new_message" }, ({ payload }) => {
           if (payload && payload.message) {
-            handleIncoming(payload.message as MessageRow);
+            void handleIncoming(payload.message as MessageRow);
           }
         })
         .subscribe();
