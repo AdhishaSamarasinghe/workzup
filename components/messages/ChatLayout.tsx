@@ -169,8 +169,8 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
   }, [fallbackConversation, onlineUserIds]);
 
   const loadConversations = useEffectEvent(
-    async (preferredConversationId?: string | null) => {
-      setConversationsLoading(true);
+    async (preferredConversationId?: string | null, silent: boolean = false) => {
+      if (!silent) setConversationsLoading(true);
 
       try {
         const nextConversations = await listConversations();
@@ -196,13 +196,13 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
             : "Unable to load your conversations.";
         setScreenError(message);
       } finally {
-        setConversationsLoading(false);
+        if (!silent) setConversationsLoading(false);
       }
     },
   );
 
-  const loadMessages = useEffectEvent(async (conversationId: string) => {
-    setMessagesLoading(true);
+  const loadMessages = useEffectEvent(async (conversationId: string, silent: boolean = false) => {
+    if (!silent) setMessagesLoading(true);
 
     try {
       const nextMessages = await fetchMessages(conversationId);
@@ -224,7 +224,7 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
         error instanceof Error ? error.message : "Unable to load messages.";
       setScreenError(message);
     } finally {
-      setMessagesLoading(false);
+      if (!silent) setMessagesLoading(false);
     }
   });
 
@@ -587,8 +587,8 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     void loadMessages(selectedConversationId);
 
     const intervalId = setInterval(() => {
-      void loadMessages(selectedConversationId);
-      void loadConversations(selectedConversationId);
+      void loadMessages(selectedConversationId, true);
+      void loadConversations(selectedConversationId, true);
     }, 4000);
 
     return () => clearInterval(intervalId);
