@@ -11,6 +11,7 @@ import {
     signOutWorkzupAuth,
     startSupabaseOAuth,
 } from "@/lib/auth/workzupAuth";
+import { apiFetch } from "@/lib/api";
 
 import Logo from "@/components/Logo";
 import AuthVisualPanel from "@/components/AuthVisualPanel";
@@ -42,6 +43,27 @@ export default function JobSeekerLoginPage() {
         try {
             const email = formData.email.trim().toLowerCase();
             const password = formData.password;
+
+            try {
+                const statusRes = await apiFetch("/api/auth/check-status", {
+                    method: "POST",
+                    body: JSON.stringify({ email }),
+                });
+
+                if (!statusRes.exists) {
+                    setError("Account not found. Please register to continue.");
+                    setLoading(false);
+                    return;
+                }
+
+                if (statusRes.role === "EMPLOYER" || statusRes.role === "RECRUITER") {
+                    setError("User registered as a Job Recruiter. Please use the recruiter portal to log in.");
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Check status failed:", err);
+            }
 
             try {
                 await signInWithSupabasePassword(email, password);

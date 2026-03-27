@@ -276,6 +276,31 @@ router.post("/register", (req, res, next) => {
   }
 });
 
+// POST /api/auth/check-status
+router.post("/check-status", async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email) {
+    return res.status(400).json({ message: "email required" });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: String(email).trim().toLowerCase() },
+      select: { role: true },
+    });
+
+    if (!user) {
+      return res.json({ exists: false });
+    }
+
+    return res.json({ exists: true, role: user.role });
+  } catch (error) {
+    console.error("Check Status Error:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
   const { email, password, expectedRole } = req.body;
