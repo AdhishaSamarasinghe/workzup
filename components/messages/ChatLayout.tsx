@@ -604,6 +604,15 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
   }, [selectedConversationId, stopLocalTyping]);
 
   useEffect(() => {
+    const event = new CustomEvent("chat:active_conversation", { detail: selectedConversationId });
+    window.dispatchEvent(event);
+
+    return () => {
+      window.dispatchEvent(new CustomEvent("chat:active_conversation", { detail: null }));
+    };
+  }, [selectedConversationId]);
+
+  useEffect(() => {
     if (!currentUser?.id) {
       return;
     }
