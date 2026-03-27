@@ -276,24 +276,7 @@ export default function ViewApplication() {
                             </div>
                         </div>
 
-                        {/* Footer Profile Link */}
-                        <div className="pt-8 flex flex-col items-center">
-                            <button
-                                onClick={() => {
-                                    if (applicant.portfolioUrl && applicant.portfolioUrl !== "#") {
-                                        window.open(applicant.portfolioUrl, "_blank");
-                                    } else {
-                                        console.log("Navigating to full profile");
-                                    }
-                                }}
-                                className="group flex items-center gap-3 px-8 py-4 bg-slate-800 text-white rounded-2xl font-black text-sm transition-all hover:bg-slate-700 active:scale-95 shadow-xl shadow-slate-200"
-                            >
-                                <span>View Full Portfolio Profile</span>
-                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
-                            </button>
-                        </div>
+
                     </div>
                 </div>
             </div>
