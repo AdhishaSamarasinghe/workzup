@@ -46,6 +46,10 @@ type TypingBroadcastPayload = {
   isTyping?: boolean;
 };
 
+type NewMessageBroadcastPayload = {
+  message: MessageRow;
+};
+
 function upsertMessage(list: MessageRow[], incoming: MessageRow) {
   const existingIndex = list.findIndex((message) => message.id === incoming.id);
 
@@ -324,6 +328,24 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     [currentUser?.id, currentUser?.name],
   );
 
+  const broadcastMessage = useCallback(
+    async (message: MessageRow) => {
+      const channel = realtimeChannelRef.current;
+      if (!channel) return;
+
+      try {
+        await channel.send({
+          type: "broadcast",
+          event: "new_message",
+          payload: { message },
+        });
+      } catch {
+        // Ignore broadcast failure
+      }
+    },
+    []
+  );
+
   const stopLocalTyping = useCallback(async () => {
     const activeConversationId = localTypingConversationIdRef.current;
 
@@ -563,6 +585,13 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
     }
 
     void loadMessages(selectedConversationId);
+
+    const intervalId = setInterval(() => {
+      void loadMessages(selectedConversationId);
+      void loadConversations(selectedConversationId);
+    }, 4000);
+
+    return () => clearInterval(intervalId);
   }, [selectedConversationId, stopLocalTyping]);
 
   useEffect(() => {
@@ -624,6 +653,14 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         handleTypingBroadcast(payload as TypingBroadcastPayload);
       })
+      .on("broadcast", { event: "new_message" }, ({ payload }) => {
+        const typedPayload = payload as NewMessageBroadcastPayload;
+        if (typedPayload.message) {
+          void applyIncomingMessage({
+            new: typedPayload.message,
+          } as RealtimePostgresInsertPayload<MessageRow>);
+        }
+      })
       .on("presence", { event: "sync" }, () => {
         syncPresenceState();
       })
@@ -671,6 +708,9 @@ export default function ChatLayout({ audience }: ChatLayoutProps) {
         currentUser.id,
         content,
       );
+      
+      await broadcastMessage(insertedMessage);
+
       setMessages((currentMessages) =>
         upsertMessage(currentMessages, insertedMessage),
       );
