@@ -10,7 +10,7 @@ type ApplicationRow = {
   id: string;
   applicantId: string;
   status: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 };
 
 type VerificationBroadcastPayload = {
@@ -57,7 +57,7 @@ export function ApplicationNotificationProvider({ children }: { children: React.
         try {
           const audio = new Audio("/notification.mp3");
           audio.play().catch(() => {});
-        } catch (_error) {
+        } catch {
           // Ignore audio playback issues.
         }
 

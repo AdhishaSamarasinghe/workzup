@@ -373,8 +373,8 @@ function BrowseJobsPageContent() {
         if (!isMounted) return;
         setIsVerified(profile.isVerified || false);
         setVerificationStatus(profile.verificationStatus || "PENDING");
-      } catch (error) {
-        console.error("Error fetching profile:", error);
+      } catch {
+        // Silently handle profile fetch errors to avoid blocking browse
         if (isMounted) {
           setIsVerified(true); // Default to verified to avoid blocking
         }

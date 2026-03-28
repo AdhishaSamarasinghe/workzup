@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import React, { useMemo, useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import AdminHeader from "@/components/admin/AdminHeader";
 import StatusBadge from "@/components/admin/StatusBadge";
 import { CheckCircle2, X, Download, ShieldCheck } from "lucide-react";
@@ -261,9 +262,11 @@ export default function AdminVerificationsPage() {
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 overflow-hidden rounded-full bg-slate-200">
                         {selectedAvatar ? (
-                          <img
+                          <Image
                             src={selectedAvatar}
                             alt={`${selectedItem.name} profile`}
+                            width={56}
+                            height={56}
                             className="h-full w-full object-cover"
                           />
                         ) : (
@@ -372,9 +375,11 @@ export default function AdminVerificationsPage() {
                       <div className="mt-5 flex h-[260px] items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
                         {selectedDocumentUrl ? (
                           isImageAsset(selectedDocumentUrl) ? (
-                            <img
+                            <Image
                               src={selectedDocumentUrl}
                               alt="ID document preview"
+                              width={520}
+                              height={260}
                               className="h-full w-full object-contain"
                             />
                           ) : isPdfAsset(selectedDocumentUrl) ? (
@@ -425,9 +430,11 @@ export default function AdminVerificationsPage() {
 
                       <div className="mt-5 flex h-[260px] items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
                         {selectedAvatar ? (
-                          <img
+                          <Image
                             src={selectedAvatar}
                             alt={`${selectedItem.name} profile`}
+                            width={520}
+                            height={260}
                             className="h-full w-full object-cover"
                           />
                         ) : (

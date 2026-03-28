@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
+import Image from "next/image";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -136,8 +137,8 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
           // Play sound
           try {
             const audio = new Audio("/notification.mp3");
-            audio.play().catch((err) => console.warn("Failed to play notification audio", err));
-          } catch (err) {
+            audio.play().catch(() => {});
+          } catch {
             // Ignore audio errors
           }
 
@@ -156,10 +157,12 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
                 <div className="flex items-start">
                   <div className="flex-shrink-0 pt-0.5">
                     {senderAvatar ? (
-                      <img
+                      <Image
                         className="h-10 w-10 rounded-full object-cover"
                         src={senderAvatar}
                         alt={senderName}
+                        width={40}
+                        height={40}
                       />
                     ) : (
                       <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
@@ -245,7 +248,7 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
         if (cleanup) cleanup();
       });
     };
-  }, [refreshUnreadCount]);
+  }, [router, refreshUnreadCount]);
 
   return (
     <NotificationContext.Provider value={{ unreadCount, refreshUnreadCount, decrementUnreadCount }}>
