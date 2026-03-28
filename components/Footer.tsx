@@ -25,9 +25,14 @@ export default function Footer() {
           <Link href="/about" className="transition-colors hover:text-accent">
             About
           </Link>
-          <button type="button" className="flex items-center justify-center transition-colors hover:text-accent focus:outline-none" aria-label="Settings placeholder">
+          <Link
+            href="/admin/login"
+            className="flex items-center justify-center transition-colors hover:text-accent focus:outline-none"
+            aria-label="Admin sign in"
+            title="Admin sign in"
+          >
             <UserCog className="h-5 w-5" />
-          </button>
+          </Link>
         </div>
       </div>
     </footer>
