@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { apiFetch, API_BASE_URL } from "@/lib/api";
 import { 
     User, Briefcase, FileText, Shield, Award, MapPin, Star, 
-    Plus, Trash2, Edit2, Link as LinkIcon, Github, Linkedin, Target, CheckCircle2, Camera, LoaderCircle
+    Plus, Trash2, Edit2, Link as LinkIcon, Github, Linkedin, Target, CheckCircle2, Camera, LoaderCircle, CreditCard
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ProfileAvatar from "@/components/ProfileAvatar";
@@ -17,6 +17,7 @@ interface JobSeekerProfileData {
     id: string;
     name: string;
     firstName: string;
+
     lastName: string;
     title: string;
     location: string;
@@ -43,6 +44,17 @@ interface JobSeekerProfileData {
     };
     phone?: string;
     availableTimes?: string;
+    paymentDetails?: {
+        paymentMethod?: 'bank' | 'card';
+        accountName?: string;
+        accountNumber?: string;
+        bankName?: string;
+        branchName?: string;
+        cardNumber?: string;
+        cardName?: string;
+        expiryDate?: string;
+        cvv?: string;
+    };
 }
 
 type PreviewKind = "image" | "pdf" | "file";
@@ -200,11 +212,12 @@ export default function JobSeekerProfile() {
         if (p.firstName && p.lastName) score += 10;
         if (p.avatar && !String(p.avatar).includes("default")) score += 10;
         if (p.phone) score += 10;
-        if (p.aboutMe && p.aboutMe.length > 2) score += 15;
-        if (p.skills && p.skills.length > 0) score += 20;
+        if (p.aboutMe && p.aboutMe.length > 2) score += 10;
+        if (p.skills && p.skills.length > 0) score += 15;
         if (p.languages && p.languages.length > 0) score += 10;
         if (p.cv) score += 10;
         if (p.idFront && p.idBack) score += 15;
+        if (p.paymentDetails && (p.paymentDetails.accountNumber || p.paymentDetails.cardNumber)) score += 10;
         return Math.min(score, 100);
     };
 
@@ -231,7 +244,8 @@ export default function JobSeekerProfile() {
         { id: "overview", label: "Overview", icon: User },
         { id: "personal", label: "Personal Info", icon: FileText },
         { id: "experience", label: "Experience & Education", icon: Briefcase },
-        { id: "skills", label: "Docs & Skills", icon: Award }
+        { id: "skills", label: "Docs & Skills", icon: Award },
+        { id: "payment", label: "Payment Details", icon: CreditCard }
     ];
 
     return (
@@ -315,6 +329,7 @@ export default function JobSeekerProfile() {
                                 {activeTab === "personal" && <TabPersonalInfo profile={profile} onSave={handleSaveProfile} />}
                                 {activeTab === "experience" && <TabExperience profile={profile} onSave={handleSaveProfile} onRefresh={fetchProfile} />}
                                 {activeTab === "skills" && <TabSkills profile={profile} onSave={handleSaveProfile} onRefresh={fetchProfile} />}
+                                {activeTab === "payment" && <TabPayment profile={profile} onSave={handleSaveProfile} />}
                             </motion.div>
                         </AnimatePresence>
                     </div>
@@ -929,4 +944,191 @@ function TabSkills({ profile, onSave, onRefresh }: { profile: JobSeekerProfileDa
     );
 }
 
+// ---------------------------------------------------------
+// PAYMENT DETAILS TAB
+// ---------------------------------------------------------
 
+function TabPayment({ profile, onSave }: { profile: JobSeekerProfileData, onSave: (p: any) => Promise<boolean> }) {
+    const existing = profile.paymentDetails || {};
+    const [method, setMethod] = useState<'bank' | 'card'>(existing.paymentMethod || 'bank');
+    const [formData, setFormData] = useState({
+        accountName: existing.accountName || "",
+        accountNumber: existing.accountNumber || "",
+        bankName: existing.bankName || "",
+        branchName: existing.branchName || "",
+        cardNumber: existing.cardNumber || "",
+        cardName: existing.cardName || "",
+        expiryDate: existing.expiryDate || "",
+        cvv: existing.cvv || ""
+    });
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Simple formatting for card inputs
+        let val = e.target.value;
+        if (e.target.name === 'cardNumber') val = val.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim();
+        if (e.target.name === 'expiryDate') val = val.replace(/\D/g, '').replace(/(\d{2})(\d{1,2})/, '$1/$2').substring(0, 5);
+        if (e.target.name === 'cvv') val = val.replace(/\D/g, '').substring(0, 4);
+
+        setFormData({ ...formData, [e.target.name]: val });
+        setSaved(false);
+    };
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        const success = await onSave({ paymentDetails: { ...formData, paymentMethod: method } });
+        setSaving(false);
+        if (success) {
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        }
+    };
+
+    const displayCardNumber = method === 'bank' 
+        ? (formData.accountNumber ? formData.accountNumber.replace(/(\d{4})/g, '$1 ').trim() : "**** **** **** ****")
+        : (formData.cardNumber || "**** **** **** ****");
+        
+    const displayName = method === 'bank' ? (formData.accountName || "CARDHOLDER NAME") : (formData.cardName || "CARDHOLDER NAME");
+    const displayBank = method === 'bank' ? (formData.bankName || "YOUR BANK") : "DEBIT CARD";
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-900">Payment Details</h2>
+                        <p className="text-slate-500 mt-1 font-medium text-sm">Add your details to receive payouts for completed jobs.</p>
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 shadow-sm border-b-2 border-b-slate-300">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span className="text-xs font-black text-slate-800 tracking-wider">VERIFIED BY PAYHERE</span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <form onSubmit={handleSave} className="space-y-5">
+                        <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 mb-6">
+                            <p className="text-sm text-blue-800 font-medium">Safe & Secure transfers enabled by our payment partners. Your details are stored safely.</p>
+                        </div>
+                        
+                        {/* Toggle */}
+                        <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                            <button type="button" onClick={() => setMethod('bank')} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${method === 'bank' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>Bank Account</button>
+                            <button type="button" onClick={() => setMethod('card')} className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${method === 'card' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>Debit/Credit Card</button>
+                        </div>
+
+                        {method === 'bank' ? (
+                            <>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Account Owner Name</label>
+                                    <input required type="text" name="accountName" value={formData.accountName} onChange={handleChange} placeholder="e.g. John Doe" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Account Number for Payouts</label>
+                                    <input required type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} placeholder="e.g. 1000 2000 3000 4000" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Bank Name</label>
+                                        <input required type="text" name="bankName" value={formData.bankName} onChange={handleChange} placeholder="e.g. Commercial Bank" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Branch</label>
+                                        <input required type="text" name="branchName" value={formData.branchName} onChange={handleChange} placeholder="e.g. Colombo 03" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Name on Card</label>
+                                    <input required type="text" name="cardName" value={formData.cardName} onChange={handleChange} placeholder="e.g. John Doe" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Card Number</label>
+                                    <input required type="text" name="cardNumber" value={formData.cardNumber} onChange={handleChange} placeholder="0000 0000 0000 0000" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Expiry Date</label>
+                                        <input required type="text" name="expiryDate" value={formData.expiryDate} onChange={handleChange} placeholder="MM/YY" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">CVV</label>
+                                        <input required type="text" name="cvv" value={formData.cvv} onChange={handleChange} placeholder="123" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#6b8bff] transition-all font-medium text-slate-900" />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        <div className="flex items-center justify-end pt-6">
+                            {saved && <span className="text-emerald-600 font-medium flex items-center mr-4"><CheckCircle2 className="w-5 h-5 mr-1" /> Details Updated</span>}
+                            <button type="submit" disabled={saving} className="px-8 py-3.5 bg-[#1a2b4c] hover:bg-[#2a4374] text-white font-bold rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-[#1a2b4c]/30 flex items-center">
+                                {saving ? "Saving..." : "Save Payment Info"}
+                            </button>
+                        </div>
+                    </form>
+
+                    <div className="flex items-start justify-center pt-2">
+                        <div className="relative w-full max-w-[380px] aspect-[1.586/1] rounded-2xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(26,43,76,0.5)] transition-all hover:scale-[1.02] duration-300">
+                            <div className={`absolute inset-0 transition-colors duration-500 rounded-2xl ${method === 'bank' ? 'bg-gradient-to-br from-[#1a2b4c] via-[#2a4374] to-[#4361ee]' : 'bg-gradient-to-br from-[#1b1c20] via-[#2a2d34] to-[#434b63]'}`}></div>
+                            
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+                            <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#6b8bff]/30 rounded-full blur-2xl -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+                            
+                            <div className="relative h-full flex flex-col justify-between p-6 z-10 text-white font-sans pointer-events-none">
+                                <div className="flex justify-between items-start w-full">
+                                    <div className="flex flex-col gap-1">
+                                        <div className="w-10 h-7 rounded border border-white/20 bg-gradient-to-br from-[#ffd700] to-[#da9a00] shadow-inner overflow-hidden relative">
+                                            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-black/20"></div>
+                                            <div className="absolute top-0 left-1/2 w-[1px] h-full bg-black/20"></div>
+                                            <div className="absolute top-1/2 left-1/2 w-[1px] h-full bg-black/20 transform rotate-45 origin-top-left"></div>
+                                            <div className="absolute top-1/2 left-1/2 w-[1px] h-full bg-black/20 transform -rotate-45 origin-top-left"></div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <h3 className="font-black italic text-lg opacity-90 tracking-wider">WORKZUP Payouts</h3>
+                                        <p className="text-[10px] font-bold opacity-70 uppercase">{displayBank}</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="w-full mt-auto">
+                                    <div className="font-mono text-2xl tracking-[0.2em] opacity-90 mb-6 drop-shadow-md">
+                                        {displayCardNumber}
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-end">
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] uppercase tracking-widest opacity-60 mb-0.5">Cardholder</span>
+                                            <span className="font-bold tracking-wider uppercase text-sm drop-shadow-sm truncate max-w-[200px]">{displayName}</span>
+                                        </div>
+                                        
+                                        <div className="flex flex-col text-right">
+                                            {method === 'bank' ? (
+                                                <>
+                                                    <span className="text-[9px] uppercase tracking-widest opacity-60 mb-0.5">Branch</span>
+                                                    <span className="font-bold tracking-wider uppercase text-sm drop-shadow-sm truncate max-w-[100px]">{formData.branchName || "BRANCH"}</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="text-[9px] uppercase tracking-widest opacity-60 mb-0.5">Expires</span>
+                                                    <span className="font-bold tracking-wider uppercase text-sm drop-shadow-sm truncate max-w-[100px]">{formData.expiryDate || "MM/YY"}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

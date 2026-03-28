@@ -32,6 +32,17 @@ export interface ProfileDataProp {
     idFront?: string;
     idBack?: string;
     education?: EducationItem[];
+    paymentDetails?: {
+        paymentMethod?: 'bank' | 'card';
+        accountName?: string;
+        accountNumber?: string;
+        bankName?: string;
+        branchName?: string;
+        cardNumber?: string;
+        cardName?: string;
+        expiryDate?: string;
+        cvv?: string;
+    };
 }
 
 type SaveUpdates =
@@ -40,7 +51,8 @@ type SaveUpdates =
     | { skills: string[] }
     | { languages: string[] }
     | { availableTimes: string }
-    | { education: EducationItem[] };
+    | { education: EducationItem[] }
+    | { paymentDetails: any };
 
 interface ProfileCompletionWizardProps {
     profile: ProfileDataProp;
@@ -59,6 +71,7 @@ export default function ProfileCompletionWizard({ profile, onClose, onSaveStep, 
         if (!profile.languages || profile.languages.length === 0) nextSteps.push({ id: "languages", label: "Languages", desc: "What languages do you speak?" });
         if (!profile.cv || !profile.idFront || !profile.idBack) nextSteps.push({ id: "documents", label: "Documents", desc: "Upload your CV and ID for verification." });
         if (!profile.education || profile.education.length === 0) nextSteps.push({ id: "education", label: "Education", desc: "Add your highest level of education" });
+        if (!profile.paymentDetails || (!profile.paymentDetails.accountNumber && !profile.paymentDetails.cardNumber)) nextSteps.push({ id: "payment", label: "Payment Details", desc: "Add a bank account or debit card to receive payouts securely." });
 
         return nextSteps;
     }, [profile]);
@@ -84,6 +97,18 @@ export default function ProfileCompletionWizard({ profile, onClose, onSaveStep, 
     const [cvFile, setCvFile] = useState<File | null>(null);
     const [idFrontFile, setIdFrontFile] = useState<File | null>(null);
     const [idBackFile, setIdBackFile] = useState<File | null>(null);
+
+    // Payment State
+    const existingPayment = profile.paymentDetails || {};
+    const [paymentMethod, setPaymentMethod] = useState<'bank' | 'card'>(existingPayment.paymentMethod || 'bank');
+    const [accountName, setAccountName] = useState(existingPayment.accountName || "");
+    const [accountNumber, setAccountNumber] = useState(existingPayment.accountNumber || "");
+    const [bankName, setBankName] = useState(existingPayment.bankName || "");
+    const [branchName, setBranchName] = useState(existingPayment.branchName || "");
+    const [cardNumber, setCardNumber] = useState(existingPayment.cardNumber || "");
+    const [cardName, setCardName] = useState(existingPayment.cardName || "");
+    const [expiryDate, setExpiryDate] = useState(existingPayment.expiryDate || "");
+    const [cvv, setCvv] = useState(existingPayment.cvv || "");
 
     if (steps.length === 0) {
         return (
@@ -172,6 +197,22 @@ export default function ProfileCompletionWizard({ profile, onClose, onSaveStep, 
                 const newEdus = eduLevels.map(lvl => ({ level: lvl }));
                 const currentEdu = profile.education || [];
                 success = await onSaveStep({ education: [...currentEdu, ...newEdus] });
+            } else if (activeStep.id === "payment") {
+                if (paymentMethod === 'bank') {
+                    if (!accountName.trim() || !accountNumber.trim() || !bankName.trim() || !branchName.trim()) {
+                        setStepError("Please fill out all bank details. Or click 'Skip for now'.");
+                        setSaving(false);
+                        return;
+                    }
+                    success = await onSaveStep({ paymentDetails: { paymentMethod, accountName, accountNumber, bankName, branchName } });
+                } else {
+                    if (!cardName.trim() || !cardNumber.trim() || !expiryDate.trim() || !cvv.trim()) {
+                        setStepError("Please fill out all card details. Or click 'Skip for now'.");
+                        setSaving(false);
+                        return;
+                    }
+                    success = await onSaveStep({ paymentDetails: { paymentMethod, cardName, cardNumber, expiryDate, cvv } });
+                }
             } else {
                 success = true; // Fallback
             }
@@ -426,6 +467,68 @@ export default function ProfileCompletionWizard({ profile, onClose, onSaveStep, 
                                     </div>
                                 );
                             })()}
+
+                            {activeStep.id === "payment" && (
+                                <div className="space-y-4">
+                                    <div className="bg-emerald-50 text-emerald-700 p-3 rounded-xl border border-emerald-100 text-sm font-medium flex items-center gap-2 shadow-sm">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Secure Payouts enabled by PayHere
+                                    </div>
+
+                                    <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                        <button type="button" onClick={() => setPaymentMethod('bank')} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${paymentMethod === 'bank' ? 'bg-white shadow-sm text-slate-900 border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>Bank Account</button>
+                                        <button type="button" onClick={() => setPaymentMethod('card')} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${paymentMethod === 'card' ? 'bg-white shadow-sm text-slate-900 border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>Debit/Credit Card</button>
+                                    </div>
+
+                                    {paymentMethod === 'bank' ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Account Owner Name</label>
+                                                <input type="text" value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="e.g. John Doe" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#6b8bff] font-medium text-slate-900 transition-all text-sm"/>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Account Number</label>
+                                                <input type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} placeholder="1000 2000 3000" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#6b8bff] font-medium text-slate-900 transition-all text-sm"/>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Bank Name</label>
+                                                <input type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. Commercial Bank" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#6b8bff] font-medium text-slate-900 transition-all text-sm"/>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Branch</label>
+                                                <input type="text" value={branchName} onChange={e => setBranchName(e.target.value)} placeholder="e.g. Colombo 03" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#6b8bff] font-medium text-slate-900 transition-all text-sm"/>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Name on Card</label>
+                                                <input type="text" value={cardName} onChange={e => setCardName(e.target.value)} placeholder="e.g. John Doe" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#6b8bff] font-medium text-slate-900 transition-all text-sm"/>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Card Number</label>
+                                                <input type="text" value={cardNumber} onChange={e => {
+                                                    const val = e.target.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim();
+                                                    setCardNumber(val);
+                                                }} placeholder="0000 0000 0000 0000" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#6b8bff] font-medium text-slate-900 transition-all text-sm"/>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">Expiry Date</label>
+                                                <input type="text" value={expiryDate} onChange={e => {
+                                                    const val = e.target.value.replace(/\D/g, '').replace(/(\d{2})(\d{1,2})/, '$1/$2').substring(0, 5);
+                                                    setExpiryDate(val);
+                                                }} placeholder="MM/YY" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#6b8bff] font-medium text-slate-900 transition-all text-sm"/>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-2">CVV</label>
+                                                <input type="text" value={cvv} onChange={e => {
+                                                    const val = e.target.value.replace(/\D/g, '').substring(0, 4);
+                                                    setCvv(val);
+                                                }} placeholder="123" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#6b8bff] font-medium text-slate-900 transition-all text-sm"/>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </motion.div>
                     </AnimatePresence>
                 </div>

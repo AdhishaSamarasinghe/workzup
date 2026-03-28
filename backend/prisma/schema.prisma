@@ -78,6 +78,7 @@ model SeekerProfile {
   experience         Json[]   @default([])
   socialLinks        Json?
   languages          String[] @default([])
+  paymentDetails     Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

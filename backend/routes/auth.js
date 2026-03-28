@@ -513,7 +513,8 @@ router.get("/profile", authenticateToken, async (req, res) => {
       cv: user.cv || null,
       idDocument: user.idDocument || null,
       idFront: user.idFront || null,
-      idBack: user.idBack || null
+      idBack: user.idBack || null,
+      paymentDetails: user.seekerProfile?.paymentDetails || null
     };
 
     res.json(profileData);
@@ -619,7 +620,7 @@ router.put("/profile", authenticateToken, async (req, res) => {
   try {
     const { 
       firstName, lastName, location, aboutMe, title, skills, 
-      education, experience, socialLinks, languages, phone, availableTimes
+      education, experience, socialLinks, languages, phone, availableTimes, paymentDetails
     } = req.body;
 
     const existingProfile = await prisma.seekerProfile.findUnique({
@@ -654,7 +655,8 @@ router.put("/profile", authenticateToken, async (req, res) => {
         experience: experience || [],
         socialLinks: mergedSocialLinks,
         languages: languages || [],
-        availability: availableTimes ? String(availableTimes).split(",").map(s => s.trim()).filter(Boolean) : []
+        availability: availableTimes ? String(availableTimes).split(",").map(s => s.trim()).filter(Boolean) : [],
+        paymentDetails: paymentDetails !== undefined ? paymentDetails : existingProfile?.paymentDetails
       },
       create: {
         userId: req.user.userId,
@@ -665,7 +667,8 @@ router.put("/profile", authenticateToken, async (req, res) => {
         experience: experience || [],
         socialLinks: mergedSocialLinks,
         languages: languages || [],
-        availability: availableTimes ? String(availableTimes).split(",").map(s => s.trim()).filter(Boolean) : []
+        availability: availableTimes ? String(availableTimes).split(",").map(s => s.trim()).filter(Boolean) : [],
+        paymentDetails: paymentDetails || null
       }
     });
 
