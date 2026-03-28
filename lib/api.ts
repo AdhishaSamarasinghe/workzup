@@ -58,16 +58,6 @@ function isLocalhostHost(hostname: string) {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
 
-function isLocalhostBaseUrl(baseUrl: string | null | undefined) {
-  if (!baseUrl) return false;
-  try {
-    const parsed = new URL(baseUrl);
-    return isLocalhostHost(parsed.hostname);
-  } catch {
-    return false;
-  }
-}
-
 function dedupeBaseUrls(urls: Array<string | null | undefined>) {
   return Array.from(new Set(urls.filter((value): value is string => Boolean(value))));
 }

@@ -10,12 +10,21 @@ type ApplicationRow = {
   id: string;
   applicantId: string;
   status: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
+};
+
+type VerificationBroadcastPayload = {
+  userId: string;
+  role?: string | null;
+  title?: string;
+  message?: string;
+  linkUrl?: string | null;
 };
 
 export function ApplicationNotificationProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const activeToastIds = useRef<Set<string>>(new Set());
+  const activeVerificationIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let mounted = true;
@@ -33,6 +42,89 @@ export function ApplicationNotificationProvider({ children }: { children: React.
 
       const supabase = getSupabaseBrowserClient();
       if (!supabase || !mounted) return;
+
+      const showVerificationApprovedNotice = (payload: VerificationBroadcastPayload) => {
+        if (!payload?.userId || payload.userId !== user.id) return;
+        if (activeVerificationIds.current.has(payload.userId)) return;
+        activeVerificationIds.current.add(payload.userId);
+
+        const role = String(payload.role || "").toUpperCase();
+        const defaultLink = role === "EMPLOYER" || role === "RECRUITER"
+          ? "/employer/create-job"
+          : "/jobseeker/browse";
+        const targetLink = String(payload.linkUrl || defaultLink);
+
+        try {
+          const audio = new Audio("/notification.mp3");
+          audio.play().catch(() => {});
+        } catch {
+          // Ignore audio playback issues.
+        }
+
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? "animate-enter" : "animate-leave"
+              } max-w-md w-full bg-white shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 cursor-pointer transform transition-all hover:scale-[1.02]`}
+              onClick={() => {
+                toast.dismiss(t.id);
+                activeVerificationIds.current.delete(payload.userId);
+                router.push(targetLink);
+              }}
+            >
+              <div className="flex-1 w-0 p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 pt-0.5">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {payload.title || "Account Verified"}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                      {payload.message || "Your account has been approved by admin. You can continue now."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex border-l border-gray-200">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toast.dismiss(t.id);
+                    activeVerificationIds.current.delete(payload.userId);
+                  }}
+                  className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-gray-600 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ),
+          { duration: 10000, position: "bottom-right" },
+        );
+
+        if (
+          typeof document !== "undefined" &&
+          document.hidden &&
+          "Notification" in window &&
+          Notification.permission === "granted"
+        ) {
+          const browserNotification = new Notification(payload.title || "Account Verified", {
+            body: payload.message || "Your account has been approved by admin. You can continue now.",
+            icon: "/logo_icon.png",
+          });
+
+          browserNotification.onclick = () => {
+            window.focus();
+            router.push(targetLink);
+            browserNotification.close();
+          };
+        }
+      };
 
       const handleIncoming = (newRecord: ApplicationRow, oldRecord?: ApplicationRow) => {
         // Guard check to ensure message is for this user
@@ -147,6 +239,10 @@ export function ApplicationNotificationProvider({ children }: { children: React.
             const newRecord = payload.new as ApplicationRow;
             const oldRecord = payload.old as ApplicationRow;
             handleIncoming(newRecord, oldRecord);
+        })
+        .on("broadcast", { event: "account_verification_approved" }, ({ payload }) => {
+          console.log("Account verification broadcast received:", payload);
+          showVerificationApprovedNotice(payload as VerificationBroadcastPayload);
         })
         .subscribe();
 

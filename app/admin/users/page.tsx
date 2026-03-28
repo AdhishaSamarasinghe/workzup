@@ -198,16 +198,7 @@ export default function AdminUsersPage() {
       <AdminHeader title="User Management" />
 
       <div className="bg-slate-100 p-6 md:p-8">
-        <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <h2 className="text-[2rem] font-bold leading-none text-slate-900">
-              User Management
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Review, verify and manage platform accounts.
-            </p>
-          </div>
-
+        <div className="mb-6 flex justify-end">
           <div className="flex items-center gap-3">
             <button
               type="button"

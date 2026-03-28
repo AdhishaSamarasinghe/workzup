@@ -26,6 +26,21 @@ router.post("/", authenticateToken, async (req, res) => {
         } = req.body;
         const applicantId = req.user.userId;
 
+        const applicant = await prisma.user.findUnique({
+            where: { id: applicantId },
+            select: { isVerified: true, verificationStatus: true },
+        });
+
+        if (!applicant) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        if (!applicant.isVerified || String(applicant.verificationStatus || "").toUpperCase() !== "APPROVED") {
+            return res.status(403).json({
+                message: "Your account is pending admin verification. You can apply for jobs after your account is approved.",
+            });
+        }
+
         if (!jobId) return res.status(400).json({ message: "jobId is required" });
 
         const job = await prisma.job.findUnique({ where: { id: jobId } });

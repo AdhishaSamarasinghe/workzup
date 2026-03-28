@@ -1,10 +1,12 @@
 ﻿"use client";
 
 import React, { useMemo, useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import AdminHeader from "@/components/admin/AdminHeader";
 import StatusBadge from "@/components/admin/StatusBadge";
 import { CheckCircle2, X, Download, ShieldCheck } from "lucide-react";
 import { getAdminVerifications, updateVerificationStatus, AdminUser } from "@/lib/admin/api";
+import { resolveUploadUrl } from "@/lib/profile";
 
 type QueueStatus = "PENDING" | "APPROVED" | "REJECTED";
 type QueuePriority = "High Priority" | "Standard";
@@ -24,6 +26,47 @@ type UserWithVerificationStatus = AdminUser & {
   verificationStatus?: QueueStatus;
 };
 
+type StepState = "complete" | "current" | "pending";
+
+function getName(item: AdminUser) {
+  const built = `${item.firstName || ""} ${item.lastName || ""}`.trim();
+  return item.name || built || item.email;
+}
+
+function isImageAsset(path?: string | null) {
+  if (!path) return false;
+  const value = path.toLowerCase();
+  return value.startsWith("data:image/") || /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|#|$)/i.test(value);
+}
+
+function isPdfAsset(path?: string | null) {
+  if (!path) return false;
+  return /\.pdf(\?|#|$)/i.test(path);
+}
+
+function getVerificationProgress(user?: AdminUser) {
+  const hasIdentity = Boolean(user?.idDocument || (user?.idFront && user?.idBack));
+  const hasProfessional = Boolean(user?.cv);
+  const finalApproved = String(user?.verificationStatus || "").toUpperCase() === "APPROVED";
+  const finalRejected = String(user?.verificationStatus || "").toUpperCase() === "REJECTED";
+  const hasFinalDecision = finalApproved || finalRejected;
+
+  const completion = [true, hasIdentity, hasProfessional, hasFinalDecision];
+  const currentIndex = hasFinalDecision ? -1 : completion.findIndex((value) => !value);
+
+  return [0, 1, 2, 3].map((index): StepState => {
+    if (completion[index]) return "complete";
+    if (index === currentIndex) return "current";
+    return "pending";
+  });
+}
+
+function getStepCircleClass(state: StepState) {
+  if (state === "complete") return "bg-emerald-500 text-white";
+  if (state === "current") return "bg-blue-600 text-white";
+  return "bg-slate-300 text-slate-600";
+}
+
 const tabs: QueueStatus[] = ["PENDING", "APPROVED", "REJECTED"];
 
 export default function AdminVerificationsPage() {
@@ -32,6 +75,7 @@ export default function AdminVerificationsPage() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string>("");
 
   const loadVerifications = useCallback(async (tab: QueueStatus = "PENDING") => {
     try {
@@ -40,7 +84,7 @@ export default function AdminVerificationsPage() {
       if (res.success && res.data) {
         setQueue(res.data.map(user => ({
           id: user.id,
-          name: user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+          name: getName(user),
           type: "Identity Verification & Background",
           category: "ID Card",
           timeAgo: new Date(user.createdAt).toLocaleDateString(),
@@ -65,6 +109,49 @@ export default function AdminVerificationsPage() {
   const selectedItem =
     queue.find((item) => item.id === selectedId) || queue[0];
 
+  const selectedUser = selectedItem?.rawData;
+  const selectedAvatar = resolveUploadUrl(selectedUser?.avatarUrl || null) || "";
+  const idDocuments = useMemo(() => {
+    if (!selectedUser) return [] as Array<{ label: string; url: string }>;
+
+    const candidates = [
+      { label: "National ID", url: resolveUploadUrl(selectedUser.idDocument || null) || "" },
+      { label: "ID Front", url: resolveUploadUrl(selectedUser.idFront || null) || "" },
+      { label: "ID Back", url: resolveUploadUrl(selectedUser.idBack || null) || "" },
+    ];
+
+    return candidates.filter((item) => Boolean(item.url));
+  }, [selectedUser]);
+
+  const cvUrl = resolveUploadUrl(selectedUser?.cv || null) || "";
+  const progress = getVerificationProgress(selectedUser);
+
+  useEffect(() => {
+    const currentExists = queue.some((item) => item.id === selectedId);
+    if (!currentExists && queue.length > 0) {
+      setSelectedId(queue[0].id);
+    }
+    if (queue.length === 0) {
+      setSelectedId("");
+    }
+  }, [queue, selectedId]);
+
+  useEffect(() => {
+    setNotes(selectedUser?.verificationNotes || "");
+  }, [selectedUser?.id, selectedUser?.verificationNotes]);
+
+  useEffect(() => {
+    if (!idDocuments.length) {
+      setSelectedDocumentUrl("");
+      return;
+    }
+
+    const stillExists = idDocuments.some((item) => item.url === selectedDocumentUrl);
+    if (!stillExists) {
+      setSelectedDocumentUrl(idDocuments[0].url);
+    }
+  }, [idDocuments, selectedDocumentUrl]);
+
   const handleApprove = async () => {
     if (!selectedItem) return;
     const res = await updateVerificationStatus(selectedItem.id, "APPROVED");
@@ -83,8 +170,6 @@ export default function AdminVerificationsPage() {
     }
   };
 
-  const pendingCount = activeTab === "PENDING" ? queue.length : 0;
-
   return (
     <>
       <AdminHeader title="Verification" />
@@ -93,14 +178,7 @@ export default function AdminVerificationsPage() {
         <div className="grid min-h-[calc(100vh-80px)] grid-cols-1 xl:grid-cols-[320px_1fr]">
           <aside className="border-r border-slate-200 bg-white">
             <div className="border-b border-slate-100 px-6 py-6">
-              <h2 className="text-[1.75rem] font-bold leading-none text-slate-900">
-                Verification Queue
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                {pendingCount} pending requests require attention
-              </p>
-
-              <div className="mt-5 grid grid-cols-3 rounded-xl bg-slate-100 p-1">
+              <div className="grid grid-cols-3 rounded-xl bg-slate-100 p-1">
                 {tabs.map((tab) => (
                   <button
                     key={tab}
@@ -182,7 +260,21 @@ export default function AdminVerificationsPage() {
                 <div className="border-b border-slate-200 bg-white px-8 py-6">
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 rounded-full bg-slate-200" />
+                      <div className="h-14 w-14 overflow-hidden rounded-full bg-slate-200">
+                        {selectedAvatar ? (
+                          <Image
+                            src={selectedAvatar}
+                            alt={`${selectedItem.name} profile`}
+                            width={56}
+                            height={56}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-sm font-bold text-slate-600">
+                            {selectedItem.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
                       <div>
                         <p className="text-2xl font-bold text-slate-900">
                           {selectedItem.name}
@@ -224,10 +316,10 @@ export default function AdminVerificationsPage() {
 
                     <div className="mt-6 grid grid-cols-4 gap-4">
                       {[
-                        { label: "EMAIL", color: "bg-emerald-500" },
-                        { label: "IDENTITY", color: "bg-blue-600" },
-                        { label: "PROFESSIONAL", color: "bg-slate-300" },
-                        { label: "FINAL AUDIT", color: "bg-slate-300" },
+                        { label: "EMAIL" },
+                        { label: "IDENTITY" },
+                        { label: "PROFESSIONAL" },
+                        { label: "FINAL AUDIT" },
                       ].map((step, index) => (
                         <div key={step.label} className="relative flex flex-col items-center">
                           {index !== 3 ? (
@@ -235,11 +327,11 @@ export default function AdminVerificationsPage() {
                           ) : null}
 
                           <div
-                            className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white ${step.color}`}
+                            className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${getStepCircleClass(progress[index])}`}
                           >
                             {index + 1}
                           </div>
-                          <p className="mt-3 text-[11px] font-semibold tracking-wide text-slate-400">
+                          <p className={`mt-3 text-[11px] font-semibold tracking-wide ${progress[index] === "pending" ? "text-slate-400" : "text-slate-700"}`}>
                             {step.label}
                           </p>
                         </div>
@@ -253,26 +345,74 @@ export default function AdminVerificationsPage() {
                         <p className="text-sm font-semibold text-slate-900">
                           ID Card / Document
                         </p>
-                        <button className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-700">
-                          <Download size={14} />
-                          Download Original
-                        </button>
+                        {selectedDocumentUrl ? (
+                          <a
+                            href={selectedDocumentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-700"
+                          >
+                            <Download size={14} />
+                            Download Original
+                          </a>
+                        ) : null}
                       </div>
 
-                      <div className="mt-5 flex h-[260px] items-center justify-center rounded-2xl bg-[#49707a]">
-                        <div className="text-sm text-white">Document preview area</div>
+                      {idDocuments.length > 0 ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {idDocuments.map((doc) => (
+                            <button
+                              key={doc.url}
+                              onClick={() => setSelectedDocumentUrl(doc.url)}
+                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${selectedDocumentUrl === doc.url ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
+                            >
+                              {doc.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      <div className="mt-5 flex h-[260px] items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
+                        {selectedDocumentUrl ? (
+                          isImageAsset(selectedDocumentUrl) ? (
+                            <Image
+                              src={selectedDocumentUrl}
+                              alt="ID document preview"
+                              width={520}
+                              height={260}
+                              className="h-full w-full object-contain"
+                            />
+                          ) : isPdfAsset(selectedDocumentUrl) ? (
+                            <iframe
+                              src={selectedDocumentUrl}
+                              title="ID document preview"
+                              className="h-full w-full border-0"
+                            />
+                          ) : (
+                            <div className="px-4 text-center text-sm text-slate-500">
+                              Preview not available for this file type. Use Download Original.
+                            </div>
+                          )
+                        ) : (
+                          <div className="text-sm text-slate-500">No ID document uploaded.</div>
+                        )}
                       </div>
 
                       <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50 p-4">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-slate-500">OCR Confidence</span>
-                          <span className="font-semibold text-emerald-500">98.4%</span>
+                          <span className="text-slate-500">Identity Files</span>
+                          <span className="font-semibold text-emerald-500">
+                            {idDocuments.length > 0 ? `${idDocuments.length} uploaded` : "Missing"}
+                          </span>
                         </div>
                         <div className="mt-3 h-2 rounded-full bg-slate-200">
-                          <div className="h-2 w-[98.4%] rounded-full bg-emerald-500" />
+                          <div
+                            className={`h-2 rounded-full ${idDocuments.length > 0 ? "bg-emerald-500" : "bg-rose-400"}`}
+                            style={{ width: idDocuments.length > 0 ? "100%" : "15%" }}
+                          />
                         </div>
                         <p className="mt-3 text-xs text-slate-400">
-                          Extracted verification preview data
+                          This section reflects uploaded identity records from the user profile.
                         </p>
                       </div>
                     </div>
@@ -280,34 +420,69 @@ export default function AdminVerificationsPage() {
                     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-slate-900">
-                          Selfie Match
+                          Profile Photo & CV
                         </p>
-                        <StatusBadge status="MATCH DETECTED" type="success" />
+                        <StatusBadge
+                          status={cvUrl ? "CV AVAILABLE" : "CV MISSING"}
+                          type={cvUrl ? "success" : "warning"}
+                        />
                       </div>
 
-                      <div className="mt-5 flex h-[260px] items-center justify-center rounded-2xl bg-slate-100">
-                        <div className="h-[220px] w-[220px] rounded-2xl bg-gradient-to-b from-orange-200 via-orange-100 to-slate-200" />
+                      <div className="mt-5 flex h-[260px] items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
+                        {selectedAvatar ? (
+                          <Image
+                            src={selectedAvatar}
+                            alt={`${selectedItem.name} profile`}
+                            width={520}
+                            height={260}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-sm text-slate-500">No profile photo uploaded.</div>
+                        )}
                       </div>
 
                       <div className="mt-5 grid grid-cols-2 gap-4">
                         <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                            Liveness Check
+                            Profile Photo
                           </p>
-                          <p className="mt-2 text-sm font-semibold text-emerald-500">
-                            â— Passed
+                          <p className={`mt-2 text-sm font-semibold ${selectedAvatar ? "text-emerald-500" : "text-amber-500"}`}>
+                            {selectedAvatar ? "Available" : "Missing"}
                           </p>
                         </div>
 
                         <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                            Biometric Score
+                            CV / Resume
                           </p>
-                          <p className="mt-2 text-sm font-semibold text-emerald-500">
-                            0.96 / 1.0
-                          </p>
+                          {cvUrl ? (
+                            <a
+                              href={cvUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                            >
+                              <Download size={14} />
+                              Open CV
+                            </a>
+                          ) : (
+                            <p className="mt-2 text-sm font-semibold text-amber-500">Not uploaded</p>
+                          )}
                         </div>
                       </div>
+
+                      {cvUrl ? (
+                        <div className="mt-4 h-44 overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
+                          {isPdfAsset(cvUrl) ? (
+                            <iframe src={cvUrl} title="CV preview" className="h-full w-full border-0" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center px-4 text-center text-xs text-slate-500">
+                              CV preview is supported for PDF files. Click Open CV to view this file.
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 

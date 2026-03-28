@@ -16,8 +16,23 @@ export interface AdminUser {
   role: string;
   isVerified: boolean;
   isBanned: boolean;
+  verificationStatus?: string;
+  verificationNotes?: string | null;
+  cv?: string | null;
+  idDocument?: string | null;
+  idFront?: string | null;
+  idBack?: string | null;
+  avatarUrl?: string | null;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface AdminActivity {
+  initials: string;
+  name: string;
+  action: string;
+  status: string;
+  date: string;
 }
 
 export interface AdminMetrics {
@@ -26,6 +41,77 @@ export interface AdminMetrics {
   active_jobs: number;
   applications: number;
   payouts_completed: number;
+  recent_activity?: AdminActivity[];
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+function toNumber(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toIsoDate(value: unknown): string {
+  if (!value) return new Date().toISOString();
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+
+function getInitials(name: string): string {
+  const parts = name
+    .split(" ")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (parts.length === 0) return "NA";
+  return parts.map((part) => part[0]?.toUpperCase() || "").join("");
+}
+
+function normalizeActivity(item: unknown): AdminActivity {
+  const record = (item && typeof item === "object" ? item : {}) as UnknownRecord;
+
+  const name = String(record.name || record.user || "System");
+  const status = String(record.status || "Success");
+  const explicitAction = record.action ? String(record.action) : "";
+  const type = String(record.type || "").toUpperCase();
+
+  let action = explicitAction;
+  if (!action) {
+    if (type === "USER_JOINED") {
+      action = "Registered new account";
+    } else if (type === "JOB_CREATED") {
+      action = `Created new job \"${String(record.name || "Untitled")}\"`;
+    } else {
+      action = "Updated platform activity";
+    }
+  }
+
+  return {
+    initials: String(record.initials || getInitials(name)),
+    name,
+    action,
+    status,
+    date: toIsoDate(record.date || record.createdAt),
+  };
+}
+
+function normalizeMetrics(metrics: unknown): AdminMetrics {
+  const record = (metrics && typeof metrics === "object" ? metrics : {}) as UnknownRecord;
+  const recent = Array.isArray(record.recent_activity)
+    ? record.recent_activity
+    : Array.isArray(record.recentActivity)
+      ? record.recentActivity
+      : [];
+
+  return {
+    users: toNumber(record.users),
+    jobs: toNumber(record.jobs),
+    active_jobs: toNumber(record.active_jobs),
+    applications: toNumber(record.applications),
+    payouts_completed: toNumber(record.payouts_completed),
+    recent_activity: recent.map((item) => normalizeActivity(item)),
+  };
 }
 
 export interface AdminJob {
@@ -105,7 +191,37 @@ export async function toggleUserBanStatus(
 
 export async function getAdminMetrics(): Promise<ApiResponse<{ metrics: AdminMetrics }>> {
   try {
-    return await apiFetch<{ metrics: AdminMetrics }>(`${ADMIN_PREFIX}/metrics`);
+    const response = await apiFetch<{
+      metrics?: AdminMetrics;
+      data?: { metrics?: AdminMetrics };
+    }>(`${ADMIN_PREFIX}/metrics`);
+
+    if (!response.success) {
+      return response as ApiResponse<{ metrics: AdminMetrics }>;
+    }
+
+    const candidate =
+      (response.data &&
+      typeof response.data === "object" &&
+      "metrics" in response.data
+        ? (response.data as { metrics?: unknown }).metrics
+        : undefined) ||
+      (response as unknown as { metrics?: unknown }).metrics;
+
+    if (!candidate) {
+      return {
+        success: false,
+        error: response.error || response.message || "Invalid admin metrics response.",
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        metrics: normalizeMetrics(candidate),
+      },
+      message: response.message,
+    };
   } catch (error: unknown) {
     return { success: false, error: getErrorMessage(error) };
   }

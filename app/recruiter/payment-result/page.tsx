@@ -24,7 +24,6 @@ function RecruiterPaymentResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("paymentId");
-  const rawStatus = (searchParams.get("status") || "pending").toLowerCase();
 
   const [loading, setLoading] = useState(Boolean(paymentId));
   const [payment, setPayment] = useState<PaymentState | null>(null);
@@ -117,7 +116,6 @@ function RecruiterPaymentResultContent() {
     );
     statusColor = "text-yellow-600";
     bgColor = "bg-yellow-50";
-    shadowColor = "shadow-yellow-500/20";
     headline = "Payment Pending";
     subheadline = "Your payment is currently processing or awaiting confirmation from PayHere.";
   }

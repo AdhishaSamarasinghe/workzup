@@ -141,8 +141,9 @@ export default function ApplicationsPage() {
           app.id === applicationId ? { ...app, status: "COMPLETED" } : app,
         ),
       );
-    } catch (err: any) {
-      toast.error(err.message || "Failed to confirm cash receipt.");
+    } catch (err) {
+      const errMessage = err instanceof Error ? err.message : "Failed to confirm cash receipt.";
+      toast.error(errMessage);
     } finally {
       setConfirmingCashId(null);
     }

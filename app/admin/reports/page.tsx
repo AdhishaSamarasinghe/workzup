@@ -136,15 +136,6 @@ export default function AdminReportsPage() {
           />
         </div>
 
-        <div className="mt-6">
-          <h2 className="text-[2rem] font-bold leading-none text-slate-900">
-            Reports & Disputes
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Review platform complaints, disputes and moderation cases.
-          </p>
-        </div>
-
         <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-[1.7fr_340px]">
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-100 px-6 py-5">

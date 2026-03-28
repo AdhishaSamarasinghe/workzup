@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -77,9 +78,14 @@ export default function AdminSidebar() {
   return (
     <aside className="flex min-h-screen w-[300px] flex-col border-r border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-8 py-8">
-        <div className="text-[2.1rem] font-extrabold tracking-tight text-blue-600">
-          WORKZUP
-        </div>
+        <Image
+          src="/logo_main.png"
+          alt="WorkzUp"
+          width={190}
+          height={44}
+          priority
+          className="h-auto w-auto"
+        />
         <p className="mt-1 text-xs font-medium uppercase tracking-[0.35em] text-slate-400">
           Admin Portal
         </p>
