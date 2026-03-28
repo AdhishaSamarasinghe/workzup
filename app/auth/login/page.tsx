@@ -87,14 +87,6 @@ export default function JobSeekerLoginPage() {
             <div className="auth-visual-glow auth-visual-glow-mid" />
             <div className="auth-visual-grid" />
 
-            {/* Floating Cards (Top Right) */}
-            <div className="auth-floating-card auth-floating-card-sm hidden lg:block" style={{ top: '100px', right: '8%' }}>
-                24k+ verified users
-            </div>
-            <div className="auth-floating-card auth-floating-card-lg hidden lg:block" style={{ top: '170px', right: '14%' }}>
-                Smart hiring workflows
-            </div>
-
             {/* Left Fixed Text */}
             <div className="absolute z-20 bottom-16 left-12 text-white hidden lg:block">
                 <p className="text-[10px] uppercase tracking-[0.35em] text-blue-100/90 font-bold mb-1">WORKZUP</p>
