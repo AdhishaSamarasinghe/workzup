@@ -29,6 +29,7 @@ interface ApplicationDetails {
         about: string;
         skills: string[];
         recentExperience: { role: string; company: string }[];
+        resumeUrl?: string;
         portfolioUrl: string;
         email: string;
         phone: string;
@@ -278,6 +279,40 @@ export default function ViewApplication() {
                             </div>
                         </div>
 
+                        {/* CV Preview Section */}
+                        {applicant.resumeUrl && (
+                            <div>
+                                <h2 className="text-lg font-black text-[#111827] mb-6 flex items-center gap-3">
+                                    <span className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"></path></svg>
+                                    </span>
+                                    Curriculum Vitae (CV)
+                                </h2>
+                                <div className="w-full bg-slate-50 rounded-3xl overflow-hidden border border-slate-100 shadow-inner h-[600px] relative">
+                                    {/* Fallback overlay in case iframe fails or browser doesn't support PDF embedding natively */}
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none -z-10">
+                                        <svg className="w-12 h-12 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                        <p className="text-slate-400 font-bold text-sm">Loading Document...</p>
+                                    </div>
+                                    <iframe 
+                                        src={applicant.resumeUrl} 
+                                        className="w-full h-full border-0 absolute inset-0 bg-transparent" 
+                                        title={`${applicant.name}'s CV`}
+                                    />
+                                </div>
+                                <div className="mt-4 flex justify-center">
+                                   <a 
+                                      href={applicant.resumeUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-2 text-sm font-bold text-[#6B8BFF] hover:text-[#5A78F0] bg-blue-50 hover:bg-blue-100 px-6 py-2.5 rounded-xl transition-colors"
+                                   >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                      Open in new tab
+                                   </a>
+                                </div>
+                            </div>
+                        )}
 
                     </div>
                 </div>

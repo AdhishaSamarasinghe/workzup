@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import Image from "next/image";
 
 // [DATA] Types based on API responses
 interface ApplicantItem {
@@ -387,7 +388,24 @@ export default function JobApplicantsPage() {
                                 <>
                                     {/* Info */}
                                     <div className="flex flex-col items-center text-center mb-10">
-                                        <h2 className="text-2xl font-extrabold text-[#111827] leading-tight">{applicantProfile.name}</h2>
+                                        <div className="w-24 h-24 rounded-[32px] overflow-hidden border-4 border-white shadow-xl mb-5 bg-slate-100 relative">
+                                            {applicantProfile.avatarUrl ? (
+                                                <Image 
+                                                    src={applicantProfile.avatarUrl} 
+                                                    alt={applicantProfile.name} 
+                                                    fill 
+                                                    className="object-cover" 
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-300 font-black text-3xl">
+                                                    {applicantProfile.name.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <h2 className="text-2xl font-extrabold text-[#111827] leading-tight flex items-center gap-2">
+                                            {applicantProfile.name}
+                                            <span className="bg-blue-50 text-[#4263eb] text-[9px] uppercase font-black px-2 py-0.5 rounded-full tracking-widest border border-blue-100">VERIFIED</span>
+                                        </h2>
                                         <p className="text-lg text-slate-500 font-semibold mt-1">{applicantProfile.title}</p>
                                     </div>
 

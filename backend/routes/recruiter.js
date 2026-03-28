@@ -48,6 +48,25 @@ const resolvePortfolioUrl = (socialLinks) => {
     return "";
 };
 
+const getAvatarUrl = (req, seekerProfile, userId) => {
+    let rawAvatar = null;
+    const links = seekerProfile?.socialLinks;
+    if (links) {
+        if (typeof links === "object" && links.avatarUrl) {
+            rawAvatar = links.avatarUrl;
+        } else if (typeof links === "string") {
+            try {
+                const parsed = JSON.parse(links);
+                rawAvatar = parsed.avatarUrl;
+            } catch (e) {}
+        }
+    }
+    if (rawAvatar) {
+        return buildPublicFileUrl(req, rawAvatar);
+    }
+    return `https://i.pravatar.cc/150?u=${userId}`;
+};
+
 const formatMonthYear = (value) => {
     if (!value) return "";
     const d = new Date(value);
@@ -305,7 +324,9 @@ router.get("/jobs/:jobId/applicants", authenticateToken, requireRole(["EMPLOYER"
         const applications = await prisma.application.findMany({
             where,
             include: {
-                applicant: true
+                applicant: {
+                    include: { seekerProfile: true }
+                }
             },
             orderBy: sort === "match_desc" ? { matchScore: "desc" } : { appliedAt: "desc" },
             skip: (Number(page) - 1) * Number(limit),
@@ -318,8 +339,8 @@ router.get("/jobs/:jobId/applicants", authenticateToken, requireRole(["EMPLOYER"
             applicationId: app.id,
             applicantId: app.applicant.id,
             name: `${app.applicant.firstName || ""} ${app.applicant.lastName || ""}`.trim() || "Anonymous",
-            title: "Candidate", // We don't have a 'jobTitle' in User model yet, can use seekerProfile title if exists
-            avatarUrl: `https://i.pravatar.cc/150?u=${app.applicant.id}`,
+            title: app.applicant.seekerProfile?.title || "Candidate", // We don't have a 'jobTitle' in User model yet, can use seekerProfile title if exists
+            avatarUrl: getAvatarUrl(req, app.applicant.seekerProfile, app.applicant.id),
             matchScore: app.matchScore || 0,
             relevantSkillsCount: app.relevantSkillsCount || 0,
             status: app.status,
@@ -356,7 +377,7 @@ router.get("/applicants/:applicantId", authenticateToken, requireRole(["EMPLOYER
             _id: user.id,
             name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Anonymous",
             title: user.seekerProfile?.title || "Job Seeker",
-            avatarUrl: `https://i.pravatar.cc/150?u=${user.id}`,
+            avatarUrl: getAvatarUrl(req, user.seekerProfile, user.id),
             summary: user.seekerProfile?.bio || "No bio provided.",
             skills: user.seekerProfile?.skills || [],
             email: user.email,
@@ -407,7 +428,7 @@ router.get("/applications/:applicationId", authenticateToken, requireRole(["EMPL
                 _id: application.applicant.id,
                 name: `${application.applicant.firstName || ""} ${application.applicant.lastName || ""}`.trim() || "Anonymous",
                 title: application.applicant.seekerProfile?.title || "Candidate",
-                avatarUrl: `https://i.pravatar.cc/150?u=${application.applicant.id}`,
+                avatarUrl: getAvatarUrl(req, application.applicant.seekerProfile, application.applicant.id),
                 rating: 5,
                 about: application.applicant.seekerProfile?.bio || "No summary provided.",
                 summary: application.applicant.seekerProfile?.bio || "No summary provided.",

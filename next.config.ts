@@ -44,6 +44,10 @@ const nextConfig: NextConfig = {
         hostname: "i.pravatar.cc",
       },
       {
+        protocol: "https",
+        hostname: "ofgobsihnruonnnyrxft.supabase.co",
+      },
+      {
         protocol: "http",
         hostname: "localhost",
         port: "5000",
