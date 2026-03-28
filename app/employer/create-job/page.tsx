@@ -5,11 +5,12 @@
  * create-job/page.tsx — Create Job Posting form (employer-facing)
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import JobPostForm, { JobForm, JobStatus } from "@/components/employer/JobPostForm";
 import RecruiterSuccess from "@/components/employer/RecruiterSuccess";
+import PendingVerificationBanner from "@/components/PendingVerificationBanner";
 
 
 export default function CreateJobPage() {
@@ -22,6 +23,33 @@ export default function CreateJobPage() {
     type: "",
     text: "",
   });
+  const [isVerified, setIsVerified] = useState(true);
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+
+  // Fetch user profile to check verification status
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchProfile = async () => {
+      try {
+        const profile = await apiFetch("/api/auth/profile");
+        if (!isMounted) return;
+        setIsVerified(profile.isVerified || false);
+        setVerificationStatus(profile.verificationStatus || "PENDING");
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        if (isMounted) {
+          setIsVerified(true); // Default to verified to avoid blocking
+        }
+      }
+    };
+
+    fetchProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // [VALIDATION] Mirror backend rules
   function validate(form: JobForm, status: JobStatus): string {
@@ -102,6 +130,14 @@ export default function CreateJobPage() {
             Fill out the details below to find the right person for your one-day job
           </p>
         </>
+
+        <div className="mt-8">
+          <PendingVerificationBanner
+            isVerified={isVerified}
+            verificationStatus={verificationStatus}
+            action="post"
+          />
+        </div>
 
         <div className="mt-8 shadow-2xl shadow-slate-200/50 rounded-3xl overflow-hidden">
           <JobPostForm

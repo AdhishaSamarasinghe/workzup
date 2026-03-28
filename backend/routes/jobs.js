@@ -293,6 +293,22 @@ router.post("/", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), asyn
 
     const employerId = req.user.userId;
 
+    const employer = await prisma.user.findUnique({
+      where: { id: employerId },
+      select: { isVerified: true, verificationStatus: true },
+    });
+
+    if (!employer) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!employer.isVerified || String(employer.verificationStatus || "").toUpperCase() !== "APPROVED") {
+      return res.status(403).json({
+        message:
+          "Your account is pending admin verification. You can post jobs after your account is approved.",
+      });
+    }
+
     const newJob = await prisma.job.create({
       data: {
         employerId,

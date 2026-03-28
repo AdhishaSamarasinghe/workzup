@@ -6,12 +6,13 @@ import SearchBar from "@/components/jobs/SearchBar";
 import StatsSection from "@/components/jobs/StatsSection";
 import ReviewSection from "@/components/jobs/ReviewSection";
 import ChatWidget from "@/components/ChatWidget";
+import PendingVerificationBanner from "@/components/PendingVerificationBanner";
 import {
   FeaturedJobsSection,
   JobCategoriesSection,
   TopHiringCompaniesSection,
 } from "@/components/jobs/BrowseHomepageSections";
-import { API_BASE_URLS } from "@/lib/api";
+import { API_BASE_URLS, apiFetch } from "@/lib/api";
 import {
   BrowseFilters,
   BrowseHomeData,
@@ -317,6 +318,8 @@ function BrowseJobsPageContent() {
   const [isPaused, setIsPaused] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [isVerified, setIsVerified] = useState(true);
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const nextFilters = pickTextFilters(searchParams);
@@ -354,6 +357,36 @@ function BrowseJobsPageContent() {
       clearInterval(intervalId);
     };
   }, []);
+
+  // Fetch user profile to check verification status
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsVerified(true); // Show banner only when authenticated and not verified
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchProfile = async () => {
+      try {
+        const profile = await apiFetch("/api/auth/profile");
+        if (!isMounted) return;
+        setIsVerified(profile.isVerified || false);
+        setVerificationStatus(profile.verificationStatus || "PENDING");
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        if (isMounted) {
+          setIsVerified(true); // Default to verified to avoid blocking
+        }
+      }
+    };
+
+    fetchProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated]);
 
   const featuredJobs = filterJobs(browseData.jobs, filters);
   const categoryScopedJobs = filterJobs(browseData.jobs, filters, {
@@ -527,6 +560,14 @@ function BrowseJobsPageContent() {
         </section>
       ) : (
         <>
+          <section className="max-w-6xl mx-auto px-6 py-8">
+            <PendingVerificationBanner
+              isVerified={isVerified}
+              verificationStatus={verificationStatus}
+              action="apply"
+            />
+          </section>
+
           <FeaturedJobsSection
             jobs={featuredJobs}
             jobsPerPage={JOBS_PER_PAGE}

@@ -3,6 +3,34 @@ const prisma = require("../../prismaClient");
 const { authenticateToken, requireRole } = require("../../middleware/auth");
 const router = express.Router();
 
+async function broadcastVerificationApproved(payload) {
+    try {
+        const { createClient } = require("@supabase/supabase-js");
+        const sbUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!sbUrl || !sbKey) return;
+
+        const sb = createClient(sbUrl, sbKey);
+        const channel = sb.channel("global-application-notifications");
+        channel.subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+                channel
+                    .send({
+                        type: "broadcast",
+                        event: "account_verification_approved",
+                        payload,
+                    })
+                    .finally(() => {
+                        sb.removeChannel(channel);
+                    });
+            }
+        });
+    } catch (error) {
+        console.error("Verification broadcast error:", error);
+    }
+}
+
 const buildPublicFileUrl = (req, storedPath) => {
     const normalizedPath = String(storedPath || "").trim().replace(/\\/g, "/").replace(/^\/+/, "");
     if (!normalizedPath) return "";
@@ -259,15 +287,61 @@ router.patch("/verifications/:id/status", authenticateToken, requireRole(["ADMIN
     try {
         const { id } = req.params;
         const { status } = req.body;
+        const normalizedStatus = String(status || "").toUpperCase();
+        const previousUser = await prisma.user.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                isVerified: true,
+                verificationStatus: true,
+            },
+        });
+
+        if (!previousUser) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
         
-        const isVerified = status === "APPROVED" ? true : false;
+        const isVerified = normalizedStatus === "APPROVED";
         
         const updated = await prisma.user.update({
             where: { id },
-            data: { verificationStatus: status, isVerified }
+            data: { verificationStatus: normalizedStatus, isVerified }
         });
+
+        const wasApprovedBefore = previousUser.isVerified || String(previousUser.verificationStatus || "").toUpperCase() === "APPROVED";
+        const justApproved = isVerified && !wasApprovedBefore;
+
+        if (justApproved) {
+            const userName = `${previousUser.firstName || ""} ${previousUser.lastName || ""}`.trim() || "Your";
+            const dashboardUrl = ["EMPLOYER", "RECRUITER"].includes(String(previousUser.role || "").toUpperCase())
+                ? "/employer/create-job"
+                : "/jobseeker/browse";
+
+            await prisma.notification.create({
+                data: {
+                    userId: previousUser.id,
+                    type: "ACCOUNT_VERIFICATION",
+                    title: "Account Verified",
+                    message: `${userName} account has been verified by admin. You can now apply/post jobs.`,
+                    linkUrl: dashboardUrl,
+                },
+            });
+
+            broadcastVerificationApproved({
+                userId: previousUser.id,
+                role: previousUser.role,
+                title: "Account Verified",
+                message: "Your account has been verified by admin. You can now apply/post jobs.",
+                linkUrl: dashboardUrl,
+            });
+        }
+
         res.json({ success: true, data: updated });
     } catch (error) {
+        console.error("Verification Status Update Error:", error);
         res.status(500).json({ success: false, message: "Server Error" });
     }
 });

@@ -513,7 +513,10 @@ router.get("/profile", authenticateToken, async (req, res) => {
       cv: user.cv || null,
       idDocument: user.idDocument || null,
       idFront: user.idFront || null,
-      idBack: user.idBack || null
+      idBack: user.idBack || null,
+      isVerified: user.isVerified || false,
+      verificationStatus: user.verificationStatus || "PENDING",
+      role: user.role || "JOB_SEEKER"
     };
 
     res.json(profileData);
