@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UserCog } from "lucide-react";
 
 export default function Footer() {
   const pathname = usePathname();
@@ -24,6 +25,9 @@ export default function Footer() {
           <Link href="/about" className="transition-colors hover:text-accent">
             About
           </Link>
+          <button type="button" className="flex items-center justify-center transition-colors hover:text-accent focus:outline-none" aria-label="Settings placeholder">
+            <UserCog className="h-5 w-5" />
+          </button>
         </div>
       </div>
     </footer>
