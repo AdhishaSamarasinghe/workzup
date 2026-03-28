@@ -170,15 +170,6 @@ export default function AdminJobsPage() {
           />
         </div>
 
-        <div className="mt-6">
-          <h2 className="text-[2rem] font-bold leading-none text-slate-900">
-            Job Postings
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Manage, moderate and boost job listings.
-          </p>
-        </div>
-
         <div className="mt-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-col gap-4">
