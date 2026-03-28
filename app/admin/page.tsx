@@ -6,22 +6,19 @@ import StatCard from "@/components/admin/StatCard";
 import StatusBadge from "@/components/admin/StatusBadge";
 import { getAdminMetrics, AdminMetrics } from "@/lib/admin/api";
 
-const defaultActivity = [
-  {
-    initials: "JD",
-    name: "Jane Doe",
-    action: 'Created new job "UI Designer"',
-    status: "Success",
-    date: "2 mins ago",
-  },
-  {
-    initials: "MS",
-    name: "Mark Smith",
-    action: "Company verification requested",
-    status: "Pending",
-    date: "45 mins ago",
-  },
-];
+function timeAgo(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (seconds < 60) return `${seconds} secs ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} mins ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hrs ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} days ago`;
+}
 
 const trafficBars = [48, 72, 58, 84, 100, 50, 37];
 
@@ -127,40 +124,48 @@ export default function AdminDashboardPage() {
                 </thead>
 
                 <tbody>
-                  {defaultActivity.map((item) => (
-                    <tr
-                      key={`${item.name}-${item.date}`}
-                      className="border-t border-slate-100"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
-                            {item.initials}
+                  {(metrics.recent_activity || []).length > 0 ? (
+                    (metrics.recent_activity || []).map((item, index) => (
+                      <tr
+                        key={`${item.name}-${index}`}
+                        className="border-t border-slate-100"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                              {item.initials}
+                            </div>
+                            <span className="font-medium text-slate-900">
+                              {item.name}
+                            </span>
                           </div>
-                          <span className="font-medium text-slate-900">
-                            {item.name}
-                          </span>
-                        </div>
+                        </td>
+
+                        <td className="px-6 py-4 text-slate-600">{item.action}</td>
+
+                        <td className="px-6 py-4">
+                          <StatusBadge
+                            status={item.status}
+                            type={
+                              item.status === "Success"
+                                ? "success"
+                                : item.status === "Pending"
+                                ? "warning"
+                                : "error"
+                            }
+                          />
+                        </td>
+
+                        <td className="px-6 py-4 text-slate-500">{timeAgo(item.date)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-8 text-center text-sm text-slate-500">
+                        No recent activity available.
                       </td>
-
-                      <td className="px-6 py-4 text-slate-600">{item.action}</td>
-
-                      <td className="px-6 py-4">
-                        <StatusBadge
-                          status={item.status}
-                          type={
-                            item.status === "Success"
-                              ? "success"
-                              : item.status === "Pending"
-                              ? "warning"
-                              : "error"
-                          }
-                        />
-                      </td>
-
-                      <td className="px-6 py-4 text-slate-500">{item.date}</td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
