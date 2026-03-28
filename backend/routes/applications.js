@@ -304,4 +304,65 @@ router.delete("/:id", authenticateToken, async (req, res) => {
     }
 });
 
+// POST /api/applications/:id/confirm-payment - Seeker confirms they got cash
+router.post("/:id/confirm-payment", authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const currentUserId = req.user.userId;
+
+        const application = await prisma.application.findUnique({
+            where: { id },
+            include: { job: true }
+        });
+
+        if (!application) {
+            return res.status(404).json({ message: "Application not found" });
+        }
+
+        if (application.applicantId !== currentUserId) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+
+        if (application.status !== "CASH_PENDING") {
+            return res.status(400).json({ message: "Application is not pending cash confirmation." });
+        }
+
+        const payment = await prisma.payment.findFirst({
+            where: {
+                jobId: application.jobId,
+                workerId: currentUserId,
+                paymentMethod: "CASH",
+                status: "CASH_PENDING"
+            }
+        });
+
+        if (!payment) {
+            return res.status(404).json({ message: "No pending cash payment found." });
+        }
+
+        // Update Payment to COMPLETED
+        await prisma.payment.update({
+            where: { id: payment.id },
+            data: { status: "COMPLETED" }
+        });
+
+        // Update Application to COMPLETED
+        await prisma.application.update({
+            where: { id: application.id },
+            data: { status: "COMPLETED" }
+        });
+
+        // Update Job to COMPLETED
+        await prisma.job.update({
+            where: { id: application.jobId },
+            data: { status: "COMPLETED" }
+        });
+
+        res.json({ message: "Payment confirmed. Job successfully finished." });
+    } catch (error) {
+        console.error("Confirm Payment Error:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
 module.exports = router;

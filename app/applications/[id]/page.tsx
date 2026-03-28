@@ -45,6 +45,7 @@ type ApplicationRecord = {
 
 const formatStatus = (status?: string | null) => {
   if (!status) return "";
+  if (status === "COMPLETED") return "Paid";
   return status
     .toLowerCase()
     .split("_")

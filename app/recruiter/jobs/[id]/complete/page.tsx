@@ -4,6 +4,7 @@
 import React, { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { toast } from "react-hot-toast";
 
 
 
@@ -61,6 +62,7 @@ function CompleteJobContent() {
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [showPaymentOptions, setShowPaymentOptions] = useState(false);
 
     // [API] Fetch Summary
     useEffect(() => {
@@ -85,7 +87,7 @@ function CompleteJobContent() {
     }, [jobId, workerId]);
 
     // [ACTIONS] Confirm Completion
-    const handleConfirm = async () => {
+    const handleConfirm = async (paymentMethod: "CASH" | "CARD") => {
         if (!summary) return;
         setSubmitting(true);
         try {
@@ -96,8 +98,16 @@ function CompleteJobContent() {
                     completionDate: summary.completionDate,
                     hoursWorked: summary.hoursWorked,
                     finalPayment: summary.finalPayment,
+                    paymentMethod,
                 }),
             });
+
+            if (paymentMethod === "CASH") {
+                setSuccess(true);
+                toast.success("Cash payment marked. The job seeker must confirm receipt.");
+                router.push(`/employer/create-job/my-postings`);
+                return;
+            }
 
             if (!data?.payhere?.action) {
                 throw new Error("PayHere checkout payload missing from server response");
@@ -106,7 +116,7 @@ function CompleteJobContent() {
             setSuccess(true);
             submitPayHereForm(data.payhere as PayHerePayload);
         } catch (err: any) {
-            alert(err.message);
+            toast.error(err.message || "Something went wrong.");
         } finally {
             setSubmitting(false);
         }
@@ -181,16 +191,43 @@ function CompleteJobContent() {
                     </p>
 
                     <div className="w-full space-y-3">
-                        <button
-                            onClick={handleConfirm}
-                            disabled={submitting || success}
-                            className={`w-full py-3.5 rounded-xl font-semibold transition-all ${success
-                                ? "bg-green-500 text-white"
-                                : "bg-[#6D83F2] hover:bg-[#5B73F1] text-white shadow-md shadow-[#6D83F2]/30"
-                                } disabled:opacity-70`}
-                        >
-                            {success ? "Completed successfully" : submitting ? "Processing..." : "Confirm Completion"}
-                        </button>
+                        {!showPaymentOptions ? (
+                            <button
+                                onClick={() => setShowPaymentOptions(true)}
+                                disabled={submitting || success}
+                                className="w-full py-3.5 rounded-xl font-semibold transition-all bg-[#6D83F2] hover:bg-[#5B73F1] text-white shadow-md shadow-[#6D83F2]/30 disabled:opacity-70"
+                            >
+                                {success ? "Completed successfully" : "Confirm Completion"}
+                            </button>
+                        ) : (
+                            <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <p className="text-sm text-gray-700 text-center font-medium mb-2">How are you making the final payment?</p>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={() => handleConfirm("CARD")}
+                                        disabled={submitting || success}
+                                        className="w-full py-3 px-4 rounded-xl font-semibold transition-all bg-white border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 flex flex-col items-center justify-center gap-1 disabled:opacity-70"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <svg className="w-5 h-5 text-[#6D83F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                                            <span>{submitting ? "Processing..." : "Pay via Card"}</span>
+                                        </div>
+                                        <span className="text-xs text-gray-500 font-normal">Secure checkout via PayHere</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleConfirm("CASH")}
+                                        disabled={submitting || success}
+                                        className="w-full py-3 px-4 rounded-xl font-semibold transition-all bg-white border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 flex flex-col items-center justify-center gap-1 disabled:opacity-70"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                            <span>Paid via Cash</span>
+                                        </div>
+                                        <span className="text-xs text-gray-500 font-normal">Job seeker must confirm receipt to finish</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

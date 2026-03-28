@@ -333,19 +333,34 @@ router.get("/jobs/:jobId/applicants", authenticateToken, requireRole(["EMPLOYER"
             take: Number(limit)
         });
 
+        // Fetch payments for this job to cross-reference with applicants
+        const applicantIds = applications.map(a => a.applicant.id);
+        const payments = await prisma.payment.findMany({
+            where: {
+                jobId,
+                workerId: { in: applicantIds },
+                status: { in: ["COMPLETED", "CASH_PENDING"] }
+            }
+        });
+
         const totalItems = await prisma.application.count({ where });
 
-        const formattedItems = applications.map(app => ({
-            applicationId: app.id,
-            applicantId: app.applicant.id,
-            name: `${app.applicant.firstName || ""} ${app.applicant.lastName || ""}`.trim() || "Anonymous",
-            title: app.applicant.seekerProfile?.title || "Candidate", // We don't have a 'jobTitle' in User model yet, can use seekerProfile title if exists
-            avatarUrl: getAvatarUrl(req, app.applicant.seekerProfile, app.applicant.id),
-            matchScore: app.matchScore || 0,
-            relevantSkillsCount: app.relevantSkillsCount || 0,
-            status: app.status,
-            appliedAt: app.appliedAt
-        }));
+        const formattedItems = applications.map(app => {
+            const payment = payments.find(p => p.workerId === app.applicant.id);
+            return {
+                applicationId: app.id,
+                applicantId: app.applicant.id,
+                name: `${app.applicant.firstName || ""} ${app.applicant.lastName || ""}`.trim() || "Anonymous",
+                title: app.applicant.seekerProfile?.title || "Candidate",
+                avatarUrl: getAvatarUrl(req, app.applicant.seekerProfile, app.applicant.id),
+                matchScore: app.matchScore || 0,
+                relevantSkillsCount: app.relevantSkillsCount || 0,
+                status: app.status,
+                appliedAt: app.appliedAt,
+                paymentAmount: payment ? payment.amount : null,
+                paymentMethod: payment ? payment.paymentMethod : null,
+            };
+        });
 
         res.status(200).json({
             job: { id: job.id, title: job.title },
@@ -560,7 +575,7 @@ router.get("/jobs/:jobId/completion-summary", authenticateToken, requireRole(["E
 router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), async (req, res) => {
     try {
         const { jobId } = req.params;
-        const { workerId, completionDate, hoursWorked, finalPayment } = req.body;
+        const { workerId, completionDate, hoursWorked, finalPayment, paymentMethod = "CARD" } = req.body;
         const userId = req.user.userId;
 
         const job = await prisma.job.findUnique({ where: { id: jobId } });
@@ -612,12 +627,64 @@ router.post("/jobs/:jobId/complete", authenticateToken, requireRole(["EMPLOYER",
         const currency = "LKR";
         const safeCompletionDate = completionDate ? new Date(completionDate) : new Date();
 
+        if (paymentMethod === "CASH") {
+            const payment = await prisma.payment.create({
+                data: {
+                    jobId,
+                    workerId,
+                    amount,
+                    currency,
+                    paymentMethod: "CASH",
+                    status: "CASH_PENDING",
+                    completionDate: Number.isNaN(safeCompletionDate.getTime()) ? new Date() : safeCompletionDate,
+                    hoursWorked: Number(hoursWorked),
+                }
+            });
+
+            await prisma.application.update({
+                where: { id: application.id },
+                data: { status: "CASH_PENDING" }
+            });
+
+            try {
+                const { createClient } = require("@supabase/supabase-js");
+                const sbUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+                const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                if (sbUrl && sbKey) {
+                    const sb = createClient(sbUrl, sbKey);
+                    const channel = sb.channel("global-application-notifications");
+                    channel.subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            channel.send({
+                                type: "broadcast",
+                                event: "new_application_update",
+                                payload: {
+                                    new: { id: application.id, status: "CASH_PENDING", applicantId: workerId },
+                                    old: { status: application.status }
+                                }
+                            })
+                            .then(() => sb.removeChannel(channel))
+                            .catch(err => console.error("Broadcast err:", err));
+                        }
+                    });
+                }
+            } catch (ignore) { }
+
+
+            return res.json({
+                message: "Cash payment marked as pending seeker confirmation.",
+                paymentId: payment.id,
+                cashFlow: true
+            });
+        }
+
         const payment = await prisma.payment.create({
             data: {
                 jobId,
                 workerId,
                 amount,
                 currency,
+                paymentMethod: "CARD",
                 status: "PENDING",
                 completionDate: Number.isNaN(safeCompletionDate.getTime()) ? new Date() : safeCompletionDate,
                 hoursWorked: Number(hoursWorked),

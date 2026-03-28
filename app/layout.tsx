@@ -6,6 +6,7 @@ import MainContentWrapper from "../components/MainContentWrapper";
 import AuthProvider from "./components/AuthProvider";
 import AutoRefresh from "../components/AutoRefresh";
 import { MessageNotificationProvider } from "@/lib/messaging/NotificationContext";
+import { ApplicationNotificationProvider } from "./components/ApplicationNotificationProvider";
 import { Toaster } from "react-hot-toast";
 
 export const metadata = {
@@ -19,13 +20,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-screen bg-bg text-[#111827] antialiased">
         <AuthProvider>
           <MessageNotificationProvider>
-            <AutoRefresh interval={3000} />
-            <div className="flex min-h-screen flex-col">
-              <HeaderWrapper />
-              <MainContentWrapper>{children}</MainContentWrapper>
-              <Footer />
-            </div>
-            <Toaster />
+            <ApplicationNotificationProvider>
+              <AutoRefresh interval={3000} />
+              <div className="flex min-h-screen flex-col">
+                <HeaderWrapper />
+                <MainContentWrapper>{children}</MainContentWrapper>
+                <Footer />
+              </div>
+              <Toaster />
+            </ApplicationNotificationProvider>
           </MessageNotificationProvider>
         </AuthProvider>
       </body>

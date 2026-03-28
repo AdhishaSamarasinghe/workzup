@@ -16,6 +16,8 @@ interface ApplicantItem {
     relevantSkillsCount: number;
     status: string;
     appliedAt: string;
+    paymentAmount?: number | null;
+    paymentMethod?: string | null;
 }
 
 interface ApplicantProfile {
@@ -229,6 +231,8 @@ export default function JobApplicantsPage() {
             case "CONTACTED": return "bg-[#e6fcf5] text-[#0ca678] border border-[#c3fae8]";
             case "SHORTLISTED": return "bg-[#edf2ff] text-[#4263eb] border border-[#dbe4ff]";
             case "HIRED": return "bg-[#ebfbee] text-[#2b8a3e] border border-[#d3f9d8]";
+            case "COMPLETED": return "bg-gray-800 text-white border border-gray-700";
+            case "CASH_PENDING": return "bg-yellow-50 text-yellow-700 border border-yellow-200";
             case "REJECTED": return "bg-[#fff5f5] text-[#fa5252] border border-[#ffe3e3]";
             default: return "bg-gray-100 text-gray-600";
         }
@@ -236,7 +240,10 @@ export default function JobApplicantsPage() {
 
     // [UI] Helper: Format Status Display
     const formatStatusDisplay = (status: string) => {
-        return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+        return status
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
     };
 
     const selectedApplicant = applicants.find(
@@ -419,7 +426,21 @@ export default function JobApplicantsPage() {
                                             <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 4l-8 5-8-5V6l8 5 8-5v2z" /></svg>
                                             {messaging ? "Opening..." : "Message"}
                                         </button>
-                                        {isSelectedApplicantHired ? (
+                                        {selectedApplicant?.status === "COMPLETED" || selectedApplicant?.status === "CASH_PENDING" ? (
+                                            <div className="flex-1 bg-gray-50 text-gray-700 py-2.5 rounded-xl font-semibold border-2 border-gray-200 flex items-center justify-center gap-2 cursor-default shrink-0 overflow-hidden px-3 relative">
+                                                <svg className="w-6 h-6 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
+                                                <div className="flex flex-col items-start truncate min-w-0">
+                                                    <span className="text-[14px] font-bold truncate block w-full text-left leading-tight text-gray-900">
+                                                        {selectedApplicant.status === "CASH_PENDING" ? "Verify Cash Details" : "Payment Confirmed"}
+                                                    </span>
+                                                    {selectedApplicant.paymentAmount && (
+                                                        <span className="text-[12px] text-gray-500 font-bold truncate block w-full text-left leading-tight mt-0.5">
+                                                            LKR {selectedApplicant.paymentAmount.toFixed(2)} ({selectedApplicant.paymentMethod === "CASH" ? "Cash" : "Card"})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : isSelectedApplicantHired ? (
                                             <button
                                                 onClick={handleComplete}
                                                 className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold border border-green-600 flex items-center justify-center gap-3 transition-all active:scale-95"

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { toast } from "react-hot-toast";
 
 type ApplicationListItem = {
   id: string;
@@ -27,6 +28,7 @@ type ApplicationListItem = {
 
 const formatStatus = (status?: string | null) => {
   if (!status) return "";
+  if (status === "COMPLETED") return "Paid";
   return status
     .toLowerCase()
     .split("_")
@@ -52,6 +54,7 @@ export default function ApplicationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [messageActionError, setMessageActionError] = useState<string | null>(null);
   const [messagingApplicationId, setMessagingApplicationId] = useState<string | null>(null);
+  const [confirmingCashId, setConfirmingCashId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -121,6 +124,27 @@ export default function ApplicationsPage() {
       setMessageActionError(message);
     } finally {
       setMessagingApplicationId(null);
+    }
+  };
+
+  const handleConfirmCash = async (applicationId: string) => {
+    try {
+      setConfirmingCashId(applicationId);
+      await apiFetch(`/api/applications/${applicationId}/confirm-payment`, {
+        method: "POST",
+      });
+      toast.success("Payment confirmed. Job successfully finished.");
+      
+      // Update local state
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.id === applicationId ? { ...app, status: "COMPLETED" } : app,
+        ),
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Failed to confirm cash receipt.");
+    } finally {
+      setConfirmingCashId(null);
     }
   };
 
@@ -210,6 +234,17 @@ export default function ApplicationsPage() {
                   >
                     {messagingApplicationId === application.id ? "Opening chat..." : "Message Recruiter"}
                   </button>
+                  {application.status === "CASH_PENDING" && (
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmCash(application.id)}
+                      disabled={confirmingCashId === application.id}
+                      className="rounded-xl bg-green-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-60 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+                      {confirmingCashId === application.id ? "Confirming..." : "Confirm Cash Received"}
+                    </button>
+                  )}
                   <Link
                     href={`/applications/${application.id}`}
                     className="rounded-xl border border-[#D1D5DB] px-4 py-2 text-sm font-semibold text-[#111827] transition hover:bg-[#F3F4F6]"

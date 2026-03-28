@@ -93,6 +93,21 @@ router.post("/notify", async (req, res) => {
         data: { status: "COMPLETED" },
       });
 
+      await prisma.application.updateMany({
+        where: { jobId: payment.jobId, applicantId: payment.workerId },
+        data: { status: "COMPLETED" },
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: payment.workerId,
+          type: "SYSTEM",
+          title: "Payment Received! 🎉",
+          message: `You have received a final payment of LKR ${Number(payment.amount).toFixed(2)} for completing the job.`,
+          linkUrl: "/jobseeker/profile",
+        },
+      });
+
       const workerProfile = await prisma.seekerProfile.findUnique({
         where: { userId: payment.workerId },
       });
