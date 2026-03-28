@@ -3,6 +3,46 @@ const prisma = require("../../prismaClient");
 const { authenticateToken, requireRole } = require("../../middleware/auth");
 const router = express.Router();
 
+const buildPublicFileUrl = (req, storedPath) => {
+    const normalizedPath = String(storedPath || "").trim().replace(/\\/g, "/").replace(/^\/+/, "");
+    if (!normalizedPath) return "";
+
+    if (
+        normalizedPath.startsWith("http://") ||
+        normalizedPath.startsWith("https://") ||
+        normalizedPath.startsWith("data:")
+    ) {
+        return normalizedPath;
+    }
+
+    const withApiPrefix = normalizedPath.startsWith("uploads/")
+        ? `api/${normalizedPath}`
+        : normalizedPath;
+
+    return `${req.protocol}://${req.get("host")}/${withApiPrefix}`;
+};
+
+const getAvatarFromSocialLinks = (socialLinks, userId) => {
+    let rawAvatar = "";
+
+    if (socialLinks && typeof socialLinks === "object" && socialLinks.avatarUrl) {
+        rawAvatar = String(socialLinks.avatarUrl);
+    } else if (typeof socialLinks === "string") {
+        try {
+            const parsed = JSON.parse(socialLinks);
+            if (parsed?.avatarUrl) {
+                rawAvatar = String(parsed.avatarUrl);
+            }
+        } catch (_error) {}
+    }
+
+    if (rawAvatar) {
+        return rawAvatar;
+    }
+
+    return `https://i.pravatar.cc/150?u=${userId}`;
+};
+
 // GET /api/admin/users - List all users
 router.get("/users", authenticateToken, requireRole(["ADMIN"]), async (req, res) => {
     try {
@@ -75,19 +115,38 @@ router.get("/metrics", authenticateToken, requireRole(["ADMIN"]), async (req, re
                                 ...recentJobs.map(j => ({ type: "JOB_CREATED", id: j.id, name: j.title, date: j.createdAt }))]
                                 .sort((a,b) => b.date - a.date).slice(0, 5);
 
+        const normalizedActivity = recentActivity.map((item) => ({
+            initials: String(item.name || "S").slice(0, 2).toUpperCase(),
+            name: item.name,
+            action: item.type === "JOB_CREATED"
+                ? `Created new job \"${item.name}\"`
+                : "Registered new account",
+            status: "Success",
+            date: new Date(item.date).toISOString(),
+        }));
+
+        const metricsPayload = {
+            users: totalUsers,
+            jobs: totalJobs,
+            active_jobs: activeJobs,
+            applications: totalApps,
+            payouts_completed: totalRevenue._sum.amount || 0,
+            recent_activity: normalizedActivity,
+            // Backward compatibility for older clients.
+            recentActivity,
+        };
+
         res.json({
             success: true,
-            metrics: {
-                users: totalUsers,
-                jobs: totalJobs,
-                active_jobs: activeJobs,
-                applications: totalApps,
-                payouts_completed: totalRevenue._sum.amount || 0,
-                recentActivity
-            }
+            data: {
+                metrics: metricsPayload,
+            },
+            // Backward compatibility for older clients.
+            metrics: metricsPayload,
         });
 
     } catch (error) {
+        console.error("Admin Metrics Error:", error);
         res.status(500).json({ success: false, message: "Server Error" });
     }
 });
@@ -150,10 +209,47 @@ router.get("/verifications", authenticateToken, requireRole(["ADMIN"]), async (r
 
         const users = await prisma.user.findMany({
             where: whereclause,
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+                isVerified: true,
+                isBanned: true,
+                createdAt: true,
+                updatedAt: true,
+                verificationStatus: true,
+                verificationNotes: true,
+                cv: true,
+                idDocument: true,
+                idFront: true,
+                idBack: true,
+                seekerProfile: {
+                    select: {
+                        socialLinks: true,
+                    },
+                },
+            },
             orderBy: { createdAt: 'desc' }
         });
-        res.json({ success: true, data: users });
+
+        const mappedUsers = users.map((user) => {
+            const avatarPath = getAvatarFromSocialLinks(user.seekerProfile?.socialLinks, user.id);
+            return {
+                ...user,
+                cv: user.cv ? buildPublicFileUrl(req, user.cv) : "",
+                idDocument: user.idDocument ? buildPublicFileUrl(req, user.idDocument) : "",
+                idFront: user.idFront ? buildPublicFileUrl(req, user.idFront) : "",
+                idBack: user.idBack ? buildPublicFileUrl(req, user.idBack) : "",
+                avatarUrl: buildPublicFileUrl(req, avatarPath),
+                seekerProfile: undefined,
+            };
+        });
+
+        res.json({ success: true, data: mappedUsers });
     } catch (error) {
+        console.error("Admin Verifications Error:", error);
         res.status(500).json({ success: false, message: "Server Error" });
     }
 });

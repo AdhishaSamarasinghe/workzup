@@ -17,7 +17,7 @@ router.get("/users", authenticateToken, requireRole(["ADMIN"]), async (req, res)
             }
         });
 
-        res.json({ users });
+        res.json({ success: true, data: users });
     } catch (error) {
         console.error("Admin Users Error:", error);
         res.status(500).json({ message: "Server Error" });
@@ -54,13 +54,58 @@ router.get("/metrics", authenticateToken, requireRole(["ADMIN"]), async (req, re
             where: { status: "COMPLETED" }
         });
 
+        // Generate Recent Activity from DB
+        const recentJobs = await prisma.job.findMany({
+            take: 4,
+            orderBy: { createdAt: "desc" },
+            include: { employer: true }
+        });
+        const recentUsers = await prisma.user.findMany({
+            take: 4,
+            orderBy: { createdAt: "desc" }
+        });
+
+        const activity = [];
+        recentJobs.forEach(job => {
+            const name = `${job.employer?.firstName || ""} ${job.employer?.lastName || ""}`.trim() || 'System';
+            activity.push({
+                initials: name.substring(0, 2).toUpperCase() || "J",
+                name: name,
+                action: `Created new job "${job.title}"`,
+                status: job.status === 'PUBLIC' ? 'Success' : 'Pending',
+                date: job.createdAt
+            });
+        });
+
+        recentUsers.forEach(user => {
+            const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || 'User';
+            activity.push({
+                initials: name.substring(0, 2).toUpperCase() || "U",
+                name: name,
+                action: `Registered as ${(user.role || 'USER').replace("_", " ")}`,
+                status: user.isVerified ? 'Success' : 'Pending',
+                date: user.createdAt
+            });
+        });
+
+        // Sort by newest first
+        activity.sort((a, b) => b.date.getTime() - a.date.getTime());
+        const recent_activity = activity.slice(0, 5).map(item => ({
+            ...item,
+            date: item.date.toISOString() // Frontend will format this
+        }));
+
         res.json({
-            metrics: {
-                users: totalUsers,
-                jobs: totalJobs,
-                active_jobs: activeJobs,
-                applications: totalApps,
-                payouts_completed: totalRevenue._sum.amount || 0
+            success: true,
+            data: {
+                metrics: {
+                    users: totalUsers,
+                    jobs: totalJobs,
+                    active_jobs: activeJobs,
+                    applications: totalApps,
+                    payouts_completed: totalRevenue._sum.amount || 0,
+                    recent_activity
+                }
             }
         });
 
