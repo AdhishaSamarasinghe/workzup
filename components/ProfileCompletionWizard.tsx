@@ -52,7 +52,7 @@ type SaveUpdates =
     | { languages: string[] }
     | { availableTimes: string }
     | { education: EducationItem[] }
-    | { paymentDetails: any };
+    | { paymentDetails: ProfileDataProp["paymentDetails"] };
 
 interface ProfileCompletionWizardProps {
     profile: ProfileDataProp;
