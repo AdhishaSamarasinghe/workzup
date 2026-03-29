@@ -198,6 +198,11 @@ export default function JobSeekerRegisterPage() {
             return;
         }
 
+        if (formData.password.length < 6) {
+            setError("Password must be at least 6 characters.");
+            return;
+        }
+
         if (!sentVerificationCode) {
             setError("Please send the verification code first.");
             return;
@@ -243,7 +248,11 @@ export default function JobSeekerRegisterPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.message || "Registration failed.");
+                const backendMessage =
+                    data?.message && data.message !== "Internal Server Error"
+                        ? data.message
+                        : data?.error;
+                throw new Error(backendMessage || "Registration failed.");
             }
 
             setSuccessMsg("Registration completed successfully");

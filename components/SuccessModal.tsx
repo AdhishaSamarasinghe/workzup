@@ -6,13 +6,15 @@ interface SuccessModalProps {
     onClose?: () => void;
     title?: string;
     message?: React.ReactNode;
+    loginHref?: string;
 }
 
 export default function SuccessModal({
     isOpen,
     onClose,
     title = "Account Created Successfully!",
-    message
+    message,
+    loginHref = "/auth/login",
 }: SuccessModalProps) {
     if (!isOpen) return null;
 
@@ -54,7 +56,7 @@ export default function SuccessModal({
                 {/* Action Buttons */}
                 <div className="flex justify-center">
                     <Link
-                        href="/auth/login"
+                        href={loginHref}
                         className="w-full sm:w-2/3 rounded-2xl bg-[#6B8BFF] px-8 py-4 text-lg font-bold text-white transition-colors hover:bg-[#5A75D9]"
                         onClick={onClose}
                     >

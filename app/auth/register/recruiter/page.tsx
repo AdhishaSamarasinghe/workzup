@@ -209,6 +209,11 @@ export default function RecruiterRegisterPage() {
             return;
         }
 
+        if (formData.password.length < 6) {
+            setError("Password must be at least 6 characters.");
+            return;
+        }
+
         if (!sentVerificationCode) {
             setError("Please send the verification code first.");
             return;
@@ -263,7 +268,11 @@ export default function RecruiterRegisterPage() {
             }
 
             if (!res.ok) {
-                throw new Error(data.message || "Registration failed");
+                const backendMessage =
+                    data?.message && data.message !== "Internal Server Error"
+                        ? data.message
+                        : data?.error;
+                throw new Error(backendMessage || "Registration failed");
             }
 
             setSuccessMsg("Registration completed successfully");
@@ -289,6 +298,7 @@ export default function RecruiterRegisterPage() {
                 isOpen={showSuccessModal}
                 onClose={() => setShowSuccessModal(false)}
                 title="Recruiter Account Created!"
+                loginHref="/auth/login/recruiter"
                 message={
                     <>
                         <p>Your recruiter account has been created successfully.</p>

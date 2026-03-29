@@ -179,10 +179,12 @@ async function authenticateToken(req, res, next) {
         }
       }
 
+      const effectiveUserId = dbUser?.id || authUserId;
+
       req.user = {
-        userId: authUserId,
-        id: authUserId,
-        sub: authUserId,
+        userId: effectiveUserId,
+        id: effectiveUserId,
+        sub: effectiveUserId,
         role:
           normalizeRole(dbUser?.role) ||
           normalizeRole(data.user.app_metadata?.role) ||
@@ -237,8 +239,43 @@ function requireRole(allowedRoles) {
       }
 
       const userId = req.user.userId || req.user.id || req.user.sub;
+      const userEmail =
+        typeof req.user?.email === "string"
+          ? req.user.email.trim().toLowerCase()
+          : "";
 
       // Fallback: check database directly in case Supabase token role is stale
+      if (userId || userEmail) {
+        let dbUser = null;
+
+        if (userId) {
+          dbUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, role: true },
+          });
+        }
+
+        if (!dbUser && userEmail) {
+          dbUser = await prisma.user.findUnique({
+            where: { email: userEmail },
+            select: { id: true, role: true },
+          });
+        }
+
+        if (dbUser?.id) {
+          req.user.userId = dbUser.id;
+          req.user.id = dbUser.id;
+          req.user.sub = dbUser.id;
+        }
+
+        const dbRole = normalizeRole(dbUser?.role);
+
+        if (normalizedAllowedRoles.includes(dbRole)) {
+            req.user.role = dbRole;
+            return next();
+        }
+      }
+
       if (userId) {
         const dbUser = await prisma.user.findUnique({
           where: { id: userId },
@@ -247,8 +284,8 @@ function requireRole(allowedRoles) {
         const dbRole = normalizeRole(dbUser?.role);
         
         if (normalizedAllowedRoles.includes(dbRole)) {
-            req.user.role = dbRole;
-            return next();
+          req.user.role = dbRole;
+          return next();
         }
       }
 

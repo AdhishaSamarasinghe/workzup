@@ -37,7 +37,10 @@ export default function CreateJobPage() {
         setIsVerified(profile.isVerified || false);
         setVerificationStatus(profile.verificationStatus || "PENDING");
       } catch (error) {
-        console.error("Error fetching profile:", error);
+        const message = error instanceof Error ? error.message : String(error || "");
+        if (!/User not found/i.test(message)) {
+          console.warn("Profile prefetch failed:", error);
+        }
         if (isMounted) {
           setIsVerified(true); // Default to verified to avoid blocking
         }
