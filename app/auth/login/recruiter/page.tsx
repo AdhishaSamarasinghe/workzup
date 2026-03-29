@@ -62,6 +62,9 @@ export default function JobRecruiterLoginPage() {
                 }
             } catch (err) {
                 console.warn("Check status failed:", err);
+                setError("Unable to verify account role right now. Please try again.");
+                setLoading(false);
+                return;
             }
 
             try {
