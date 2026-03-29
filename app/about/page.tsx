@@ -1,6 +1,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import AnimatedLogo from './AnimatedLogo';
 
 const AboutPage = () => {
     return (
@@ -27,9 +28,22 @@ const AboutPage = () => {
                     </div>
                 </div>
                 <div className="flex-1 w-full">
-                    {/* Placeholder for Hero Image */}
-                    <div className="w-full h-75 md:h-100 bg-linear-to-br from-[#A7D7C5] to-[#74B49B] rounded-2xl shadow-sm relative overflow-hidden">
-                        <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]"></div>
+                    {/* Hero Video */}
+                    <div className="w-full h-75 md:h-100 rounded-2xl shadow-sm overflow-hidden bg-[#A7D7C5] relative">
+                        <video
+                            src="/UI.mp4"
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            className="w-full h-full object-cover"
+                        />
+                        {/* Dark translucent overlay */}
+                        <div className="absolute inset-0 bg-black/50" />
+                        {/* Centered logo with motion */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <AnimatedLogo />
+                        </div>
                     </div>
                 </div>
             </section>
