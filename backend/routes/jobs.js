@@ -291,12 +291,27 @@ router.post("/", authenticateToken, requireRole(["EMPLOYER", "RECRUITER"]), asyn
       if (!title?.trim()) return res.status(400).json({ message: "Job title is required" });
     }
 
-    const employerId = req.user.userId;
-
-    const employer = await prisma.user.findUnique({
-      where: { id: employerId },
+    let employer = await prisma.user.findUnique({
+      where: { id: req.user.userId },
       select: { isVerified: true, verificationStatus: true },
     });
+
+    let employerId = req.user.userId;
+
+    if (!employer && req.user?.email) {
+      const employerByEmail = await prisma.user.findUnique({
+        where: { email: String(req.user.email).trim().toLowerCase() },
+        select: { id: true, isVerified: true, verificationStatus: true },
+      });
+
+      if (employerByEmail) {
+        employerId = employerByEmail.id;
+        employer = {
+          isVerified: employerByEmail.isVerified,
+          verificationStatus: employerByEmail.verificationStatus,
+        };
+      }
+    }
 
     if (!employer) {
       return res.status(404).json({ message: "User not found" });
