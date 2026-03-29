@@ -297,7 +297,7 @@ export default function JobSeekerRegisterPage() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
-                className="relative z-10 flex flex-1 w-full flex-col justify-center items-center p-4 sm:p-8 pt-24 pb-12 overflow-y-auto"
+                className="relative z-10 flex flex-1 w-full flex-col justify-center items-center p-4 sm:p-8 pt-0 pb-12 overflow-y-auto"
             >
                 {/* The Card Form container */}
                 <div className="w-full max-w-[700px] bg-white rounded-xl shadow-2xl shadow-blue-900/20 p-8 sm:p-10 relative my-auto shrink-0">

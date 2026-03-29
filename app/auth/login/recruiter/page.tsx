@@ -96,7 +96,7 @@ export default function JobRecruiterLoginPage() {
                 <h3 className="text-[32px] font-bold leading-tight tracking-tight">Hire Better, Faster</h3>
             </div>
 
-            <div className="relative z-10 flex flex-1 w-full flex-col justify-center items-center p-4 sm:p-8 pt-24 pb-12 overflow-y-auto">
+            <div className="relative z-10 flex flex-1 w-full flex-col justify-center items-center p-4 sm:p-8 pt-0 pb-12 overflow-y-auto">
                 {/* The Card Form container */}
                 <div className="w-full max-w-[500px] bg-white rounded-xl shadow-2xl shadow-blue-900/20 p-8 sm:p-10 relative my-auto shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
 

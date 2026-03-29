@@ -97,7 +97,7 @@ export default function JobSeekerLoginPage() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
-                className="relative z-10 flex flex-1 w-full flex-col justify-center items-center p-4 sm:p-8 pt-24"
+                className="relative z-10 flex flex-1 w-full flex-col justify-center items-center p-4 sm:p-8 pt-0"
             >
                 {/* The Card Form container */}
                 <div className="w-full max-w-[500px] bg-white rounded-xl shadow-2xl shadow-blue-900/20 p-8 sm:p-10 relative">
