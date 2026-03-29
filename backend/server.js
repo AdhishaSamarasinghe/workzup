@@ -156,6 +156,13 @@ try {
 } catch (_) {}
 
 try {
+  const sendOtpResendRoute = require("./routes/sendOtpResend");
+  app.use("/api/auth", sendOtpResendRoute);
+} catch (err) {
+  console.error("Failed to load sendOtpResend route:", err);
+}
+
+try {
   const recruiterRoutes = require("./routes/recruiter");
   app.use("/api/recruiter", recruiterRoutes);
 } catch (_) {}

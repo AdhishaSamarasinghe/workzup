@@ -719,10 +719,12 @@ const otpStore = new Map();
 // POST /api/auth/send-otp
 router.post("/send-otp", async (req, res) => {
   try {
+    console.log("[OTP] /api/auth/send-otp called", req.body);
     const { email } = req.body || {};
     const normalizedEmail = String(email || "").trim().toLowerCase();
 
     if (!normalizedEmail || !normalizedEmail.includes("@")) {
+      console.warn("[OTP] Invalid email received:", email);
       return res.status(400).json({ message: "Email is required" });
     }
 
@@ -732,15 +734,18 @@ router.post("/send-otp", async (req, res) => {
       expiresAt: Date.now() + 10 * 60 * 1000,
     });
 
+    console.log(`[OTP] Sending OTP to: ${normalizedEmail}, OTP: ${otp}`);
     const emailSent = await sendOTP(normalizedEmail, otp, false);
     if (!emailSent) {
+      console.error(`[OTP] Failed to send OTP email for: ${normalizedEmail}`);
       return res.status(500).json({ message: "Failed to send OTP email" });
     }
 
+    console.log(`[OTP] OTP sent successfully to: ${normalizedEmail}`);
     return res.json({ success: true, message: "OTP sent successfully" });
   } catch (error) {
-    console.error("Send Register OTP Error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error("[OTP] Send Register OTP Error:", error);
+    return res.status(500).json({ message: process.env.NODE_ENV === "development" ? `Internal server error: ${error.message}` : "Internal server error" });
   }
 });
 

@@ -111,27 +111,27 @@ export default function JobSeekerRegisterPage() {
 
         setOtpLoading(true);
         try {
-            const res = await fetch("/api/auth/send-otp", {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+            const url = apiBase ? `${apiBase}/api/auth/send-otp` : "/api/auth/send-otp";
+            console.log("[OTP] Sending OTP to:", email, "URL:", url);
+            const res = await fetch(url, {
                 method: "POST",
                 body: JSON.stringify({ email }),
                 headers: { "Content-Type": "application/json" }
             });
 
             const data = await res.json();
-
             if (!res.ok || !data.success) {
+                console.error("[OTP] Failed to send OTP:", data);
                 throw new Error(data.message || "Failed to send verification code");
             }
 
-            // Since we aren't sending back the real code in production for security, 
-            // the form was previously saving it to `sentVerificationCode` locally for verification.
-            // But now we verify on the server. So we will just set a dummy flag.
             setSentVerificationCode("WAITING_FOR_SERVER_VERIFICATION");
             setResendCountdown(60);
             setIsCodeVerified(false);
             setVerificationMsg("Verification code sent");
         } catch (error: any) {
-            console.warn("Failed to send OTP:", error);
+            console.warn("[OTP] Failed to send OTP:", error);
             setError(error.message || "Failed to send verification code.");
         } finally {
             setOtpLoading(false);
