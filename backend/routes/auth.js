@@ -251,7 +251,14 @@ router.post("/register", (req, res, next) => {
     });
   } catch (error) {
     console.error("Register Error:", error);
-    res.status(500).json({ message: "Internal Server Error", error: error.message });
+    const rawMessage = String(error?.message || "").trim();
+    const isConflict = /already used|already registered|email.*exists|duplicate|unique constraint/i.test(rawMessage);
+    const isValidationIssue = /required|invalid|password|email|upload|file|too large|supports/i.test(rawMessage);
+    const statusCode = isConflict ? 409 : isValidationIssue ? 400 : 500;
+
+    res.status(statusCode).json({
+      message: rawMessage || "Internal Server Error",
+    });
   }
 });
 
@@ -440,7 +447,7 @@ router.post("/oauth-sync", authenticateToken, async (req, res) => {
 // GET /api/auth/profile
 router.get("/profile", authenticateToken, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: req.user.userId },
       include: {
         seekerProfile: true,
@@ -452,6 +459,21 @@ router.get("/profile", authenticateToken, async (req, res) => {
         }
       }
     });
+
+    if (!user && req.user?.email) {
+      user = await prisma.user.findUnique({
+        where: { email: String(req.user.email).trim().toLowerCase() },
+        include: {
+          seekerProfile: true,
+          receivedReviews: {
+            include: { reviewer: true }
+          },
+          applications: {
+            include: { job: { include: { company: true } } }
+          }
+        }
+      });
+    }
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
