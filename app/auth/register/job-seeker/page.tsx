@@ -290,7 +290,7 @@ export default function JobSeekerRegisterPage() {
             {/* Left Fixed Text */}
             <div className="absolute z-20 bottom-16 left-12 text-white hidden lg:block max-w-[400px]">
                 <p className="text-[10px] uppercase tracking-[0.35em] text-blue-100/90 font-bold mb-1">WORKZUP</p>
-                <h3 className="text-[32px] font-bold leading-tight tracking-tight">Start Building Your Career</h3>
+                <h3 className="text-[32px] font-bold leading-tight tracking-tight">Land Your Next Role</h3>
             </div>
 
             <motion.div
