@@ -99,7 +99,7 @@ export default function AdminDashboardPage() {
               <h3 className="text-lg font-semibold text-slate-900">
                 Recent Activity
               </h3>
-              <button className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+              <button className="btn-primary text-sm">
                 View All
               </button>
             </div>

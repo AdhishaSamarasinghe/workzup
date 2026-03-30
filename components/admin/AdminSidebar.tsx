@@ -152,7 +152,7 @@ export default function AdminSidebar() {
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-base font-medium text-rose-500 transition hover:bg-rose-50"
+              className="btn-primary flex w-full items-center gap-3 px-4 py-4 text-left text-base font-medium transition"
             >
               <LogOut size={20} />
               <span>Sign Out</span>
