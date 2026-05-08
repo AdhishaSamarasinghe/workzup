@@ -499,7 +499,7 @@ function BrowseJobsPageContent() {
 
   return (
     <div className="min-h-screen bg-[#f7fafc]">
-      <section className="relative z-20 h-[560px] w-full">
+      <section className="relative z-20 flex min-h-[100svh] w-full flex-col md:block md:h-[560px] md:min-h-[560px]">
         <div className="absolute inset-0 overflow-hidden">
           <video
             autoPlay
@@ -515,7 +515,7 @@ function BrowseJobsPageContent() {
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(180deg,rgba(10,15,25,0)_0%,rgba(247,250,252,0.18)_38%,rgba(247,250,252,0.72)_74%,rgba(247,250,252,1)_100%)]" />
         </div>
 
-        <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-6 text-center">
+        <div className="relative z-10 mx-auto flex flex-1 w-full max-w-6xl flex-col justify-center px-6 pt-32 pb-16 text-center md:h-full md:pt-0 md:pb-0">
           <h1 className="mx-auto max-w-3xl text-4xl font-bold text-white md:text-6xl">
             Find your next Gig
           </h1>

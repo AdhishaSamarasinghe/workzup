@@ -33,11 +33,11 @@ export default function PublicHeader({ alwaysSolid = false }: { alwaysSolid?: bo
                 : "bg-transparent py-5"
                 }`}
         >
-            <div className="mx-auto grid w-full max-w-7xl grid-cols-[auto_1fr] items-center gap-3 px-4 sm:px-6 md:grid-cols-[1fr_auto_1fr] md:gap-0 lg:px-8">
+            <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-y-3 px-4 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr] md:gap-0 lg:px-8">
                 {/* Logo */}
                 <Link href="/" className="flex items-center justify-self-start">
                     <div className={`transition-all duration-500 ${!isScrolled ? 'brightness-0 invert drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]' : ''}`}>
-                        <Image src="/logo_main.png" alt="WorkzUp" width={140} height={32} priority className="h-auto w-auto max-w-[120px] md:max-w-[140px]" />
+                        <Image src="/logo_main.png" alt="WorkzUp" width={140} height={32} priority className="h-auto w-auto max-w-[100px] sm:max-w-[120px] md:max-w-[140px]" />
                     </div>
                 </Link>
 
@@ -56,25 +56,27 @@ export default function PublicHeader({ alwaysSolid = false }: { alwaysSolid?: bo
 
 
                 {/* Auth Buttons */}
-                <div className="col-start-2 flex items-center justify-end gap-3 md:col-start-3 md:gap-4 md:justify-self-end">
+                <div className="flex items-center justify-end gap-2 md:col-start-3 md:gap-4 md:justify-self-end">
                     <Link
                         href="/auth/login"
-                        className={`px-5 py-2 md:px-6 md:py-2.5 rounded-md font-semibold text-xs md:text-sm tracking-wide transition-all duration-300 ${isScrolled
+                        className={`px-3 py-2 md:px-6 md:py-2.5 rounded-md font-semibold text-[10px] md:text-sm tracking-wide transition-all duration-300 text-center ${isScrolled
                             ? 'bg-[#6b8cff] text-white shadow-md hover:bg-[#5b72c9] hover:shadow-lg hover:-translate-y-0.5'
                             : 'bg-white/10 text-white backdrop-blur-md border border-white/30 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-white/25 hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] hover:-translate-y-0.5'
                             }`}
                     >
-                        JOB SEEKER LOGIN
+                        <span className="sm:hidden">SEEKER<br />LOGIN</span>
+                        <span className="hidden sm:inline">JOB SEEKER LOGIN</span>
                     </Link>
 
                     <Link
                         href="/auth/login/recruiter"
-                        className={`px-5 py-2 md:px-6 md:py-2.5 rounded-md font-semibold text-xs md:text-sm tracking-wide transition-all duration-300 ${isScrolled
+                        className={`px-3 py-2 md:px-6 md:py-2.5 rounded-md font-semibold text-[10px] md:text-sm tracking-wide transition-all duration-300 text-center ${isScrolled
                             ? 'bg-[#5b72c9] text-white shadow-md hover:bg-[#4a5fb8] hover:shadow-lg hover:-translate-y-0.5'
                             : 'bg-white/10 text-white backdrop-blur-md border border-white/30 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-white/25 hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] hover:-translate-y-0.5'
                             }`}
                     >
-                        RECRUITERS LOGIN
+                        <span className="sm:hidden">RECRUITER<br />LOGIN</span>
+                        <span className="hidden sm:inline">RECRUITERS LOGIN</span>
                     </Link>
                 </div>
             </div>
